@@ -1,0 +1,21 @@
+---
+description: TypeScript conventions for RetroPaint
+globs: src/**/*.ts
+alwaysApply: false
+---
+
+# TypeScript
+
+Strict TypeScript. Prefer small modules with named exports.
+
+```ts
+// ❌ BAD
+function paint(ctx: any, tool: any) {}
+
+// ✅ GOOD
+export function paintSegment(ctx: CanvasRenderingContext2D, segment: Segment): void {}
+```
+
+- No `any` unless a library ships without types; narrow it at the boundary.
+- Keep drawing state in `src/state.ts`. Pass `now` into animation sampling so GIF export can render frames without the wall clock.
+- Pixel tools (fill, filters, black hole) operate on the 960×640 backing store, not CSS pixels.

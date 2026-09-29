@@ -1,0 +1,16 @@
+---
+description: Node build and GitHub Pages deploy rules
+alwaysApply: true
+---
+
+# Build and GitHub Pages
+
+Node runs the dev server and the production compile.
+
+- `npm run dev` — Vite on port **8080**
+- `npm run build` — `tsc --noEmit`, then Vite into `dist/`
+- `base` in `vite.config.ts` stays `./` so Pages can serve the compiled site
+- Do not commit `dist/`. `.github/workflows/pages.yml` compiles and publishes it on every push to `main` or `master`
+- Pages source is GitHub Actions, not a hand-copied folder
+
+Do not add test runners, test files, or extra GitHub workflows. The Pages workflow is the only automation.

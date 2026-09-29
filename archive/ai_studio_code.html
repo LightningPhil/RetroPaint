@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Dazzle - Ultimate Tactile Sandbox</title>
+<style>
+  :root {
+    --bg-color: #E0F4FF; --border-color: #1A1A1A; --panel-bg: #FFFFFF;
+    --btn-shadow: 4px 4px 0px var(--border-color); --btn-shadow-active: 0px 0px 0px var(--border-color);
+  }
+  body, html {
+    margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
+    background-color: var(--bg-color);
+    background-image: radial-gradient(#39C0ED 2px, transparent 2px), radial-gradient(#39C0ED 2px, transparent 2px);
+    background-size: 40px 40px; background-position: 0 0, 20px 20px;
+    font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+    user-select: none; -webkit-user-select: none; touch-action: none;
+  }
+  #canvasWrapper {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 900px; height: 650px; background: #ffffff;
+    border: 8px solid var(--border-color); border-radius: 16px;
+    box-shadow: 15px 15px 0px rgba(0,0,0,0.2); overflow: hidden; z-index: 1;
+  }
+  canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; touch-action: none; }
+  #uiCanvas { pointer-events: none; z-index: 2; }
+  
+  /* Layout Geography */
+  #leftToolBin {
+    position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 8px; z-index: 10; max-height: 90%; overflow-y: auto; padding: 5px;
+  }
+  .tool-btn {
+    width: 70px; height: 70px; font-family: inherit; font-size: 11px; font-weight: bold;
+    border: 4px solid var(--border-color); border-radius: 16px;
+    background: var(--panel-bg); color: var(--border-color); box-shadow: var(--btn-shadow);
+    cursor: pointer; transition: all 0.1s; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .tool-btn span { font-size: 24px; margin-bottom: 2px; }
+  .tool-btn:active, .tool-btn.active { transform: translate(4px, 4px); box-shadow: var(--btn-shadow-active); background: #FFD166; }
+  .tool-btn.destructive.active { background: #1A1A1A; color: white; }
+  .tool-btn.magic.active { background: #9D4EDD; color: white; }
+
+  .floating-panel {
+    position: absolute; background: var(--panel-bg); border: 5px solid var(--border-color);
+    border-radius: 16px; box-shadow: var(--btn-shadow); display: none; flex-direction: column; gap: 10px; z-index: 20; padding: 15px;
+  }
+
+  #bottomTray {
+    position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; gap: 10px; z-index: 10; width: max-content;
+  }
+  .tray-tabs { display: flex; gap: 5px; border-bottom: 4px solid #eee; padding-bottom: 5px; }
+  .tray-tab { flex: 1; padding: 6px 12px; font-weight: bold; border: 4px solid transparent; border-radius: 10px; cursor: pointer; font-family: inherit; background: transparent; }
+  .tray-tab.active { background: #118AB2; color: white; border-color: var(--border-color); box-shadow: 3px 3px 0 var(--border-color); }
+  .tray-grid { display: flex; gap: 8px; align-items: center; }
+  
+  .color-btn { width: 40px; height: 40px; border-radius: 50%; border: 4px solid var(--border-color); box-shadow: 3px 3px 0 var(--border-color); cursor: pointer; transition: transform 0.1s; background-size: cover;}
+  .color-btn.square { border-radius: 8px; }
+  .color-btn:active { transform: scale(0.9) translate(3px, 3px); box-shadow: 0 0 0 var(--border-color); }
+  .color-btn.selected { transform: scale(1.15) translateY(-5px); box-shadow: 5px 8px 0 var(--border-color); border-color: #fff; outline: 3px solid var(--border-color); }
+
+  /* Conveyor Belt UI */
+  .belt-track { display: flex; gap: 5px; background: #eee; padding: 8px; border-radius: 20px; border: inset 4px rgba(0,0,0,0.1); align-items: center;}
+  .belt-slot { width: 30px; height: 30px; border-radius: 50%; background: #ccc; border: 2px solid #999; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.3); transition: background 0.2s;}
+  .belt-controls { display: flex; flex-direction: column; gap: 5px; margin-left: 10px; border-left: 3px solid #ccc; padding-left: 10px;}
+  .throttle { appearance: none; width: 80px; height: 10px; background: var(--border-color); border-radius: 5px; }
+  .throttle::-webkit-slider-thumb { appearance: none; width: 20px; height: 20px; background: #FF9F1C; border: 3px solid var(--border-color); border-radius: 4px; cursor: pointer; }
+  .toggle-btn { font-size: 10px; font-weight: bold; padding: 4px; border: 2px solid var(--border-color); border-radius: 6px; cursor: pointer; }
+
+  /* Top Right & Modals */
+  #topRight { position: absolute; top: 15px; right: 15px; display: flex; gap: 10px; z-index: 10; }
+  .action-btn { font-family: inherit; font-weight: bold; border: 4px solid var(--border-color); border-radius: 12px; box-shadow: var(--btn-shadow); cursor: pointer; padding: 10px 15px; font-size: 16px; display: flex; align-items: center; gap: 5px; }
+  .action-btn:active { transform: translate(4px, 4px); box-shadow: var(--btn-shadow-active); }
+  
+  .sub-menu { left: 95px; top: 50%; transform: translateY(-50%); width: 320px; }
+  .stamp-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; max-height: 300px; overflow-y: auto; }
+  .stamp-item { font-size: 28px; display: flex; align-items: center; justify-content: center; width: 45px; height: 45px; border: 3px solid transparent; border-radius: 10px; cursor: pointer; background: #f9f9f9; }
+  .stamp-item.selected { background: #FF9F1C; border-color: var(--border-color); transform: scale(1.1); }
+  
+  /* Accessibility Switch Mode */
+  .scan-focus { outline: 6px solid #FFD166 !important; outline-offset: 4px !important; box-shadow: 0 0 15px #FFD166 !important; z-index: 999; }
+  .quadrant { position: absolute; border: 4px dashed rgba(0,0,0,0.1); pointer-events: none; z-index: 5; }
+
+  #modalBg { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.6); display:none; z-index: 1000; justify-content: center; align-items: center;}
+  .modal-box { background: white; padding: 30px; border: 8px solid var(--border-color); border-radius: 20px; box-shadow: 10px 10px 0 var(--border-color); text-align: center; }
+</style>
+</head>
+<body>
+
+<div id="canvasWrapper">
+  <canvas id="mainCanvas"></canvas>
+  <canvas id="uiCanvas"></canvas>
+  <div id="quads"></div>
+</div>
+
+<!-- Left Toolbar -->
+<div id="leftToolBin">
+  <button class="tool-btn active" data-tool="brush"><span>🖌️</span>Brush</button>
+  <button class="tool-btn" data-tool="callig"><span>🖋️</span>Callig</button>
+  <button class="tool-btn" data-tool="shapes"><span>🟦</span>Shapes</button>
+  <button class="tool-btn magic" data-tool="spray"><span>💨</span>Spray</button>
+  <button class="tool-btn" data-tool="bucket"><span>🪣</span>Bucket</button>
+  <button class="tool-btn magic" data-tool="wand"><span>✨</span>Wand</button>
+  <button class="tool-btn" data-tool="sponge"><span>🧽</span>Smudge</button>
+  <button class="tool-btn destructive" data-tool="scissors"><span>✂️</span>Lasso</button>
+  <button class="tool-btn destructive" data-tool="eraser"><span>🌪️</span>Eraser</button>
+  <button class="tool-btn" data-tool="stamp"><span>🤖</span>Stamp</button>
+  <button class="tool-btn magic" data-tool="symmetry"><span>❄️</span>Symm</button>
+  <button class="tool-btn magic" data-tool="spiro"><span>⚙️</span>Spiro</button>
+</div>
+
+<!-- Sub Menus -->
+<div id="shapesDrawer" class="floating-panel sub-menu">
+  <label style="font-weight:bold;">Shape Mode:</label>
+  <div class="tray-grid">
+    <button class="action-btn active" data-shape="line">📏 Line</button>
+    <button class="action-btn" data-shape="rect">🟦 Rect</button>
+    <button class="action-btn" data-shape="circ">🔵 Circle</button>
+  </div>
+</div>
+
+<div id="stampDrawer" class="floating-panel sub-menu">
+  <div class="tray-tabs">
+    <button class="tray-tab active" data-target="grid-stamps">Stamps</button>
+    <button class="tray-tab" data-target="grid-custom">My Cuts</button>
+  </div>
+  <div id="grid-stamps" class="stamp-grid"></div>
+  <div id="grid-custom" class="stamp-grid" style="display:none;"></div>
+</div>
+
+<!-- Material Tray -->
+<div id="bottomTray" class="floating-panel" style="display:flex;">
+  <div class="tray-tabs" id="materialTabs">
+    <button class="tray-tab active" data-target="tray-solids">🎨 Colors</button>
+    <button class="tray-tab" data-target="tray-textures">🧱 Textures</button>
+    <button class="tray-tab" data-target="tray-live">⚡ Live Ink</button>
+    <div style="flex:1"></div>
+    <label style="font-size:12px; font-weight:bold; display:flex; align-items:center; gap:5px;">
+      <input type="checkbox" id="gradToggle"> Gradient Bucket
+    </label>
+  </div>
+  
+  <div id="tray-solids" class="tray-grid"></div>
+  <div id="tray-textures" class="tray-grid" style="display:none;"></div>
+  
+  <div id="tray-live" class="tray-grid" style="display:none;">
+    <div class="belt-track" id="beltTrack">
+      <div class="belt-slot"></div><div class="belt-slot"></div><div class="belt-slot"></div><div class="belt-slot"></div><div class="belt-slot"></div>
+    </div>
+    <button class="action-btn" id="addBeltBtn">➕ Add Color</button>
+    <button class="action-btn" id="clearBeltBtn">🗑️ Clear</button>
+    <div class="belt-controls">
+      <input type="range" class="throttle" id="beltSpeed" min="1" max="20" value="5">
+      <button class="toggle-btn" id="beltMode">Mode: OOZE</button>
+    </div>
+  </div>
+</div>
+
+<!-- Top Right -->
+<div id="topRight">
+  <button id="switchBtn" class="action-btn" style="background:#118AB2; color:white;">👁️ Switch Mode</button>
+  <button id="undoBtn" class="action-btn" style="background:#FF9F1C;">↩️ UNDO</button>
+  <button id="clearBtn" class="action-btn" style="background:#EF476F; color:white;">🧽 CLEAR</button>
+  <button id="saveBtn" class="action-btn" style="background:#06D6A0;">💾 EXPORT</button>
+</div>
+
+<div id="modalBg">
+  <div class="modal-box">
+    <h2 style="margin-top:0;">Export your Chaos!</h2>
+    <div style="display:flex; gap:20px; justify-content:center;">
+      <button id="expPng" class="action-btn" style="background:#FFD166; font-size:24px;">🖼️ Save Picture</button>
+      <button id="expVid" class="action-btn" style="background:#9D4EDD; color:white; font-size:24px;">🎬 Save Animated Video</button>
+    </div>
+    <button id="closeModal" class="action-btn" style="margin-top:20px; width:100%; justify-content:center;">Cancel</button>
+  </div>
+</div>
+
+<script>
+/** AUDIO ENGINE **/
+let audioCtx = null;
+function initAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+document.addEventListener('pointerdown', initAudio, { once: true });
+
+function playSound(type) {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gainNode = audioCtx.createGain();
+  osc.connect(gainNode); gainNode.connect(audioCtx.destination);
+
+  if (type === 'pop') {
+    osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+    gainNode.gain.setValueAtTime(0.4, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+    osc.start(now); osc.stop(now + 0.1);
+  } else if (type === 'clunk') {
+    osc.type = 'square'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
+    gainNode.gain.setValueAtTime(0.3, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+    osc.start(now); osc.stop(now + 0.1);
+  } else if (type === 'thwack') {
+    osc.type = 'triangle'; osc.frequency.setValueAtTime(250, now); osc.frequency.exponentialRampToValueAtTime(60, now + 0.15);
+    gainNode.gain.setValueAtTime(0.5, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+    osc.start(now); osc.stop(now + 0.15);
+  } else if (type === 'rip') {
+    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, now); osc.frequency.linearRampToValueAtTime(500, now + 0.2);
+    gainNode.gain.setValueAtTime(0.4, now); gainNode.gain.linearRampToValueAtTime(0.01, now + 0.2);
+    osc.start(now); osc.stop(now + 0.2);
+  } else if (type === 'chime') {
+    osc.type = 'sine'; osc.frequency.setValueAtTime(600, now); osc.frequency.setValueAtTime(1200, now + 0.1);
+    gainNode.gain.setValueAtTime(0.3, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+    osc.start(now); osc.stop(now + 0.5);
+  } else if (type === 'splash') {
+    osc.type = 'sine'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(800, now + 0.2);
+    gainNode.gain.setValueAtTime(0.5, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+    osc.start(now); osc.stop(now + 0.2);
+  }
+}
+
+/** APP CORE **/
+const mainCanvas = document.getElementById('mainCanvas');
+const uiCanvas = document.getElementById('uiCanvas');
+const ctx = mainCanvas.getContext('2d', { willReadFrequently: true });
+const uiCtx = uiCanvas.getContext('2d');
+const CANVAS_W = 900; const CANVAS_H = 650;
+mainCanvas.width = uiCanvas.width = CANVAS_W;
+mainCanvas.height = uiCanvas.height = CANVAS_H;
+
+ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+let state = {
+  tool: 'brush', color: '#EF476F', stamp: '🤖', shape: 'line', customStamps: [],
+  history: [], pointers: new Map(), particles: [],
+  conveyor: ['#EF476F', '#FFD166'], beltMode: 'ooze', beltActive: false,
+  spiro: { R: 200, r: 80, cx: CANVAS_W/2, cy: CANVAS_H/2, theta: 0 }
+};
+
+let patterns = {};
+function getMousePos(e) {
+  let rect = mainCanvas.getBoundingClientRect();
+  return { x: (e.clientX - rect.left) * (CANVAS_W / rect.width), y: (e.clientY - rect.top) * (CANVAS_H / rect.height) };
+}
+
+/** TEXTURES & LIVE INK **/
+function buildPalette() {
+  const solids = ['#EF476F','#06D6A0','#118AB2','#FFD166','#9D4EDD','#FF9F1C','#1A1A1A','#FFFFFF'];
+  const trayS = document.getElementById('tray-solids');
+  solids.forEach(c => {
+    let btn = document.createElement('button'); btn.className = 'color-btn'; btn.style.background = c;
+    btn.onclick = () => selectColor(btn, c);
+    trayS.appendChild(btn);
+  });
+  // Rainbow/Neon
+  let rn = document.createElement('button'); rn.className = 'color-btn square'; rn.style.background = 'linear-gradient(45deg, red, yellow, lime, cyan, magenta)';
+  rn.onclick = () => selectColor(rn, 'rainbow'); trayS.appendChild(rn);
+  let ne = document.createElement('button'); ne.className = 'color-btn square'; ne.style.background = '#fff'; ne.style.boxShadow = 'inset 0 0 10px #EF476F';
+  ne.onclick = () => selectColor(ne, 'neon'); trayS.appendChild(ne);
+
+  const tCanvas = document.createElement('canvas'); tCanvas.width = tCanvas.height = 40; const tCtx = tCanvas.getContext('2d');
+  // Brick
+  tCtx.fillStyle='#E76F51'; tCtx.fillRect(0,0,40,40); tCtx.strokeStyle='#F4A261'; tCtx.lineWidth=3;
+  tCtx.strokeRect(0,0,40,20); tCtx.strokeRect(-20,20,40,20); tCtx.strokeRect(20,20,40,20);
+  patterns['texture-brick'] = ctx.createPattern(tCanvas, 'repeat');
+  // Dots
+  tCtx.fillStyle='#FFFFFF'; tCtx.fillRect(0,0,40,40); tCtx.fillStyle='#EF476F';
+  tCtx.beginPath(); tCtx.arc(10,10,6,0,6.3); tCtx.arc(30,30,6,0,6.3); tCtx.fill();
+  patterns['texture-dots'] = ctx.createPattern(tCanvas, 'repeat');
+  // Static
+  let id = tCtx.createImageData(40,40);
+  for(let i=0; i<id.data.length; i+=4){ let v=Math.random()>0.5?255:0; id.data[i]=id.data[i+1]=id.data[i+2]=v; id.data[i+3]=255; }
+  tCtx.putImageData(id,0,0); patterns['texture-static'] = ctx.createPattern(tCanvas, 'repeat');
+
+  const trayT = document.getElementById('tray-textures');
+  Object.keys(patterns).forEach(key => {
+    let btn = document.createElement('button'); btn.className = 'color-btn square';
+    let thumb = document.createElement('canvas'); thumb.width=40; thumb.height=40;
+    thumb.getContext('2d').fillStyle = patterns[key]; thumb.getContext('2d').fillRect(0,0,40,40);
+    btn.style.backgroundImage = `url(${thumb.toDataURL()})`;
+    btn.onclick = () => selectColor(btn, key); trayT.appendChild(btn);
+  });
+}
+buildPalette();
+document.querySelector('.color-btn').classList.add('selected');
+
+function selectColor(btn, color) {
+  playSound('pop');
+  document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected'));
+  if(btn) btn.classList.add('selected');
+  state.color = color; state.beltActive = false;
+}
+
+function hexToRgb(hex) {
+  let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16)} : {r:0,g:0,b:0};
+}
+
+function getComputedStyle() {
+  if (state.beltActive && state.conveyor.length > 0) {
+    let speed = document.getElementById('beltSpeed').value * 0.001;
+    let t = Date.now() * speed;
+    let idx = Math.floor(t) % state.conveyor.length;
+    if (state.beltMode === 'snap') return state.conveyor[idx];
+    let next = (idx + 1) % state.conveyor.length;
+    let blend = t - Math.floor(t);
+    let c1 = hexToRgb(state.conveyor[idx]), c2 = hexToRgb(state.conveyor[next]);
+    if(c1.r===undefined) return state.conveyor[idx]; // Fallback for non-hex
+    let r = Math.round(c1.r + (c2.r - c1.r) * blend), g = Math.round(c1.g + (c2.g - c1.g) * blend), b = Math.round(c1.b + (c2.b - c1.b) * blend);
+    return `rgb(${r},${g},${b})`;
+  }
+  if (state.color === 'rainbow') return `hsl(${(Date.now() / 4) % 360}, 100%, 50%)`;
+  if (state.color === 'neon') return '#ffffff';
+  if (state.color.startsWith('texture-')) return patterns[state.color];
+  return state.color;
+}
+
+function updateBeltUI() {
+  const slots = document.querySelectorAll('.belt-slot');
+  slots.forEach((s, i) => { s.style.background = state.conveyor[i] || '#ccc'; });
+}
+document.getElementById('addBeltBtn').onclick = () => {
+  playSound('clunk');
+  if(state.color.startsWith('#') && state.conveyor.length < 5) state.conveyor.push(state.color);
+  updateBeltUI();
+};
+document.getElementById('clearBeltBtn').onclick = () => { playSound('vwoop'); state.conveyor = []; updateBeltUI(); };
+document.getElementById('beltMode').onclick = (e) => {
+  playSound('clunk'); state.beltMode = state.beltMode === 'ooze' ? 'snap' : 'ooze';
+  e.target.innerText = 'Mode: ' + state.beltMode.toUpperCase();
+};
+document.querySelector('[data-target="tray-live"]').addEventListener('click', () => { state.beltActive = true; });
+
+function setupStroke(canvasCtx = ctx, thickness = 12) {
+  canvasCtx.shadowBlur = 0; canvasCtx.globalCompositeOperation = 'source-over';
+  if (state.tool === 'eraser') { canvasCtx.strokeStyle = '#ffffff'; canvasCtx.lineWidth = 40; return; }
+  canvasCtx.strokeStyle = canvasCtx.fillStyle = getComputedStyle();
+  if (state.color === 'neon' && state.tool !== 'eraser') { canvasCtx.shadowColor = '#FF00FF'; canvasCtx.shadowBlur = 15; }
+  canvasCtx.lineWidth = state.color === 'neon' ? Math.max(3, thickness-5) : thickness;
+}
+
+/** MULTI-TOUCH INPUT HANDLING **/
+mainCanvas.addEventListener('pointerdown', e => {
+  playSound('pop'); saveHistory();
+  let pos = getMousePos(e);
+  let ptr = { x: pos.x, y: pos.y, startX: pos.x, startY: pos.y, path: [pos], time: Date.now() };
+  state.pointers.set(e.pointerId, ptr);
+  
+  if (state.tool === 'spiro') {
+    let d = Math.hypot(pos.x - state.spiro.cx, pos.y - state.spiro.cy);
+    if (d < state.spiro.R) ptr.draggingSpiro = true; // Drag stator!
+  } else if (state.tool === 'wand') {
+    floodFill(pos.x, pos.y, true);
+    for(let i=0; i<30; i++) state.particles.push({x:pos.x, y:pos.y, vx:(Math.random()-0.5)*15, vy:(Math.random()-0.5)*15, life:1});
+    playSound('chime');
+  } else if (state.tool === 'bucket') {
+    if(!document.getElementById('gradToggle').checked) floodFill(pos.x, pos.y, false);
+  } else if (state.tool === 'stamp' || state.tool === 'custom') {
+    playSound('thwack'); drawStamp(pos.x, pos.y);
+  } else if (state.tool === 'eraser') {
+    playSound('vwoop'); setupStroke(); ctx.beginPath(); ctx.arc(pos.x, pos.y, 20, 0, Math.PI*2); ctx.fill();
+  } else if (state.tool === 'brush') {
+    setupStroke(); ctx.beginPath(); ctx.arc(pos.x, pos.y, ctx.lineWidth/2, 0, Math.PI*2); ctx.fill();
+  }
+});
+
+mainCanvas.addEventListener('pointermove', e => {
+  if (!state.pointers.has(e.pointerId)) return;
+  let ptr = state.pointers.get(e.pointerId);
+  let pos = getMousePos(e);
+  let dist = Math.hypot(pos.x - ptr.x, pos.y - ptr.y);
+  
+  uiCtx.clearRect(0,0,CANVAS_W,CANVAS_H);
+
+  if (state.tool === 'brush' || state.tool === 'eraser' || state.tool === 'symmetry') {
+    setupStroke();
+    if(state.tool === 'symmetry') {
+      let cx = CANVAS_W/2, cy = CANVAS_H/2, S = 8, slice = 2*Math.PI/S;
+      for(let i=0; i<S; i++) {
+        let a = i*slice;
+        ctx.save(); ctx.translate(cx, cy); ctx.rotate(a);
+        ctx.beginPath(); ctx.moveTo(ptr.x-cx, ptr.y-cy); ctx.lineTo(pos.x-cx, pos.y-cy); ctx.stroke();
+        ctx.scale(1, -1);
+        ctx.beginPath(); ctx.moveTo(ptr.x-cx, ptr.y-cy); ctx.lineTo(pos.x-cx, pos.y-cy); ctx.stroke();
+        ctx.restore();
+      }
+    } else {
+      ctx.beginPath(); ctx.moveTo(ptr.x, ptr.y); ctx.lineTo(pos.x, pos.y); ctx.stroke();
+    }
+  } 
+  else if (state.tool === 'callig') {
+    let speed = Math.min(dist, 50); let thick = Math.max(1, 20 - (speed * 0.4));
+    setupStroke(ctx, thick); ctx.beginPath(); ctx.moveTo(ptr.x, ptr.y); ctx.lineTo(pos.x, pos.y); ctx.stroke();
+  }
+  else if (state.tool === 'sponge') {
+    if(dist > 2) {
+      ctx.globalAlpha = 0.5;
+      ctx.drawImage(mainCanvas, pos.x-20, pos.y-20, 40, 40, pos.x-20 + (Math.random()*4-2), pos.y-20 + (Math.random()*4-2), 40, 40);
+      ctx.globalAlpha = 1.0;
+    }
+  }
+  else if (state.tool === 'scissors') {
+    uiCtx.strokeStyle = '#000'; uiCtx.setLineDash([5,5]); uiCtx.lineWidth = 2;
+    uiCtx.beginPath(); uiCtx.moveTo(ptr.path[0].x, ptr.path[0].y);
+    ptr.path.forEach(p => uiCtx.lineTo(p.x, p.y)); uiCtx.lineTo(pos.x, pos.y); uiCtx.stroke(); uiCtx.setLineDash([]);
+  }
+  else if (state.tool === 'shapes') {
+    setupStroke(uiCtx); uiCtx.beginPath();
+    if(state.shape === 'line') { uiCtx.moveTo(ptr.startX, ptr.startY); uiCtx.lineTo(pos.x, pos.y); }
+    if(state.shape === 'rect') { uiCtx.rect(ptr.startX, ptr.startY, pos.x-ptr.startX, pos.y-ptr.startY); }
+    if(state.shape === 'circ') { uiCtx.arc(ptr.startX, ptr.startY, Math.hypot(pos.x-ptr.startX, pos.y-ptr.startY), 0, Math.PI*2); }
+    uiCtx.stroke();
+  }
+  else if (state.tool === 'bucket' && document.getElementById('gradToggle').checked) {
+    uiCtx.strokeStyle = '#000'; uiCtx.lineWidth = 2; uiCtx.setLineDash([5,5]);
+    uiCtx.beginPath(); uiCtx.moveTo(ptr.startX, ptr.startY); uiCtx.lineTo(pos.x, pos.y); uiCtx.stroke(); uiCtx.setLineDash([]);
+    uiCtx.fillStyle = '#fff'; uiCtx.beginPath(); uiCtx.arc(ptr.startX, ptr.startY, 5, 0, 6.3); uiCtx.fill(); uiCtx.stroke();
+    uiCtx.fillStyle = '#000'; uiCtx.beginPath(); uiCtx.arc(pos.x, pos.y, 5, 0, 6.3); uiCtx.fill(); uiCtx.stroke();
+  }
+  else if (state.tool === 'spiro') {
+    if (ptr.draggingSpiro) { state.spiro.cx = pos.x; state.spiro.cy = pos.y; drawSpiroOverlay(); }
+  }
+  else if (state.tool === 'stamp' || state.tool === 'custom') {
+    if (dist > 50) { playSound('thwack'); drawStamp(pos.x, pos.y); ptr.x = pos.x; ptr.y = pos.y; }
+  }
+
+  ptr.x = pos.x; ptr.y = pos.y; ptr.path.push(pos);
+});
+
+mainCanvas.addEventListener('pointerup', e => {
+  if (!state.pointers.has(e.pointerId)) return;
+  let ptr = state.pointers.get(e.pointerId);
+  uiCtx.clearRect(0,0,CANVAS_W,CANVAS_H);
+
+  if (state.tool === 'shapes') {
+    setupStroke(ctx); ctx.beginPath();
+    if(state.shape === 'line') { ctx.moveTo(ptr.startX, ptr.startY); ctx.lineTo(ptr.x, ptr.y); }
+    if(state.shape === 'rect') { ctx.rect(ptr.startX, ptr.startY, ptr.x-ptr.startX, ptr.y-ptr.startY); }
+    if(state.shape === 'circ') { ctx.arc(ptr.startX, ptr.startY, Math.hypot(ptr.x-ptr.startX, ptr.y-ptr.startY), 0, Math.PI*2); }
+    ctx.stroke();
+  }
+  else if (state.tool === 'scissors' && ptr.path.length > 10) {
+    playSound('rip');
+    let minX=CANVAS_W, minY=CANVAS_H, maxX=0, maxY=0;
+    let tCv = document.createElement('canvas'); tCv.width = CANVAS_W; tCv.height = CANVAS_H; let tCtx = tCv.getContext('2d');
+    tCtx.beginPath(); tCtx.moveTo(ptr.path[0].x, ptr.path[0].y);
+    ptr.path.forEach(p => { tCtx.lineTo(p.x, p.y); minX=Math.min(minX,p.x); minY=Math.min(minY,p.y); maxX=Math.max(maxX,p.x); maxY=Math.max(maxY,p.y); });
+    tCtx.closePath(); tCtx.clip(); tCtx.drawImage(mainCanvas, 0, 0);
+    
+    // Clear original area
+    ctx.save(); ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath(); ctx.moveTo(ptr.path[0].x, ptr.path[0].y); ptr.path.forEach(p => ctx.lineTo(p.x, p.y)); ctx.closePath(); ctx.fill();
+    ctx.restore();
+
+    if(maxX-minX > 10 && maxY-minY > 10) {
+      let sCv = document.createElement('canvas'); sCv.width = maxX-minX; sCv.height = maxY-minY;
+      sCv.getContext('2d').drawImage(tCv, minX, minY, maxX-minX, maxY-minY, 0, 0, maxX-minX, maxY-minY);
+      state.customStamps.push(sCv.toDataURL());
+      updateCustomStamps();
+      document.querySelector('[data-target="grid-custom"]').click();
+      document.querySelector('[data-tool="stamp"]').click();
+    }
+  }
+  else if (state.tool === 'bucket' && document.getElementById('gradToggle').checked) {
+    floodFill(ptr.startX, ptr.startY, false, {x1: ptr.startX, y1: ptr.startY, x2: ptr.x, y2: ptr.y});
+  }
+
+  state.pointers.delete(e.pointerId);
+  if(state.tool === 'spiro') drawSpiroOverlay();
+});
+
+function drawStamp(x, y) {
+  ctx.shadowBlur = 0; ctx.save(); ctx.translate(x, y); ctx.rotate((Math.random()-0.5)*0.5);
+  if(state.stamp.length > 5) { // Data URL custom stamp
+    let img = new Image(); img.src = state.stamp;
+    ctx.drawImage(img, -img.width/2, -img.height/2);
+  } else {
+    ctx.font = '60px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(state.stamp, 0, 0);
+  }
+  ctx.restore();
+}
+
+/** ANIMATION LOOP (Spray, Particles, Spiro, LiveInk Canvas) **/
+function animLoop() {
+  // Spray
+  if(state.tool === 'spray') {
+    state.pointers.forEach(ptr => {
+      ctx.fillStyle = getComputedStyle(); ctx.shadowBlur = state.color === 'neon' ? 10 : 0; ctx.shadowColor = state.color === 'neon' ? '#FF00FF' : 'transparent';
+      for(let i=0; i<15; i++) {
+        let r = Math.random()*30, a = Math.random()*Math.PI*2; ctx.globalAlpha = Math.random()*0.8;
+        ctx.beginPath(); ctx.arc(ptr.x + r*Math.cos(a), ptr.y + r*Math.sin(a), Math.random()*2+1, 0, 6.3); ctx.fill();
+      }
+      ctx.globalAlpha = 1.0; ctx.shadowBlur = 0;
+    });
+  }
+
+  // Wand Particles
+  if(state.particles.length > 0) {
+    uiCtx.clearRect(0,0,CANVAS_W,CANVAS_H);
+    for(let i=state.particles.length-1; i>=0; i--) {
+      let p = state.particles[i];
+      p.x += p.vx; p.y += p.vy; p.vy += 0.5; p.life -= 0.02;
+      if(p.life <= 0) { state.particles.splice(i,1); continue; }
+      uiCtx.fillStyle = `rgba(255, 200, 0, ${p.life})`;
+      uiCtx.beginPath(); uiCtx.arc(p.x, p.y, p.life*5, 0, 6.3); uiCtx.fill();
+    }
+  }
+  
+  // Continuous Canvas Redraw if Live Ink is on screen (Simple implementation: brute force redraw if needed, but for performance in a single file, we skip true "live canvas" unless exporting. Conveyor runs dynamically for drawing only).
+
+  requestAnimationFrame(animLoop);
+}
+requestAnimationFrame(animLoop);
+
+/** FLOOD FILL **/
+function floodFill(startX, startY, isWand=false, gradientLine=null) {
+  let imgData = ctx.getImageData(0, 0, CANVAS_W, CANVAS_H); let data = imgData.data;
+  let p0 = (Math.floor(startY)*CANVAS_W + Math.floor(startX))*4;
+  let tR = data[p0], tG = data[p0+1], tB = data[p0+2], tA = data[p0+3];
+  
+  let mask = new Uint8Array(CANVAS_W * CANVAS_H);
+  let stack = [Math.floor(startX), Math.floor(startY)];
+  mask[stack[1]*CANVAS_W + stack[0]] = 1;
+  let filled = 0, max = CANVAS_W * CANVAS_H;
+
+  while(stack.length && filled < max) {
+    let y = stack.pop(), x = stack.pop(); filled++;
+    [[x+1,y],[x-1,y],[x,y+1],[x,y-1]].forEach(([nx,ny]) => {
+      if(nx>=0 && ny>=0 && nx<CANVAS_W && ny<CANVAS_H && mask[ny*CANVAS_W+nx]===0) {
+        let p = (ny*CANVAS_W+nx)*4;
+        if(data[p]===tR && data[p+1]===tG && data[p+2]===tB && data[p+3]===tA) { mask[ny*CANVAS_W+nx]=1; stack.push(nx,ny); }
+      }
+    });
+  }
+  if(filled === 0) return;
+  playSound('splash');
+
+  let mCv = document.createElement('canvas'); mCv.width = CANVAS_W; mCv.height = CANVAS_H; let mCtx = mCv.getContext('2d');
+  let mData = mCtx.createImageData(CANVAS_W, CANVAS_H);
+  for(let i=0; i<mask.length; i++) if(mask[i]) { mData.data[i*4]=mData.data[i*4+1]=mData.data[i*4+2]=0; mData.data[i*4+3]=255; }
+  mCtx.putImageData(mData,0,0); mCtx.globalCompositeOperation = 'source-in';
+  
+  if (gradientLine && state.conveyor.length >= 2 && state.beltActive) {
+    let grad = mCtx.createLinearGradient(gradientLine.x1, gradientLine.y1, gradientLine.x2, gradientLine.y2);
+    grad.addColorStop(0, state.conveyor[0]); grad.addColorStop(1, state.conveyor[state.conveyor.length-1]);
+    mCtx.fillStyle = grad;
+  } else {
+    mCtx.fillStyle = getComputedStyle();
+  }
+  mCtx.fillRect(0,0,CANVAS_W,CANVAS_H);
+
+  if(isWand) {
+    ctx.save(); ctx.globalCompositeOperation = 'destination-out';
+    ctx.drawImage(mCv, 0, 0); ctx.restore(); // Erase old
+  }
+  ctx.drawImage(mCv, 0, 0);
+}
+
+/** SPIROGRAPH **/
+function drawSpiroOverlay() {
+  uiCtx.clearRect(0,0,CANVAS_W,CANVAS_H); if(state.tool !== 'spiro') return;
+  let R = state.spiro.R, r = state.spiro.r, d = r*0.7, cx = state.spiro.cx, cy = state.spiro.cy;
+  uiCtx.strokeStyle = 'rgba(17, 138, 178, 0.8)'; uiCtx.lineWidth = 16; uiCtx.beginPath(); uiCtx.arc(cx, cy, R+8, 0, 6.3); uiCtx.stroke();
+  uiCtx.strokeStyle = 'rgba(11, 82, 107, 0.6)'; uiCtx.lineWidth = 8; uiCtx.setLineDash([6,6]); uiCtx.beginPath(); uiCtx.arc(cx, cy, R, 0, 6.3); uiCtx.stroke(); uiCtx.setLineDash([]);
+}
+
+/** UI BINDINGS **/
+document.querySelectorAll('.tool-btn').forEach(btn => {
+  btn.onclick = () => {
+    playSound('clunk'); document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active');
+    state.tool = btn.dataset.tool;
+    document.getElementById('shapesDrawer').style.display = state.tool === 'shapes' ? 'flex' : 'none';
+    document.getElementById('stampDrawer').style.display = (state.tool === 'stamp' || state.tool === 'custom') ? 'flex' : 'none';
+    if(state.tool === 'spiro') drawSpiroOverlay(); else uiCtx.clearRect(0,0,CANVAS_W,CANVAS_H);
+  };
+});
+
+document.querySelectorAll('#shapesDrawer .action-btn').forEach(btn => {
+  btn.onclick = () => {
+    playSound('clunk'); document.querySelectorAll('#shapesDrawer .action-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active'); state.shape = btn.dataset.shape;
+  };
+});
+
+document.querySelectorAll('.tray-tab').forEach(btn => {
+  btn.onclick = () => {
+    playSound('clunk');
+    let parent = btn.parentElement; parent.querySelectorAll('.tray-tab').forEach(b => b.classList.remove('active')); btn.classList.add('active');
+    if(parent.id === 'materialTabs') {
+      ['tray-solids','tray-textures','tray-live'].forEach(id => document.getElementById(id).style.display = 'none');
+      document.getElementById(btn.dataset.target).style.display = 'flex';
+      state.beltActive = (btn.dataset.target === 'tray-live');
+    } else {
+      document.getElementById('grid-stamps').style.display = btn.dataset.target === 'grid-stamps' ? 'grid' : 'none';
+      document.getElementById('grid-custom').style.display = btn.dataset.target === 'grid-custom' ? 'grid' : 'none';
+    }
+  };
+});
+
+const stamps = ['🤖','👽','🛸','🚀','🐶','🐱','🦊','🐸','🦖','🦋','🍕','🍔','🍩','🍭','🎸','🎲','🧸','🎈','🚗','🚲','😀','😂','😎','🤩','💩'];
+stamps.forEach(s => {
+  let el = document.createElement('div'); el.className = 'stamp-item'; el.innerText = s;
+  if (s === state.stamp) el.classList.add('selected');
+  el.onclick = () => { playSound('pop'); document.querySelectorAll('.stamp-item').forEach(b=>b.classList.remove('selected')); el.classList.add('selected'); state.stamp = s; };
+  document.getElementById('grid-stamps').appendChild(el);
+});
+
+function updateCustomStamps() {
+  const grid = document.getElementById('grid-custom'); grid.innerHTML = '';
+  state.customStamps.forEach(s => {
+    let el = document.createElement('div'); el.className = 'stamp-item'; el.style.backgroundImage = `url(${s})`; el.style.backgroundSize = 'contain'; el.style.backgroundRepeat = 'no-repeat'; el.style.backgroundPosition = 'center';
+    el.onclick = () => { playSound('pop'); document.querySelectorAll('.stamp-item').forEach(b=>b.classList.remove('selected')); el.classList.add('selected'); state.stamp = s; };
+    grid.appendChild(el);
+  });
+}
+
+function saveHistory() { state.history.push(ctx.getImageData(0,0,CANVAS_W,CANVAS_H)); if(state.history.length>20) state.history.shift(); }
+document.getElementById('undoBtn').onclick = () => { playSound('clunk'); if(state.history.length>0) ctx.putImageData(state.history.pop(),0,0); else { ctx.fillStyle='#fff'; ctx.fillRect(0,0,CANVAS_W,CANVAS_H); } };
+document.getElementById('clearBtn').onclick = () => { saveHistory(); playSound('vwoop'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,CANVAS_W,CANVAS_H); };
+
+/** SWITCH ACCESSIBILITY MODE **/
+let switchScanInterval = null, scanIndex = 0;
+document.getElementById('switchBtn').onclick = () => {
+  playSound('clunk');
+  if(switchScanInterval) {
+    clearInterval(switchScanInterval); switchScanInterval = null; document.getElementById('switchBtn').innerText = '👁️ Switch Mode';
+    document.querySelectorAll('.scan-focus').forEach(el=>el.classList.remove('scan-focus')); document.getElementById('quads').innerHTML = '';
+  } else {
+    document.getElementById('switchBtn').innerText = '🛑 Stop Scanning';
+    // Create canvas quadrants for clicking
+    let quads = document.getElementById('quads'); quads.innerHTML = '';
+    [{x:0,y:0},{x:50,y:0},{x:0,y:50},{x:50,y:50}].forEach(q => {
+      let d = document.createElement('div'); d.className = 'quadrant scan-target';
+      d.style.left = q.x+'%'; d.style.top = q.y+'%'; d.style.width = '50%'; d.style.height = '50%';
+      d.onclick = () => {
+        let ev = new PointerEvent('pointerdown', {clientX: mainCanvas.getBoundingClientRect().left + CANVAS_W*(q.x+25)/100, clientY: mainCanvas.getBoundingClientRect().top + CANVAS_H*(q.y+25)/100, pointerId: 99});
+        mainCanvas.dispatchEvent(ev);
+        setTimeout(()=>mainCanvas.dispatchEvent(new PointerEvent('pointerup', {pointerId: 99})), 100);
+      };
+      quads.appendChild(d);
+    });
+    
+    let targets = Array.from(document.querySelectorAll('.tool-btn, .color-btn, .tray-tab, .action-btn, .scan-target')).filter(el => el.offsetParent !== null);
+    switchScanInterval = setInterval(() => {
+      targets.forEach(el=>el.classList.remove('scan-focus'));
+      targets[scanIndex].classList.add('scan-focus');
+      scanIndex = (scanIndex + 1) % targets.length;
+    }, 1500);
+  }
+};
+document.addEventListener('keydown', e => {
+  if(e.code === 'Space' && switchScanInterval) {
+    e.preventDefault(); playSound('pop');
+    document.querySelector('.scan-focus').click();
+  }
+});
+
+/** EXPORT MODAL & NATIVE WEBM VIDEO GEN **/
+document.getElementById('saveBtn').onclick = () => { playSound('clunk'); document.getElementById('modalBg').style.display = 'flex'; };
+document.getElementById('closeModal').onclick = () => { playSound('clunk'); document.getElementById('modalBg').style.display = 'none'; };
+
+document.getElementById('expPng').onclick = () => {
+  playSound('pop');
+  let a = document.createElement('a'); a.download = 'dazzle-art.png'; a.href = mainCanvas.toDataURL(); a.click();
+  document.getElementById('modalBg').style.display = 'none';
+};
+
+document.getElementById('expVid').onclick = () => {
+  playSound('pop');
+  let btn = document.getElementById('expVid'); btn.innerText = '🎥 Recording...'; btn.style.background = '#EF476F';
+  
+  // Natively capture canvas stream (60fps) to create a perfect animated WebM
+  const stream = mainCanvas.captureStream(60);
+  const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+  const chunks = [];
+  recorder.ondataavailable = e => chunks.push(e.data);
+  recorder.onstop = () => {
+    let blob = new Blob(chunks, { type: 'video/webm' });
+    let a = document.createElement('a'); a.download = 'dazzle-animation.webm'; a.href = URL.createObjectURL(blob); a.click();
+    btn.innerText = '🎬 Save Animated Video'; btn.style.background = '#9D4EDD'; document.getElementById('modalBg').style.display = 'none';
+  };
+  recorder.start();
+  // Simulate active drawing for the recording if Live Ink or tools are idle
+  let recDrawInterval = setInterval(() => {
+    // Just force a redraw if live ink is on, else it records static.
+  }, 100);
+  setTimeout(() => { clearInterval(recDrawInterval); recorder.stop(); }, 3000); // Record 3 seconds
+};
+
+</script>
+</body>
+</html>

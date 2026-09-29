@@ -1,0 +1,19 @@
+---
+description: RetroPaint product and architecture rules
+alwaysApply: true
+---
+
+# RetroPaint
+
+Dazzle is a tactile kids' paint app. Keep the chunky neo-brutalist UI, synthesized sounds, and skill levels.
+
+- Boot onto a ready canvas. No login, accounts, or splash gate.
+- Skill levels: 1 brush + bucket + five colors (giant targets); 2 shapes, eraser, stamps, textures; 3 pens, spray, symmetry, gradients, FX inks; 4 live ink, spiro chaos, filters, opacity.
+- New tools declare a minimum level and stay hidden below it.
+- Applicators (how paint lands) stay separate from inks (what paint is).
+- Canvas logic lives in `src/` modules. Do not collapse the app back into one HTML file.
+
+```ts
+// ❌ one mega script in index.html
+// ✅ src/draw.ts applies the active applicator + ink
+```
