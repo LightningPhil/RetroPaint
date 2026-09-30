@@ -2,6 +2,9 @@
 
 A tactile painting toy: chunky tools, live ink, symmetry, stamps, and a spirograph kit.
 
+**Author:** Philip Leichauer  
+**License:** [MIT](LICENSE)
+
 ## Scripts
 
 ```bash
