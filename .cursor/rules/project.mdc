@@ -5,11 +5,12 @@ alwaysApply: true
 
 # RetroPaint
 
-Dazzle is a tactile kids' paint app. Keep the chunky neo-brutalist UI, synthesized sounds, and skill levels.
+RetroPaint is a tactile kids' paint app. Keep the chunky neo-brutalist UI and synthesized sounds. Every tool and ink is available from the start.
 
-- Boot onto a ready canvas. No login, accounts, or splash gate.
-- Skill levels: 1 brush + bucket + five colors (giant targets); 2 shapes, eraser, stamps, textures; 3 pens, spray, symmetry, gradients, FX inks; 4 live ink, spiro chaos, filters, opacity.
-- New tools declare a minimum level and stay hidden below it.
+- Boot onto a ready canvas. No login, accounts, splash gate, skill levels, or switch-scan mode.
+- Options use illustrated buttons with readable labels. Popups never scroll: group choices into categories and fit the panel to the viewport. The canvas fills the space left after the tool bin, top bar, and material tray are laid out.
+- Save downloads a PNG picture. There is no movie export.
+- Gradients appear only while the bucket is selected. Rainbow ink is always distance-based.
 - Applicators (how paint lands) stay separate from inks (what paint is).
 - Canvas logic lives in `src/` modules. Do not collapse the app back into one HTML file.
 

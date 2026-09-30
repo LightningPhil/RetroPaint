@@ -1,7 +1,7 @@
-import { setDim, viewCtx, base, W, H } from './canvas';
+import { viewCtx, base, W, H } from './canvas';
 import { drawPending } from './fill';
 import { renderLive } from './live';
-import { state } from './state';
+import { renderSelection } from './selection';
 
 export function paintFrame(now: number): void {
   viewCtx.setTransform(1, 0, 0, 1, 0, 0);
@@ -11,5 +11,5 @@ export function paintFrame(now: number): void {
   viewCtx.drawImage(base, 0, 0);
   renderLive(viewCtx, now);
   drawPending(viewCtx, now);
-  setDim(state.symmetry !== 'off' || state.tool === 'spiro');
+  renderSelection(viewCtx);
 }

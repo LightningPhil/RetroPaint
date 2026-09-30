@@ -3,7 +3,6 @@ export type SoundName =
   | 'clunk'
   | 'thwack'
   | 'rip'
-  | 'chime'
   | 'splash'
   | 'vwoop'
   | 'squeak'
@@ -109,9 +108,6 @@ export function play(name: SoundName, pitch = 1): void {
     case 'rip':
       tone('sawtooth', 90, 520, 0.22, 0.18, 'lin');
       break;
-    case 'chime':
-      tone('sine', 660, 1320, 0.45, 0.2);
-      break;
     case 'splash':
       tone('sine', 280, 860, 0.18, 0.35);
       break;
@@ -119,7 +115,9 @@ export function play(name: SoundName, pitch = 1): void {
       tone('sine', 420, 70, 0.45, 0.3);
       break;
     case 'squeak':
-      noise(0.08, 1400 * p, 8, 0.08);
+      tone('triangle', 680 * p, 1540 * p, 0.08, 0.13, 'lin');
+      tone('sine', 980 * p, 1760 * p, 0.06, 0.04, 'lin');
+      noise(0.05, 1700 * p, 5, 0.03);
       break;
     case 'rattle':
       noise(0.18, 900, 2, 0.2);

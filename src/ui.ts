@@ -1,69 +1,42 @@
 import { unlockAudio } from './audio';
 import { play } from './audio';
 import { bus } from './bus';
-import { canvasToClient } from './canvas';
 import { isHex } from './color';
-import { exportGif, exportPng } from './export';
+import { exportPng } from './export';
 import { cancelPending, getPending } from './fill';
 import { startSqueegee } from './effects';
 import { undo } from './history';
-import { tapCanvas } from './input';
-import { GRADIENTS, patternFor, thumbFor } from './materials';
+import { GRADIENTS, glitterThumb, patternFor, thumbFor } from './materials';
 import { activeInkId } from './materials';
-import { assignGear, GEARS, gearById, gearCenter, hitStator, resetKit, startMotor } from './spiro';
-import { saveLevel, state } from './state';
-import { customStamps, STAMP_BANKS } from './stamps';
+import { assignGear, GEARS, hitStator, OUTER_CHOICES, resetKit, setInnerTeeth, setOuterTeeth, startMotor } from './spiro';
+import { state } from './state';
+import { STAMP_BANKS } from './stamps';
+import { icon, labelIcon } from './icons';
+import { finishPath } from './input';
+import { setRingRadius } from './spiro';
+import { cancelSelection, commitSelection, copySelection, cutSelection, deleteSelection, hasClipboard, hasSelection, pasteSelection, refreshTransparency } from './selection';
 import type { Applicator, EraserMode, ShapeKind, StatorShape, SymmetryMode, ToolId } from './types';
 
-const TOOL_LEVEL: Record<ToolId, number> = {
-  draw: 1,
-  bucket: 1,
-  shapes: 2,
-  eraser: 2,
-  stamp: 2,
-  spray: 3,
-  wand: 3,
-  sponge: 3,
-  scissors: 3,
-  spiro: 4,
-};
+const SOLIDS = ['#E53935', '#FDD835', '#1E88E5', '#43A047', '#1A1A1A', '#EF476F', '#06D6A0', '#118AB2', '#FFD166', '#9D4EDD', '#FF9F1C', '#FFFFFF'];
 
-const SOLIDS: { color: string; level: number }[] = [
-  { color: '#E53935', level: 1 },
-  { color: '#FDD835', level: 1 },
-  { color: '#1E88E5', level: 1 },
-  { color: '#43A047', level: 1 },
-  { color: '#1A1A1A', level: 1 },
-  { color: '#EF476F', level: 2 },
-  { color: '#06D6A0', level: 2 },
-  { color: '#118AB2', level: 2 },
-  { color: '#FFD166', level: 2 },
-  { color: '#9D4EDD', level: 2 },
-  { color: '#FF9F1C', level: 2 },
-  { color: '#FFFFFF', level: 2 },
-];
-
-let scanTimer = 0;
-let scanIndex = 0;
 let stampBank = 'critters';
 let beltNow = 0;
+let openDrawer: string | null = null;
 
 export function initUi(): void {
-  document.body.dataset.level = String(state.level);
-  const slider = document.getElementById('levelSlider') as HTMLInputElement;
-  slider.value = String(state.level);
   buildSolids();
   buildTextures();
   buildGradients();
+  buildBeltPicks();
   buildGears();
   renderStampBank();
-  renderCustomStamps();
   bindTools();
   bindSliders();
   bindConveyor();
   bindExport();
-  bindSwitch();
-  bindCutout();
+  bindSelection();
+  decorateControls();
+  bindLayout();
   sync();
   document.addEventListener('pointerdown', () => unlockAudio());
   document.addEventListener('keydown', onKey);
@@ -89,30 +62,39 @@ export function updateBelt(now: number): void {
 
 function buildSolids(): void {
   const tray = document.getElementById('tray-solids')!;
-  for (const solid of SOLIDS) {
+  const colours = document.createElement('div'); colours.className = 'solid-colours';
+  const effects = document.createElement('div'); effects.className = 'ink-effects';
+  tray.append(colours, effects);
+  for (const color of SOLIDS) {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'color-btn scan-item';
-    btn.dataset.minLevel = String(solid.level);
-    btn.style.background = solid.color;
+    btn.className = 'color-btn';
+    btn.dataset.ink = color;
+    btn.style.background = color;
     btn.draggable = true;
-    if (solid.color === state.ink) btn.classList.add('selected');
-    btn.addEventListener('click', () => selectInk(solid.color, btn));
-    btn.addEventListener('dragstart', (event) => event.dataTransfer?.setData('text/plain', `ink:${solid.color}`));
-    tray.append(btn);
+    btn.title = colourName(color);
+    btn.setAttribute('aria-label', colourName(color));
+    if (color === state.ink) btn.classList.add('selected');
+    btn.addEventListener('click', () => selectInk(color, btn));
+    btn.addEventListener('dragstart', (event) => event.dataTransfer?.setData('text/plain', `ink:${color}`));
+    colours.append(btn);
   }
-  addFx(tray, 'rainbow', 'linear-gradient(45deg, red, yellow, lime, cyan, magenta)');
-  addFx(tray, 'neon', '#ffffff');
-  addFx(tray, 'sparkle', 'radial-gradient(circle, #fff 20%, #FFE566 45%, #EF476F 80%)');
+  addFx(effects, 'rainbow', 'linear-gradient(45deg, red, yellow, lime, cyan, magenta)');
+  addFx(effects, 'neon', '#263047');
+  addFx(effects, 'sparkle', 'url(' + glitterThumb() + ')');
 }
 
 function addFx(tray: HTMLElement, id: string, background: string): void {
   const btn = document.createElement('button');
   btn.type = 'button';
-  btn.className = 'color-btn square scan-item';
-  btn.dataset.minLevel = '3';
+  btn.className = 'color-btn square';
+  btn.dataset.ink = id;
   btn.style.background = background;
-  btn.title = id;
+  const label = id === 'sparkle' ? 'Glitter' : id === 'neon' ? 'Neon' : 'Rainbow';
+  btn.title = label + ' ink — pick a colour first to tint it';
+  btn.setAttribute('aria-label', label + ' ink');
+  btn.classList.add('ink-effect', 'ink-' + id);
+  btn.innerHTML = '<span class="ink-sample" aria-hidden="true">' + (id === 'neon' ? '∿' : id === 'sparkle' ? '✦' : '🌈') + '</span><span class="ink-label">' + label + '</span>';
   btn.addEventListener('click', () => selectInk(id, btn));
   tray.append(btn);
 }
@@ -122,7 +104,10 @@ function buildTextures(): void {
   for (const id of ['tex-brick', 'tex-dots', 'tex-weave', 'tex-grass', 'tex-stone', 'tex-water', 'tex-static']) {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'color-btn square scan-item';
+    btn.className = 'color-btn square';
+    btn.dataset.ink = id;
+    btn.title = id.replace('tex-', '').replace('grad-', '') + ' ink';
+    btn.setAttribute('aria-label', btn.title);
     btn.style.backgroundImage = `url(${thumbFor(id)})`;
     btn.addEventListener('click', () => selectInk(id, btn));
     tray.append(btn);
@@ -135,7 +120,8 @@ function buildGradients(): void {
   for (const id of Object.keys(GRADIENTS)) {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'color-btn square scan-item';
+    btn.className = 'color-btn square';
+    btn.dataset.ink = id;
     const stops = GRADIENTS[id].join(', ');
     btn.style.background = `linear-gradient(90deg, ${stops})`;
     btn.addEventListener('click', () => {
@@ -180,21 +166,64 @@ function chipBackground(id: string): string {
   return '#cccccc';
 }
 
-function buildGears(): void {
-  const box = document.getElementById('gearBox')!;
-  for (const gear of GEARS) {
+function buildBeltPicks(): void {
+  const box = document.getElementById('beltPicks')!;
+  for (const color of SOLIDS) {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'gear-btn scan-item';
-    btn.style.background = gear.color;
-    btn.textContent = String(gear.teeth);
-    btn.addEventListener('pointerdown', (event) => startGearDrag(event, gear.id, gear.color));
+    btn.className = 'belt-pick';
+    btn.style.background = color;
+    btn.dataset.color = color;
+    btn.title = colourName(color);
+    btn.setAttribute('aria-label', colourName(color) + ' for live ink');
     btn.addEventListener('click', () => {
-      assignGear(gear.id, state.spiro.nest);
+      state.beltPick = color;
+      play('pop');
       sync();
     });
     box.append(btn);
   }
+}
+
+function buildGears(): void {
+  const outer = document.getElementById('outerChoices')!;
+  for (const teeth of OUTER_CHOICES) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'choice';
+    btn.dataset.outer = String(teeth);
+    btn.innerHTML = '<span aria-hidden="true">⚙</span> ' + teeth;
+    btn.setAttribute('aria-label', teeth + ' outer teeth');
+    btn.addEventListener('click', () => {
+      setOuterTeeth(teeth);
+      sync();
+    });
+    outer.append(btn);
+  }
+  const box = document.getElementById('gearBox')!;
+  for (const gear of GEARS) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'gear-btn';
+    btn.dataset.gear = gear.id;
+    btn.style.background = gear.color;
+    btn.textContent = String(gear.teeth);
+    btn.setAttribute('aria-label', gear.id + ' gear, ' + gear.teeth + ' teeth');
+    btn.addEventListener('pointerdown', (event) => startGearDrag(event, gear.id, gear.color));
+    btn.addEventListener('click', () => {
+      assignGear(gear.id);
+      sync();
+    });
+    box.append(btn);
+  }
+  document.getElementById('outerTeeth')!.addEventListener('change', (event) => {
+    setOuterTeeth(Number((event.target as HTMLInputElement).value));
+    sync();
+  });
+  document.getElementById('innerTeeth')!.addEventListener('change', (event) => {
+    setInnerTeeth(Number((event.target as HTMLInputElement).value));
+    sync();
+  });
 }
 
 function startGearDrag(event: PointerEvent, id: string, color: string): void {
@@ -215,16 +244,11 @@ function startGearDrag(event: PointerEvent, id: string, color: string): void {
     const moved = Math.hypot(ev.clientX - startX, ev.clientY - startY);
     const pos = canvasToClientInverse(ev.clientX, ev.clientY);
     if (pos && moved > 8) {
-      const center = gearCenter();
-      const gear = gearById(id);
-      const parent = gearById(state.spiro.gearId);
-      if (center && parent && gear && gear.teeth < parent.teeth && Math.hypot(pos.x - center.x, pos.y - center.y) < center.r + 30) {
-        assignGear(id, true);
-      } else if (hitStator(pos.x, pos.y) || Math.hypot(pos.x - state.spiro.cx, pos.y - state.spiro.cy) < state.spiro.R + 40) {
-        assignGear(id, false);
+      if (hitStator(pos.x, pos.y) || Math.hypot(pos.x - state.spiro.cx, pos.y - state.spiro.cy) < state.spiro.R + 40) {
+        assignGear(id);
       }
     } else {
-      assignGear(id, state.spiro.nest);
+      assignGear(id);
     }
     sync();
   };
@@ -252,16 +276,23 @@ function bindTools(): void {
         return;
       }
       const tool = btn.dataset.tool as ToolId;
+      const drawer = drawerFor(tool);
+      openDrawer = openDrawer === drawer ? null : drawer;
       selectTool(tool);
     });
   });
   document.querySelectorAll<HTMLButtonElement>('[data-applicator]').forEach((btn) => {
     btn.addEventListener('click', () => {
       state.applicator = btn.dataset.applicator as Applicator;
-      if (state.applicator === 'mist' || state.applicator === 'splatter') {
+      if (state.applicator === 'mist' || state.applicator === 'splatter' || state.applicator === 'confetti') {
+        state.sprayApplicator = state.applicator;
         state.tool = 'spray';
-        if (state.applicator === 'mist' || state.applicator === 'splatter') play('rattle');
-      } else state.tool = 'draw';
+        if (state.applicator === 'mist' || state.applicator === 'splatter' || state.applicator === 'confetti') play('rattle');
+      } else {
+        state.brushApplicator = state.applicator;
+        state.tool = 'draw';
+      }
+      openDrawer = null;
       play('clunk');
       sync();
     });
@@ -270,6 +301,7 @@ function bindTools(): void {
     btn.addEventListener('click', () => {
       state.shape = btn.dataset.shape as ShapeKind;
       state.poly = [];
+      openDrawer = null;
       play('clunk');
       sync();
     });
@@ -285,6 +317,7 @@ function bindTools(): void {
   document.querySelectorAll<HTMLButtonElement>('[data-sym]').forEach((btn) => {
     btn.addEventListener('click', () => {
       state.symmetry = btn.dataset.sym as SymmetryMode;
+      openDrawer = null;
       play('clunk');
       sync();
     });
@@ -303,14 +336,9 @@ function bindTools(): void {
       sync();
     });
   });
-  document.getElementById('nestBtn')!.addEventListener('click', () => {
-    state.spiro.nest = !state.spiro.nest;
-    play('clunk');
-    sync();
-  });
   document.getElementById('windBtn')!.addEventListener('click', () => {
     if (state.tool !== 'spiro') selectTool('spiro');
-    if (!state.spiro.gearId && GEARS[0]) assignGear(GEARS[0].id, false);
+    if (!state.spiro.gearId) setInnerTeeth(36, 'red');
     state.spiro.drive = 'auto';
     startMotor();
     sync();
@@ -319,30 +347,23 @@ function bindTools(): void {
     resetKit();
     sync();
   });
-  document.querySelectorAll<HTMLButtonElement>('.pip').forEach((btn) => {
-    btn.addEventListener('click', () => setLevel(Number(btn.dataset.level)));
-  });
   document.getElementById('undoBtn')!.addEventListener('click', doUndo);
   document.getElementById('clearBtn')!.addEventListener('click', () => {
     if (state.busy) return;
+    commitSelection();
+    state.poly = [];
     startSqueegee();
-  });
-  document.querySelectorAll<HTMLButtonElement>('#rainbowDial .choice').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      state.rainbowMode = btn.dataset.rainbow === 'time' ? 'time' : 'distance';
-      play('clunk');
-      sync();
-    });
   });
 }
 
 function bindSliders(): void {
-  const level = document.getElementById('levelSlider') as HTMLInputElement;
-  level.addEventListener('input', () => setLevel(Number(level.value)));
   const size = document.getElementById('brushSize') as HTMLInputElement;
   size.value = String(state.brushWidth);
   size.addEventListener('input', () => {
-    state.brushWidth = Number(size.value);
+    if (state.tool === 'stamp') {
+      state.stampScale = Number(size.value);
+      (document.getElementById('stampScale') as HTMLInputElement).value = size.value;
+    } else state.brushWidth = Number(size.value);
   });
   const opacity = document.getElementById('opacity') as HTMLInputElement;
   opacity.addEventListener('input', () => {
@@ -351,10 +372,12 @@ function bindSliders(): void {
   const scale = document.getElementById('stampScale') as HTMLInputElement;
   scale.addEventListener('input', () => {
     state.stampScale = Number(scale.value);
+    if (state.tool === 'stamp') size.value = scale.value;
   });
-  const rot = document.getElementById('stampRotate') as HTMLInputElement;
-  rot.addEventListener('input', () => {
-    state.stampRotation = Number(rot.value);
+  document.getElementById('spinMode')!.addEventListener('click', () => {
+    state.stampSpin = state.stampSpin === 'auto' ? 'fixed' : 'auto';
+    play('clunk');
+    sync();
   });
   document.getElementById('flipH')!.addEventListener('click', () => {
     state.stampFlipH = !state.stampFlipH;
@@ -366,6 +389,8 @@ function bindSliders(): void {
     play('clunk');
     sync();
   });
+  const ring = document.getElementById('ringSize') as HTMLInputElement;
+  ring.addEventListener('input', () => setRingRadius(Number(ring.value)));
   const grad = document.getElementById('gradToggle') as HTMLInputElement;
   grad.addEventListener('change', () => {
     state.gradientDrag = grad.checked;
@@ -374,8 +399,8 @@ function bindSliders(): void {
 
 function bindConveyor(): void {
   document.getElementById('addBeltBtn')!.addEventListener('click', () => {
-    if (isHex(state.ink) && state.conveyor.length < 8) {
-      state.conveyor.push(state.ink);
+    if (isHex(state.beltPick) && state.conveyor.length < 8) {
+      state.conveyor.push(state.beltPick);
       play('clunk');
       updateBelt(beltNow);
     }
@@ -421,129 +446,99 @@ function bindConveyor(): void {
 }
 
 function bindExport(): void {
-  const modal = document.getElementById('modalBg')!;
   document.getElementById('saveBtn')!.addEventListener('click', () => {
     play('clunk');
-    modal.classList.add('open');
-  });
-  document.getElementById('closeModal')!.addEventListener('click', () => {
-    play('clunk');
-    modal.classList.remove('open');
-  });
-  document.getElementById('expPng')!.addEventListener('click', () => {
-    void exportPng();
-    modal.classList.remove('open');
-  });
-  document.getElementById('expVid')!.addEventListener('click', async () => {
-    const btn = document.getElementById('expVid') as HTMLButtonElement;
-    btn.disabled = true;
-    btn.textContent = 'Rendering...';
-    try {
-      await exportGif();
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Movie';
-      modal.classList.remove('open');
-    }
+    commitSelection();
+    exportPng();
   });
 }
 
-function bindSwitch(): void {
-  document.getElementById('switchBtn')!.addEventListener('click', () => {
-    play('clunk');
-    state.switchOn = !state.switchOn;
-    const quads = document.getElementById('quads')!;
-    quads.innerHTML = '';
-    if (scanTimer) window.clearInterval(scanTimer);
-    document.querySelectorAll('.scan-focus').forEach((el) => el.classList.remove('scan-focus'));
-    if (!state.switchOn) {
-      sync();
-      return;
-    }
-    const cells = state.level >= 3 ? 3 : 2;
-    for (let y = 0; y < cells; y++) {
-      for (let x = 0; x < cells; x++) {
-        const cell = document.createElement('button');
-        cell.type = 'button';
-        cell.className = 'quadrant scan-item';
-        cell.style.left = `${(x * 100) / cells}%`;
-        cell.style.top = `${(y * 100) / cells}%`;
-        cell.style.width = `${100 / cells}%`;
-        cell.style.height = `${100 / cells}%`;
-        cell.addEventListener('click', () => {
-          tapCanvas(((x + 0.5) * 960) / cells, ((y + 0.5) * 640) / cells);
-        });
-        quads.append(cell);
-      }
-    }
-    scanIndex = 0;
-    scanTimer = window.setInterval(stepScan, 1500);
-    stepScan();
-    sync();
+function bindLayout(): void {
+  const watch = ['canvasSlot', 'toolBin', 'topBar', 'bottomTray']
+    .map((id) => document.getElementById(id))
+    .filter((el): el is HTMLElement => !!el);
+  if (typeof ResizeObserver !== 'undefined') {
+    const observer = new ResizeObserver(() => layoutStage());
+    watch.forEach((el) => observer.observe(el));
+  }
+  window.addEventListener('resize', layoutStage);
+  layoutStage();
+}
+
+function layoutStage(): void {
+  const slot = document.getElementById('canvasSlot');
+  const stage = document.getElementById('stage');
+  const bin = document.getElementById('toolBin');
+  if (!slot || !stage || !bin) return;
+  const rect = slot.getBoundingClientRect();
+  const uiScale = Number(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')) || 1;
+  const pad = 12 * uiScale;
+  const availW = Math.max(80, rect.width - pad * 2);
+  const availH = Math.max(80, rect.height - pad * 2);
+  const aspect = 960 / 640;
+  let width = availW;
+  let height = width / aspect;
+  if (height > availH) {
+    height = availH;
+    width = height * aspect;
+  }
+  stage.style.width = `${Math.floor(width)}px`;
+  stage.style.height = `${Math.floor(height)}px`;
+  stage.style.left = `${Math.floor((rect.width - width) / 2)}px`;
+  stage.style.top = `${Math.floor((rect.height - height) / 2)}px`;
+  const tool = bin.getBoundingClientRect();
+  document.querySelectorAll<HTMLElement>('.drawer').forEach((drawer) => {
+    drawer.style.zoom = '1';
+    const portrait = tool.width > tool.height * 2;
+    const gap = 12 * uiScale;
+    const anchorX = portrait ? gap : tool.right + gap;
+    const roomW = window.innerWidth - anchorX - gap;
+    const roomH = window.innerHeight - gap * 2;
+    const width = drawer.offsetWidth || (drawer.id === 'stampDrawer' ? 470 : drawer.id === 'spiroDrawer' ? 500 : 360);
+    const height = drawer.offsetHeight || 360;
+    const scale = Math.max(0.4, Math.min(uiScale, roomW / width, roomH / height));
+    const anchorY = portrait ? tool.bottom + gap : tool.top;
+    drawer.style.zoom = String(scale);
+    drawer.style.left = Math.round((portrait ? (window.innerWidth - width * scale) / 2 : anchorX) / scale) + 'px';
+    drawer.style.top = Math.round(Math.max(gap, Math.min(anchorY, window.innerHeight - height * scale - gap)) / scale) + 'px';
   });
 }
 
-function stepScan(): void {
-  const items = [...document.querySelectorAll<HTMLElement>('.scan-item')].filter((el) => getComputedStyle(el).display !== 'none' && !el.hidden);
-  if (!items.length) return;
-  items.forEach((el) => el.classList.remove('scan-focus'));
-  scanIndex = scanIndex % items.length;
-  items[scanIndex].classList.add('scan-focus');
-  scanIndex = (scanIndex + 1) % items.length;
+function bindSelection(): void {
+  document.querySelectorAll<HTMLButtonElement>('[data-select]').forEach(btn => btn.addEventListener('click', () => {
+    state.selectionMode = btn.dataset.select as 'rect' | 'lasso';
+    commitSelection(); openDrawer = null; sync();
+  }));
+  const transparent = document.getElementById('transparentSelection') as HTMLInputElement;
+  transparent.addEventListener('change', () => { state.transparentSelection = transparent.checked; refreshTransparency(); });
+  const actions: Record<string, () => void> = {
+    copySelection, cutSelection, pasteSelection, doneSelection: commitSelection, cancelSelection,
+  };
+  for (const [id, action] of Object.entries(actions)) document.getElementById(id)!.addEventListener('click', () => {
+    action(); play('clunk'); sync();
+  });
+  bus.addEventListener('selection', updateSelectionButtons);
+  document.getElementById('finishPath')!.addEventListener('click', () => { finishPath(); openDrawer = null; sync(); });
+  updateSelectionButtons();
 }
-
-function bindCutout(): void {
-  const cutout = document.getElementById('cutout')!;
-  bus.addEventListener('cutout', (event) => {
-    const detail = (event as CustomEvent<{ url: string; x: number; y: number }>).detail;
-    const img = cutout.querySelector('img')!;
-    img.src = detail.url;
-    const client = canvasToClient(detail.x, detail.y);
-    cutout.hidden = false;
-    cutout.style.left = `${client.x}px`;
-    cutout.style.top = `${client.y}px`;
-    selectTool('stamp');
-    stampBank = 'custom';
-    renderStampBank();
-  });
-  bus.addEventListener('stamps', () => renderCustomStamps());
-  let dx = 0;
-  let dy = 0;
-  let originX = 0;
-  let originY = 0;
-  cutout.addEventListener('pointerdown', (event) => {
-    const pointer = event as PointerEvent;
-    originX = pointer.clientX;
-    originY = pointer.clientY;
-    dx = pointer.clientX - cutout.getBoundingClientRect().left;
-    dy = pointer.clientY - cutout.getBoundingClientRect().top;
-    cutout.setPointerCapture(pointer.pointerId);
-  });
-  cutout.addEventListener('pointermove', (event) => {
-    const pointer = event as PointerEvent;
-    if (!cutout.hasPointerCapture(pointer.pointerId)) return;
-    cutout.style.left = `${pointer.clientX - dx}px`;
-    cutout.style.top = `${pointer.clientY - dy}px`;
-  });
-  cutout.addEventListener('pointerup', (event) => {
-    const moved = Math.hypot(event.clientX - originX, event.clientY - originY);
-    cutout.style.visibility = 'hidden';
-    const hit = document.elementFromPoint(event.clientX, event.clientY);
-    cutout.style.visibility = '';
-    if (moved < 10 || hit?.closest('#stampDrawer')) {
-      cutout.hidden = true;
-      play('clunk');
-    }
+function updateSelectionButtons(): void {
+  for (const id of ['copySelection', 'cutSelection', 'doneSelection', 'cancelSelection']) {
+    (document.getElementById(id) as HTMLButtonElement).disabled = !hasSelection();
+  }
+  (document.getElementById('pasteSelection') as HTMLButtonElement).disabled = !hasClipboard();
+  document.getElementById('selectionQuick')?.classList.toggle('visible', state.tool === 'scissors' && (hasSelection() || hasClipboard()));
+  document.querySelectorAll<HTMLButtonElement>('[data-selection-action]').forEach(btn => {
+    btn.disabled = btn.dataset.selectionAction === 'paste' ? !hasClipboard() : !hasSelection();
   });
 }
 
 function renderStampBank(): void {
   const tabs = document.getElementById('stampTabs')!;
   tabs.innerHTML = '';
-  for (const bank of [...STAMP_BANKS, { id: 'custom', label: 'My Cuts', items: [] }]) {
+  for (const bank of STAMP_BANKS) {
     const tab = document.createElement('button');
     tab.type = 'button';
-    tab.className = `tray-tab scan-item${bank.id === stampBank ? ' active' : ''}`;
+    tab.className = `tray-tab${bank.id === stampBank ? ' active' : ''}`;
     tab.textContent = bank.label;
     tab.addEventListener('click', () => {
       stampBank = bank.id;
@@ -553,27 +548,26 @@ function renderStampBank(): void {
     tabs.append(tab);
   }
   const grid = document.getElementById('stampGrid')!;
-  const custom = document.getElementById('customGrid')!;
-  const showCustom = stampBank === 'custom';
-  grid.style.display = showCustom ? 'none' : 'grid';
-  custom.style.display = showCustom ? 'grid' : 'none';
+  grid.style.display = 'grid';
   grid.innerHTML = '';
-  if (!showCustom) {
+  {
     const bank = STAMP_BANKS.find((item) => item.id === stampBank) ?? STAMP_BANKS[0];
     for (const item of bank.items) {
       const el = document.createElement('button');
       el.type = 'button';
-      el.className = `stamp-item scan-item${state.stampId === item ? ' selected' : ''}`;
+      el.className = `stamp-item${state.stampId === item ? ' selected' : ''}`;
       el.textContent = item.startsWith('vec:') ? vectorLabel(item) : item;
+      el.setAttribute('aria-label', 'Stamp ' + (item.startsWith('vec:') ? item.slice(4) : item));
       el.addEventListener('click', () => {
         state.stampId = item;
+        openDrawer = null;
+        sync();
         play('pop');
         renderStampBank();
       });
       grid.append(el);
     }
   }
-  renderCustomStamps();
 }
 
 function vectorLabel(id: string): string {
@@ -582,30 +576,6 @@ function vectorLabel(id: string): string {
   if (id.endsWith('triangle')) return '▲';
   if (id.endsWith('diamond')) return '◆';
   return '●';
-}
-
-function renderCustomStamps(): void {
-  const grid = document.getElementById('customGrid');
-  if (!grid) return;
-  grid.innerHTML = '';
-  customStamps.forEach((stamp, index) => {
-    const el = document.createElement('button');
-    el.type = 'button';
-    el.className = `stamp-item scan-item${state.stampId === `custom:${index}` ? ' selected' : ''}`;
-    el.style.backgroundImage = `url(${stamp.url})`;
-    el.addEventListener('click', () => {
-      state.stampId = `custom:${index}`;
-      play('pop');
-      renderCustomStamps();
-    });
-    grid.append(el);
-  });
-  for (let i = customStamps.length; i < 4; i++) {
-    const empty = document.createElement('div');
-    empty.className = 'stamp-item empty';
-    empty.textContent = '+';
-    grid.append(empty);
-  }
 }
 
 function selectInk(id: string, el: HTMLElement): void {
@@ -618,46 +588,37 @@ function selectInk(id: string, el: HTMLElement): void {
   }
   document.querySelectorAll('.color-btn').forEach((btn) => btn.classList.remove('selected'));
   el.classList.add('selected');
+  const glitter = document.querySelector<HTMLElement>('[data-ink="sparkle"]');
+  if (glitter) glitter.style.backgroundImage = 'url(' + glitterThumb() + ')';
+  document.documentElement.style.setProperty('--neon-tint', state.neonTint);
+  updatePathControls();
 }
 
 function selectTool(tool: ToolId): void {
-  if (TOOL_LEVEL[tool] > state.level) return;
   play(tool === 'spray' ? 'rattle' : 'clunk');
+  if (state.tool !== tool) { commitSelection(); state.poly = []; }
   state.tool = tool;
-  if (tool === 'draw' && (state.applicator === 'mist' || state.applicator === 'splatter')) state.applicator = 'marker';
-  if (tool === 'spray' && state.applicator !== 'splatter') state.applicator = 'mist';
+  if (tool === 'draw' || tool === 'shapes' || tool === 'spiro') state.applicator = state.brushApplicator;
+  if (tool === 'spray') state.applicator = state.sprayApplicator;
   sync();
 }
 
 function toggleSymmetry(): void {
   play('clunk');
-  if (state.symmetry === 'off') {
-    state.symmetry = '8';
-    if (state.tool === 'spiro' || state.tool === 'bucket') state.tool = 'draw';
-  } else state.symmetry = 'off';
+  openDrawer = openDrawer === 'symDrawer' ? null : 'symDrawer';
   sync();
 }
-
-function setLevel(level: number): void {
-  const next = Math.max(1, Math.min(4, Math.round(level))) as 1 | 2 | 3 | 4;
-  if (next === state.level) return;
-  state.level = next;
-  saveLevel();
-  document.body.dataset.level = String(next);
-  (document.getElementById('levelSlider') as HTMLInputElement).value = String(next);
-  play('clack');
-  if (TOOL_LEVEL[state.tool] > next) state.tool = 'draw';
-  if (next < 3 && state.symmetry !== 'off') state.symmetry = 'off';
-  if (next < 3 && state.eraserMode === 'blackhole') state.eraserMode = 'scrub';
-  if (next < 4 && (state.eraserMode === 'pixelate' || state.eraserMode === 'invert' || state.eraserMode === 'emboss')) state.eraserMode = 'scrub';
-  if (next < 4) state.liveArmed = false;
-  if (next < 4 && state.applicator === 'splatter') state.applicator = 'mist';
-  document.body.classList.add('level-pop');
-  window.setTimeout(() => document.body.classList.remove('level-pop'), 280);
-  sync();
+function drawerFor(tool: ToolId): string | null {
+  return ({ draw: 'penDrawer', spray: 'sprayDrawer', shapes: 'shapesDrawer', eraser: 'eraserDrawer', stamp: 'stampDrawer', spiro: 'spiroDrawer', scissors: 'selectionDrawer', sponge: null, bucket: null })[tool];
 }
 
 function sync(): void {
+  const size = document.getElementById('brushSize') as HTMLInputElement;
+  const stamp = state.tool === 'stamp';
+  size.min = stamp ? '0.4' : '4'; size.max = stamp ? '2.6' : '48'; size.step = stamp ? '0.1' : '1';
+  size.value = String(stamp ? state.stampScale : state.brushWidth);
+  size.disabled = state.tool === 'scissors' || state.tool === 'bucket';
+  (document.getElementById('opacity') as HTMLInputElement).disabled = state.tool === 'scissors';
   document.querySelectorAll<HTMLButtonElement>('#toolBin .tool-btn').forEach((btn) => {
     const tool = btn.dataset.tool as ToolId | undefined;
     btn.classList.toggle('active', tool === state.tool || (btn.id === 'symBtn' && state.symmetry !== 'off'));
@@ -668,33 +629,62 @@ function sync(): void {
   markChoices('[data-sym]', state.symmetry);
   markChoices('[data-drive]', state.spiro.drive);
   markChoices('[data-stator]', state.spiro.shape);
-  markChoices('[data-rainbow]', state.rainbowMode);
-  document.getElementById('penDrawer')!.classList.toggle('open', state.tool === 'draw' && state.level >= 3);
-  document.getElementById('sprayDrawer')!.classList.toggle('open', state.tool === 'spray');
-  document.getElementById('shapesDrawer')!.classList.toggle('open', state.tool === 'shapes');
-  document.getElementById('eraserDrawer')!.classList.toggle('open', state.tool === 'eraser');
-  document.getElementById('stampDrawer')!.classList.toggle('open', state.tool === 'stamp');
-  document.getElementById('symDrawer')!.classList.toggle('open', state.symmetry !== 'off');
-  document.getElementById('spiroDrawer')!.classList.toggle('open', state.tool === 'spiro');
-  document.getElementById('nestBtn')!.textContent = `Nest next gear: ${state.spiro.nest ? 'on' : 'off'}`;
-  document.getElementById('beltMode')!.textContent = state.beltMode === 'ooze' ? 'OOZE' : 'SNAP';
+  document.querySelectorAll<HTMLElement>('.drawer').forEach(drawer => drawer.classList.toggle('open', drawer.id === openDrawer));
+  document.querySelectorAll<HTMLButtonElement>('[data-select]').forEach(btn => btn.classList.toggle('active', btn.dataset.select === state.selectionMode));
+  updateSelectionButtons();
+  updatePathControls();
+  layoutStage();
+  labelIcon(document.getElementById('beltMode')!, state.beltMode === 'ooze' ? 'blend' : 'pixelate', state.beltMode === 'ooze' ? 'Blend' : 'Jump');
   document.getElementById('flipH')!.classList.toggle('active', state.stampFlipH);
   document.getElementById('flipV')!.classList.toggle('active', state.stampFlipV);
-  document.getElementById('switchBtn')!.textContent = state.switchOn ? 'Stop scan' : 'Switch';
-  document.querySelectorAll<HTMLButtonElement>('.pip').forEach((pip) => {
-    pip.classList.toggle('active', Number(pip.dataset.level) === state.level);
+  const spin = document.getElementById('spinMode')!;
+  labelIcon(spin, 'rotate', state.stampSpin === 'auto' ? 'Random turns' : 'Keep upright');
+  spin.classList.toggle('active', state.stampSpin === 'auto');
+  document.querySelectorAll<HTMLButtonElement>('.belt-pick').forEach((btn) => {
+    btn.classList.toggle('picked', btn.dataset.color === state.beltPick);
   });
+  document.querySelectorAll<HTMLButtonElement>('[data-outer]').forEach((btn) => {
+    btn.classList.toggle('active', Number(btn.dataset.outer) === state.spiro.outerTeeth);
+  });
+  document.querySelectorAll<HTMLButtonElement>('#gearBox .gear-btn').forEach((btn) => {
+    const gear = GEARS.find((item) => item.id === btn.dataset.gear);
+    btn.classList.toggle('picked', !!gear && gear.id === state.spiro.gearId && gear.teeth === state.spiro.innerTeeth);
+  });
+  setNumber('outerTeeth', state.spiro.outerTeeth);
+  setNumber('innerTeeth', state.spiro.innerTeeth);
+  setNumber('ringSize', state.spiro.R);
+  const gradTab = document.querySelector<HTMLButtonElement>('[data-target="tray-gradients"]');
+  if (gradTab) gradTab.hidden = state.tool !== 'bucket';
+  if (state.tool !== 'bucket') {
+    state.gradientDrag = false;
+    const toggle = document.getElementById('gradToggle') as HTMLInputElement | null;
+    if (toggle) toggle.checked = false;
+    if (state.ink.startsWith('grad-')) state.ink = isHex(state.neonTint) ? state.neonTint : '#E53935';
+    document.querySelectorAll<HTMLElement>('.color-btn').forEach((btn) => {
+      btn.classList.toggle('selected', btn.dataset.ink === state.ink);
+    });
+    const panel = document.getElementById('tray-gradients');
+    if (panel && panel.style.display === 'flex') showTray('tray-solids');
+  }
+}
+
+function setNumber(id: string, value: number): void {
+  const el = document.getElementById(id) as HTMLInputElement | null;
+  if (el && document.activeElement !== el) el.value = String(value);
 }
 
 function markChoices(selector: string, value: string): void {
   document.querySelectorAll<HTMLButtonElement>(selector).forEach((btn) => {
     const marker = btn.dataset.applicator || btn.dataset.shape || btn.dataset.eraser || btn.dataset.sym || btn.dataset.drive || btn.dataset.stator || btn.dataset.rainbow;
     btn.classList.toggle('active', marker === value);
+    btn.setAttribute('aria-pressed', String(marker === value));
   });
 }
 
 function doUndo(): void {
   if (state.busy) return;
+  if (hasSelection()) { cancelSelection(); return; }
+  if (state.poly.length) { state.poly.pop(); return; }
   play('clunk');
   const btn = document.getElementById('undoBtn')!;
   btn.classList.add('winding');
@@ -707,25 +697,71 @@ function doUndo(): void {
 }
 
 function onKey(event: KeyboardEvent): void {
-  if (event.code === 'Space' && state.switchOn) {
-    event.preventDefault();
-    play('pop');
-    document.querySelector<HTMLElement>('.scan-focus')?.click();
+  if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+  const key = event.key.toLowerCase();
+  if (event.ctrlKey || event.metaKey) {
+    if (key === 'z') { event.preventDefault(); doUndo(); }
+    else if (key === 'c' && hasSelection()) { event.preventDefault(); copySelection(); }
+    else if (key === 'x' && hasSelection()) { event.preventDefault(); cutSelection(); }
+    else if (key === 'v' && hasClipboard()) { event.preventDefault(); selectTool('scissors'); pasteSelection(); }
+    return;
   }
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
-    event.preventDefault();
-    doUndo();
+  if (key === 'escape') { cancelSelection(); state.poly = []; cancelPending(); openDrawer = null; sync(); }
+  if (key === 'enter' && !(event.target instanceof HTMLButtonElement)) { commitSelection(); finishPath(); }
+  if (key === 'delete' || key === 'backspace') {
+    if (hasSelection()) { event.preventDefault(); deleteSelection(); }
+    else if (state.poly.length) { event.preventDefault(); state.poly.pop(); }
   }
+}
+
+function showTray(id: string): void {
+  document.querySelectorAll('#materialTabs .tray-tab').forEach((btn) => {
+    btn.classList.toggle('active', (btn as HTMLButtonElement).dataset.target === id);
+  });
+  for (const panel of ['tray-solids', 'tray-textures', 'tray-gradients', 'tray-live']) {
+    document.getElementById(panel)!.style.display = panel === id ? 'flex' : 'none';
+  }
+  state.liveArmed = id === 'tray-live';
 }
 
 document.querySelectorAll<HTMLButtonElement>('#materialTabs .tray-tab').forEach((tab) => {
   tab.addEventListener('click', () => {
+    if (tab.hidden) return;
     play('clunk');
-    document.querySelectorAll('#materialTabs .tray-tab').forEach((btn) => btn.classList.remove('active'));
-    tab.classList.add('active');
-    for (const id of ['tray-solids', 'tray-textures', 'tray-gradients', 'tray-live']) {
-      document.getElementById(id)!.style.display = id === tab.dataset.target ? 'flex' : 'none';
-    }
-    state.liveArmed = tab.dataset.target === 'tray-live';
+    showTray(tab.dataset.target ?? 'tray-solids');
   });
 });
+
+function colourName(color: string): string {
+  return ['Red', 'Yellow', 'Blue', 'Green', 'Black', 'Pink', 'Mint', 'Teal', 'Gold', 'Purple', 'Orange', 'White'][SOLIDS.indexOf(color)] ?? color;
+}
+function updatePathControls(): void {
+  document.getElementById('finishQuick')!.hidden = state.tool !== 'shapes' || !['poly', 'spline'].includes(state.shape);
+}
+function decorateControls(): void {
+  for (const attribute of ['applicator', 'shape', 'eraser', 'sym', 'drive', 'stator', 'select']) {
+    document.querySelectorAll<HTMLElement>('[data-' + attribute + ']').forEach(btn => labelIcon(btn, btn.dataset[attribute]!));
+  }
+  const map: Record<string, string> = { undoBtn: 'undo', clearBtn: 'clear', saveBtn: 'save', copySelection: 'copy', cutSelection: 'cut', pasteSelection: 'paste', doneSelection: 'done', cancelSelection: 'close', finishPath: 'done', flipH: 'flipH', flipV: 'flipV', spiroReset: 'undo', windBtn: 'wind', addBeltBtn: 'plus', clearBeltBtn: 'clear' };
+  for (const [id, name] of Object.entries(map)) labelIcon(document.getElementById(id)!, name);
+  document.querySelectorAll<HTMLElement>('.drawer').forEach(drawer => {
+    drawer.setAttribute('role', 'region');
+    drawer.setAttribute('aria-label', drawer.querySelector('strong')?.textContent ?? 'Tool options');
+    const close = document.createElement('button'); close.type = 'button'; close.className = 'drawer-close';
+    close.innerHTML = icon('close'); close.setAttribute('aria-label', 'Close options');
+    close.addEventListener('click', () => { openDrawer = null; sync(); }); drawer.prepend(close);
+  });
+  const quick = document.createElement('div'); quick.id = 'selectionQuick';
+  const actions: Record<string, () => void> = { copy: copySelection, cut: cutSelection, paste: pasteSelection, done: commitSelection, close: cancelSelection };
+  const labels: Record<string, string> = { copy: 'Copy', cut: 'Cut', paste: 'Paste', done: 'Place', close: 'Cancel' };
+  for (const [name, action] of Object.entries(actions)) {
+    const button = document.createElement('button'); button.type = 'button'; button.className = 'choice'; button.dataset.selectionAction = name;
+    labelIcon(button, name, labels[name]); button.addEventListener('click', action); quick.append(button);
+  }
+  document.getElementById('canvasSlot')!.append(quick);
+  const finish = document.createElement('button'); finish.id = 'finishQuick'; finish.type = 'button'; finish.className = 'choice';
+  labelIcon(finish, 'done', 'Finish path'); finish.addEventListener('click', () => finishPath());
+  document.getElementById('canvasSlot')!.append(finish);
+  document.getElementById('view')!.addEventListener('pointerdown', () => { if (openDrawer) { openDrawer = null; sync(); } });
+  document.querySelectorAll<HTMLButtonElement>('.belt-slot').forEach((button, i) => button.setAttribute('aria-label', 'Remove live ink colour ' + (i + 1)));
+}

@@ -164,10 +164,10 @@ export function thumbFor(id: string): string {
   return canvas ? canvas.toDataURL() : '';
 }
 
-export function previewColor(id: string, now = 0): string {
+export function previewColor(id: string, _now = 0): string {
   if (isHex(id)) return id;
-  if (id === 'neon') return '#ffffff';
-  if (id === 'rainbow') return rainbowCss(now * 0.08);
+  if (id === 'neon') return state.neonTint;
+  if (id === 'rainbow') return rainbowCss(0);
   if (id === 'sparkle') return state.sparkleTint;
   if (id === 'tex-brick') return '#C4492C';
   if (id === 'tex-dots') return '#EF476F';
@@ -195,11 +195,8 @@ export function stopsFor(line: GradientLine, now: number): { t: number; color: s
 
 export function sampleInk(id: string, now: number, distance: number): string {
   if (id === 'live') return sampleConveyor(state.conveyor, state.beltSpeed, state.beltMode, now, distance);
-  if (id === 'rainbow') {
-    const turn = state.rainbowMode === 'time' ? now * 0.12 : distance * 0.55;
-    return rainbowCss(turn);
-  }
-  if (id === 'neon') return '#ffffff';
+  if (id === 'rainbow') return rainbowCss(distance * 0.55);
+  if (id === 'neon') return state.neonTint;
   if (id === 'sparkle') return state.sparkleTint;
   return previewColor(id, now);
 }
@@ -219,9 +216,7 @@ export function sampleConveyor(colors: string[], speed: number, mode: BlendMode,
 }
 
 export function animatedKind(id: string): 'sparkle' | 'texture' | 'time' | null {
-  if (id === 'sparkle') return 'sparkle';
   if (id === 'tex-water' || id === 'tex-static') return 'texture';
-  if (id === 'rainbow' && state.rainbowMode === 'time') return 'time';
   if (id === 'live' && state.conveyor.length >= 2) return 'time';
   return null;
 }
@@ -237,10 +232,7 @@ export function captureStrokeSpec(): LiveSpec | 'sparkle' | null {
       texture: null,
     };
   }
-  if (state.ink === 'rainbow' && state.rainbowMode === 'time') {
-    return { kind: 'rainbow-time', colors: [], speed: 1, mode: 'ooze', along: true, texture: null };
-  }
-  if (state.ink === 'sparkle') return 'sparkle';
+  if (state.ink === 'neon') return { kind: 'neon', colors: [state.neonTint], speed: 0, mode: 'snap', along: false, texture: null };
   if (state.ink === 'tex-water' || state.ink === 'tex-static') {
     return {
       kind: 'texture',
@@ -251,7 +243,7 @@ export function captureStrokeSpec(): LiveSpec | 'sparkle' | null {
       texture: state.ink === 'tex-water' ? 'water' : 'static',
     };
   }
-  return null;
+  return { kind: state.ink === 'sparkle' ? 'glitter' : state.ink === 'rainbow' ? 'rainbow' : 'solid', colors: [state.ink === 'sparkle' ? state.sparkleTint : state.ink], speed: 0, mode: 'snap', along: true, texture: null };
 }
 
 export function fillSpecFor(id: string): LiveSpec | 'sparkle' | null {
@@ -267,10 +259,7 @@ export function fillSpecFor(id: string): LiveSpec | 'sparkle' | null {
       };
     }
   }
-  if (id === 'rainbow' && state.rainbowMode === 'time') {
-    return { kind: 'rainbow-time', colors: [], speed: 1, mode: 'ooze', along: false, texture: null };
-  }
-  if (id === 'sparkle') return 'sparkle';
+  // Glitter is rendered as a static material.
   if (id === 'tex-water' || id === 'tex-static') {
     return {
       kind: 'texture',
@@ -302,4 +291,40 @@ export function activeInkId(): string {
 
 export function isAnimatedMaterial(id: string): boolean {
   return animatedKind(id) !== null;
+}
+
+/** A stationary metallic pigment tile shared by swatches, strokes and fills. */
+export function glitterPattern(color = state.sparkleTint): CanvasPattern {
+  const id = 'glitter:' + color;
+  if (!patterns.has(id)) {
+    const { canvas, ctx } = tile(192);
+    let seed = 74291;
+    const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+    const image = ctx.createImageData(192, 192);
+    const rgb = (hex: string) => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+    const base = rgb(color);
+    for (let y = 0; y < 192; y++) for (let x = 0; x < 192; x++) {
+      const grain = random();
+      const sheen = 0.5 + 0.5 * Math.sin((x + y) * Math.PI * 2 / 96);
+      const light = grain > 0.955 ? 0.82 : 0.08 + sheen * 0.22 + grain * 0.12;
+      const dark = grain < 0.15 ? 0.48 : 0.78;
+      const i = (y * 192 + x) * 4;
+      for (let c = 0; c < 3; c++) image.data[i + c] = base[c] * dark * (1 - light) + 255 * light;
+      image.data[i + 3] = 255;
+    }
+    ctx.putImageData(image, 0, 0);
+    for (let i = 0; i < 540; i++) {
+      const x = Math.floor(random() * 192), y = Math.floor(random() * 192);
+      ctx.fillStyle = mixHex(color, '#ffffff', 0.88);
+      ctx.fillRect(x, y, 1 + Math.floor(random() * 2), 1);
+      ctx.fillStyle = mixHex(color, '#151525', 0.5);
+      ctx.fillRect(x, y + 1, 1, 1);
+    }
+    store(id, canvas);
+  }
+  return patterns.get(id)!;
+}
+export function glitterThumb(): string {
+  glitterPattern();
+  return tiles.get('glitter:' + state.sparkleTint)!.toDataURL();
 }

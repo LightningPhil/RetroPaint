@@ -1,23 +1,24 @@
 import type { Applicator, BlendMode, Drive, EraserMode, ShapeKind, StatorShape, SymmetryMode, ToolId } from './types';
 
-export const LEVEL_KEY = 'retropaint-level';
-
 export const state = {
-  level: 1 as 1 | 2 | 3 | 4,
   tool: 'draw' as ToolId,
   applicator: 'marker' as Applicator,
+  brushApplicator: 'marker' as Applicator,
+  sprayApplicator: 'mist' as Applicator,
   ink: '#E53935',
   neonTint: '#E53935',
   sparkleTint: '#FFE566',
-  rainbowMode: 'distance' as 'distance' | 'time',
+  beltPick: '#E53935',
   brushWidth: 22,
   opacity: 1,
   shape: 'line' as ShapeKind,
   symmetry: 'off' as SymmetryMode,
   eraserMode: 'scrub' as EraserMode,
-  stampId: '🤖',
+  selectionMode: 'rect' as 'rect' | 'lasso',
+  transparentSelection: false,
+  stampId: '🐶',
   stampScale: 1,
-  stampRotation: 0,
+  stampSpin: 'fixed' as 'fixed' | 'auto',
   stampFlipH: false,
   stampFlipV: false,
   conveyor: ['#E53935', '#FFD166'] as string[],
@@ -33,41 +34,26 @@ export const state = {
     cy: 320,
     R: 200,
     shape: 'circle' as StatorShape,
-    gearId: null as string | null,
-    childId: null as string | null,
+    outerTeeth: 96,
+    innerTeeth: 36,
+    gearId: 'red' as string | null,
     hole: 2,
-    childHole: 1,
     theta: 0,
     drive: 'manual' as Drive,
-    nest: false,
   },
   poly: [] as { x: number; y: number }[],
-  switchOn: false,
   busy: false,
+  cursor: null as { x: number; y: number } | null,
 };
 
 export function currentWidth(): number {
-  return state.level === 1 ? 34 : state.brushWidth;
+  return state.brushWidth;
 }
 
 export function currentAlpha(): number {
-  return state.level >= 4 ? state.opacity : 1;
+  return state.opacity;
 }
 
-export function loadLevel(): void {
-  try {
-    const raw = localStorage.getItem(LEVEL_KEY);
-    const n = raw ? Number(raw) : 1;
-    if (n >= 1 && n <= 4) state.level = n as 1 | 2 | 3 | 4;
-  } catch {
-    state.level = 1;
-  }
-}
-
-export function saveLevel(): void {
-  try {
-    localStorage.setItem(LEVEL_KEY, String(state.level));
-  } catch {
-    /* private mode */
-  }
+export function strokeApplicator(): Applicator {
+  return ['mist', 'splatter', 'confetti'].includes(state.applicator) ? state.brushApplicator : state.applicator;
 }

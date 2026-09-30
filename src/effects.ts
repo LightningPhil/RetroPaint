@@ -3,6 +3,7 @@ import { base, baseCtx, cloneCanvas, H, W } from './canvas';
 import { pushHistory } from './history';
 import { bakeLive, clearLive } from './live';
 import { currentWidth, state } from './state';
+import { advect } from './smudge';
 
 export interface Drip {
   x: number;
@@ -13,16 +14,7 @@ export interface Drip {
   age: number;
 }
 
-export interface SparkParticle {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  life: number;
-}
-
 export const drips: Drip[] = [];
-export const sparks: SparkParticle[] = [];
 
 let wipe: { t: number; snap: HTMLCanvasElement } | null = null;
 let hole: { x: number; y: number; r: number; life: number; src: ImageData } | null = null;
@@ -33,18 +25,6 @@ export function isBusy(): boolean {
 
 export function addDrip(x: number, y: number, r: number, color: string): void {
   drips.push({ x, y, vy: 0.4, r, color, age: 0 });
-}
-
-export function burst(x: number, y: number): void {
-  for (let i = 0; i < 26; i++) {
-    sparks.push({
-      x,
-      y,
-      vx: (Math.random() - 0.5) * 16,
-      vy: (Math.random() - 0.5) * 16 - 2,
-      life: 1,
-    });
-  }
 }
 
 export function startSqueegee(): void {
@@ -162,40 +142,20 @@ export function tickDrips(dt: number): void {
   baseCtx.globalAlpha = 1;
 }
 
-export function tickSparks(dt: number): void {
-  for (let i = sparks.length - 1; i >= 0; i--) {
-    const spark = sparks[i];
-    spark.x += spark.vx * dt * 0.06;
-    spark.y += spark.vy * dt * 0.06;
-    spark.vy += dt * 0.018;
-    spark.life -= dt / 650;
-    if (spark.life <= 0) sparks.splice(i, 1);
-  }
-}
-
-export function drawSparks(ctx: CanvasRenderingContext2D): void {
-  for (const spark of sparks) {
-    ctx.fillStyle = `rgba(255, 214, 70, ${Math.max(0, spark.life)})`;
-    ctx.beginPath();
-    ctx.arc(spark.x, spark.y, Math.max(1, spark.life * 5), 0, Math.PI * 2);
-    ctx.fill();
-  }
-}
-
 export function beginBake(): void {
   pushHistory();
   bakeLive(baseCtx, performance.now());
   clearLive();
 }
 
-export function smudge(x: number, y: number): void {
-  const r = Math.max(18, currentWidth());
-  const ox = (Math.random() - 0.5) * 12;
-  const oy = (Math.random() - 0.5) * 12;
-  baseCtx.save();
-  baseCtx.globalAlpha = 0.75;
-  baseCtx.drawImage(base, x - r, y - r, r * 2, r * 2, x - r + ox, y - r + oy, r * 2, r * 2);
-  baseCtx.restore();
+export function smudge(x: number, y: number, dx: number, dy: number, radius: number): void {
+  const pad = radius + Math.hypot(dx, dy) + 2;
+  const left = Math.max(0, Math.floor(x - pad)), top = Math.max(0, Math.floor(y - pad));
+  const right = Math.min(W, Math.ceil(x + pad)), bottom = Math.min(H, Math.ceil(y + pad));
+  if (right <= left || bottom <= top) return;
+  const patch = baseCtx.getImageData(left, top, right - left, bottom - top);
+  patch.data.set(advect(patch.data, patch.width, patch.height, x - left, y - top, dx, dy, radius, 0.88 * state.opacity));
+  baseCtx.putImageData(patch, left, top);
 }
 
 export function pixelateAt(x: number, y: number): void {

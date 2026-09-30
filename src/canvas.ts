@@ -83,7 +83,3 @@ export function paintThroughMask(
   resetPaint(target);
   target.drawImage(scratch, 0, 0);
 }
-
-export function setDim(on: boolean): void {
-  document.getElementById('dim')?.classList.toggle('on', on);
-}

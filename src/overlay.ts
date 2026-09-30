@@ -1,9 +1,11 @@
 import { uiCtx, W, H } from './canvas';
-import { drawShape, getPending } from './fill';
-import { drawSparks, drawSqueegee } from './effects';
+import { drawShape, getPending, strokePath } from './fill';
+import { drawSqueegee } from './effects';
 import { getPreview } from './preview';
 import { drawRig } from './spiro';
 import { state } from './state';
+import { renderSelection } from './selection';
+import { splinePoints } from './curves';
 
 export function renderOverlay(): void {
   uiCtx.setTransform(1, 0, 0, 1, 0, 0);
@@ -24,6 +26,7 @@ export function renderOverlay(): void {
     uiCtx.setLineDash([6, 5]);
     uiCtx.beginPath();
     preview.points.forEach((p, i) => (i ? uiCtx.lineTo(p.x, p.y) : uiCtx.moveTo(p.x, p.y)));
+    if (state.selectionMode === 'rect') uiCtx.closePath();
     uiCtx.stroke();
     uiCtx.setLineDash([]);
   } else if (preview?.kind === 'rubber') {
@@ -51,18 +54,19 @@ export function renderOverlay(): void {
     pin(uiCtx, pending.x2, pending.y2, '#EF476F');
   }
 
-  if (state.tool === 'spiro') {
-    /* rig already drawn */
-  }
-  drawSparks(uiCtx);
   drawSqueegee(uiCtx);
+  renderSelection(uiCtx, true);
+  if (state.cursor && (state.tool === 'sponge' || state.tool === 'eraser' || state.tool === 'spray')) {
+    const radius = state.tool === 'sponge' ? Math.max(12, state.brushWidth) : state.tool === 'spray' ? state.brushWidth * 2.6 : state.brushWidth * 0.8;
+    uiCtx.save();
+    uiCtx.beginPath(); uiCtx.arc(state.cursor.x, state.cursor.y, radius, 0, Math.PI * 2);
+    uiCtx.strokeStyle = '#ffffffaa'; uiCtx.lineWidth = 3; uiCtx.stroke();
+    uiCtx.strokeStyle = '#26304799'; uiCtx.lineWidth = 1; uiCtx.setLineDash([4, 4]); uiCtx.stroke();
+    uiCtx.restore();
+  }
 
-  if (state.poly.length > 0 && state.tool === 'shapes' && state.shape === 'poly') {
-    uiCtx.strokeStyle = '#1A1A1A';
-    uiCtx.lineWidth = 3;
-    uiCtx.beginPath();
-    state.poly.forEach((p, i) => (i ? uiCtx.lineTo(p.x, p.y) : uiCtx.moveTo(p.x, p.y)));
-    uiCtx.stroke();
+  if (state.poly.length > 0 && state.tool === 'shapes' && (state.shape === 'poly' || state.shape === 'spline')) {
+    strokePath(state.shape === 'spline' ? splinePoints(state.poly) : state.poly, uiCtx, false, false);
     uiCtx.fillStyle = '#FFD166';
     for (const p of state.poly) {
       uiCtx.beginPath();
@@ -74,13 +78,20 @@ export function renderOverlay(): void {
 
 function drawGuides(ctx: CanvasRenderingContext2D): void {
   ctx.save();
-  ctx.strokeStyle = 'rgba(0, 255, 200, 0.9)';
-  ctx.shadowColor = '#00FFC8';
-  ctx.shadowBlur = 10;
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = 'rgba(66, 105, 150, 0.35)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([5, 7]);
   const cx = W / 2;
   const cy = H / 2;
   ctx.beginPath();
+  if (['6', '10', '12'].includes(state.symmetry)) {
+    const count = Number(state.symmetry);
+    for (let i = 0; i < count; i++) {
+      const angle = i * Math.PI * 2 / count;
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(angle) * W, cy + Math.sin(angle) * W);
+    }
+  }
   if (state.symmetry === 'v' || state.symmetry === '4' || state.symmetry === '8') {
     ctx.moveTo(cx, 0);
     ctx.lineTo(cx, H);
@@ -90,10 +101,10 @@ function drawGuides(ctx: CanvasRenderingContext2D): void {
     ctx.lineTo(W, cy);
   }
   if (state.symmetry === '8') {
-    ctx.moveTo(0, 0);
-    ctx.lineTo(W, H);
-    ctx.moveTo(W, 0);
-    ctx.lineTo(0, H);
+    ctx.moveTo(cx - cy, 0);
+    ctx.lineTo(cx + cy, H);
+    ctx.moveTo(cx + cy, 0);
+    ctx.lineTo(cx - cy, H);
   }
   ctx.stroke();
   ctx.restore();

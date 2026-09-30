@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Dazzle - Ultimate Tactile Sandbox</title>
+<title>RetroPaint</title>
 <style>
   :root {
     --bg-color: #E0F4FF; --border-color: #1A1A1A; --panel-bg: #FFFFFF;
@@ -663,7 +663,7 @@ document.getElementById('closeModal').onclick = () => { playSound('clunk'); docu
 
 document.getElementById('expPng').onclick = () => {
   playSound('pop');
-  let a = document.createElement('a'); a.download = 'dazzle-art.png'; a.href = mainCanvas.toDataURL(); a.click();
+  let a = document.createElement('a'); a.download = 'retropaint.png'; a.href = mainCanvas.toDataURL(); a.click();
   document.getElementById('modalBg').style.display = 'none';
 };
 
@@ -678,7 +678,7 @@ document.getElementById('expVid').onclick = () => {
   recorder.ondataavailable = e => chunks.push(e.data);
   recorder.onstop = () => {
     let blob = new Blob(chunks, { type: 'video/webm' });
-    let a = document.createElement('a'); a.download = 'dazzle-animation.webm'; a.href = URL.createObjectURL(blob); a.click();
+    let a = document.createElement('a'); a.download = 'retropaint-animation.webm'; a.href = URL.createObjectURL(blob); a.click();
     btn.innerText = '🎬 Save Animated Video'; btn.style.background = '#9D4EDD'; document.getElementById('modalBg').style.display = 'none';
   };
   recorder.start();

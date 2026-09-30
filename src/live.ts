@@ -1,3 +1,5 @@
+import { paintStroke } from './brush';
+import { renderPaintPath, type PathPaint } from './stroke-renderer';
 import { cloneCanvas, paintThroughMask, W, H } from './canvas';
 import { colorFromSpec, patternFor, stopsFor } from './materials';
 import type { Applicator, GradientLine, LiveSpec, Spark } from './types';
@@ -28,6 +30,11 @@ export interface LiveSnapshot {
 export const strokes: LiveStroke[] = [];
 export const fills: LiveFill[] = [];
 export const sparkles: Spark[] = [];
+const pathCache = new WeakMap<LiveStroke, { count: number; bitmap: ReturnType<typeof renderPaintPath> }>();
+
+export function isStaticStroke(spec: LiveSpec): boolean {
+  return ['neon', 'solid', 'rainbow', 'glitter'].includes(spec.kind);
+}
 
 export function hasLive(): boolean {
   return strokes.length > 0 || fills.length > 0 || sparkles.length > 0;
@@ -46,7 +53,7 @@ export function startStroke(spec: LiveSpec, applicator: Applicator, opacity: num
       last.applicator === applicator &&
       last.opacity === opacity &&
       specMatches(last.spec, spec) &&
-      last.points.length < 4000
+      (isStaticStroke(spec) || last.points.length < 4000)
     ) {
       return last;
     }
@@ -151,42 +158,59 @@ function renderFill(ctx: CanvasRenderingContext2D, fill: LiveFill, now: number):
 
 export function renderStroke(ctx: CanvasRenderingContext2D, stroke: LiveStroke, now: number): void {
   if (stroke.points.length === 0) return;
-  ctx.save();
-  ctx.globalAlpha = stroke.opacity;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  let dist = 0;
+  if (isStaticStroke(stroke.spec)) {
+    let cached = pathCache.get(stroke);
+    if (!cached || cached.count !== stroke.points.length) {
+      cached = { count: stroke.points.length, bitmap: renderPaintPath(stroke.points, {
+        kind: stroke.spec.kind as PathPaint['kind'], color: stroke.spec.colors[0], applicator: stroke.applicator,
+      }) };
+      pathCache.set(stroke, cached);
+    }
+    if (cached.bitmap) {
+      ctx.save(); ctx.globalAlpha = stroke.opacity;
+      ctx.drawImage(cached.bitmap.canvas, cached.bitmap.x, cached.bitmap.y); ctx.restore();
+    }
+    return;
+  }
   const pts = stroke.points;
   const mist = stroke.applicator === 'mist' || stroke.applicator === 'splatter';
-  if (pts.length === 1 || mist) {
+  if (mist) {
+    const splatter = stroke.applicator === 'splatter';
+    ctx.save();
     for (const p of pts) {
-      ctx.fillStyle = colorFromSpec(stroke.spec, now, dist);
+      ctx.globalAlpha = stroke.opacity * (splatter ? 0.88 : 0.38);
+      ctx.fillStyle = colorFromSpec(stroke.spec, now, 0);
+      const radius = Math.max(0.6, p.w / 2);
       ctx.beginPath();
-      ctx.arc(p.x, p.y, Math.max(0.8, p.w / 2), 0, Math.PI * 2);
-      ctx.fill();
+      if (splatter) {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(Math.sin(p.x * 0.2 + p.y) * 2);
+        ctx.scale(1, 0.62);
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      } else {
+        ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
     ctx.restore();
     return;
   }
+  let dist = 0;
   for (let i = 1; i < pts.length; i++) {
     const a = pts[i - 1];
     const b = pts[i];
-    const seg = Math.hypot(b.x - a.x, b.y - a.y);
-    ctx.strokeStyle = colorFromSpec(stroke.spec, now, dist);
-    ctx.lineWidth = Math.max(1, (a.w + b.w) / 2);
-    if (stroke.applicator === 'watercolor') ctx.globalAlpha = stroke.opacity * 0.28;
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.stroke();
-    dist += seg;
+    const color = colorFromSpec(stroke.spec, now, dist);
+    paintStroke(ctx, a.x, a.y, b.x, b.y, Math.max(1, (a.w + b.w) / 2), color, stroke.opacity, stroke.applicator, false, 0, false, true);
+    dist += Math.hypot(b.x - a.x, b.y - a.y);
   }
-  ctx.restore();
 }
 
-export function renderSparkleList(ctx: CanvasRenderingContext2D, list: Spark[], now: number): void {
+export function renderSparkleList(ctx: CanvasRenderingContext2D, list: Spark[], _now: number): void {
   for (const p of list) {
-    const tw = 0.5 + 0.5 * Math.sin(now * 0.012 + p.phase);
+    const tw = 0.5 + 0.5 * Math.sin(p.phase);
     if (tw < 0.35) continue;
     ctx.globalAlpha = 1;
     ctx.fillStyle = tw > 0.72 ? '#ffffff' : p.color;
@@ -200,7 +224,9 @@ export function budget(now: number, paintStroke: (ctx: CanvasRenderingContext2D,
   let count = sparkles.length;
   for (const stroke of strokes) count += stroke.points.length;
   while (count > 9000 && strokes.length > 1) {
-    const oldest = strokes.shift();
+    const index = strokes.findIndex(stroke => !isStaticStroke(stroke.spec));
+    if (index < 0) break;
+    const [oldest] = strokes.splice(index, 1);
     if (!oldest) break;
     paintStroke(target, oldest, now);
     count -= oldest.points.length;
@@ -264,4 +290,13 @@ export function bakeLive(ctx: CanvasRenderingContext2D, now: number): void {
   if (!hasLive()) return;
   renderLive(ctx, now);
   clearLive();
+}
+
+export function bakeStaticStrokes(ctx: CanvasRenderingContext2D): void {
+  for (let i = 0; i < strokes.length;) {
+    if (isStaticStroke(strokes[i].spec)) {
+      renderStroke(ctx, strokes[i], 0);
+      strokes.splice(i, 1);
+    } else i++;
+  }
 }

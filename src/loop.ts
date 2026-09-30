@@ -1,4 +1,4 @@
-import { tickDrips, tickHole, tickSparks, tickSqueegee } from './effects';
+import { tickDrips, tickHole, tickSqueegee } from './effects';
 import { tickSpray } from './input';
 import { renderOverlay } from './overlay';
 import { paintFrame } from './paint';
@@ -13,7 +13,6 @@ export function startLoop(): void {
     tickSqueegee(dt);
     tickHole(dt);
     tickDrips(dt);
-    tickSparks(dt);
     tickSpray();
     tickMotor(now);
     paintFrame(now);

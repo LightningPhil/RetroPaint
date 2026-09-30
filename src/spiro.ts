@@ -2,9 +2,11 @@ import { play, playThrottled } from './audio';
 import { beginStrokeGeneration, segment } from './draw';
 import { pushHistory } from './history';
 import { state } from './state';
+import { baseCtx } from './canvas';
+import { bakeStaticStrokes } from './live';
 import type { GearDef, StatorShape } from './types';
 
-export const STATOR_TEETH = 96;
+export const OUTER_CHOICES = [72, 84, 96, 105, 120];
 
 export const GEARS: GearDef[] = [
   { id: 'pink', color: '#FF5D8F', teeth: 24, holes: 5 },
@@ -33,6 +35,22 @@ export function motorOn(): boolean {
   return motor !== null;
 }
 
+export function resizeHandle(): { x: number; y: number } {
+  return statorPoint(state.spiro.shape, state.spiro.cx, state.spiro.cy, state.spiro.R, -Math.PI / 4);
+}
+
+export function hitResizeHandle(x: number, y: number): boolean {
+  const p = resizeHandle();
+  return Math.hypot(x - p.x, y - p.y) < 22;
+}
+
+export function setRingRadius(radius: number): void {
+  if (motor) return;
+  state.spiro.R = Math.max(60, Math.min(290, radius));
+  const input = document.getElementById('ringSize') as HTMLInputElement | null;
+  if (input) input.value = String(Math.round(state.spiro.R));
+}
+
 function gcd(a: number, b: number): number {
   return b ? gcd(b, a % b) : Math.abs(a);
 }
@@ -57,16 +75,50 @@ function holeOffset(index: number, holes: number, radius: number, rotation: numb
   return { x: Math.cos(ang) * dist, y: Math.sin(ang) * dist };
 }
 
+function clampInt(n: number, min: number, max: number): number {
+  if (!Number.isFinite(n)) return min;
+  return Math.max(min, Math.min(max, Math.round(n)));
+}
+
+function holesFor(teeth: number): number {
+  return Math.max(5, Math.min(10, Math.round(teeth / 7)));
+}
+
+function outerCount(): number {
+  return Math.max(24, state.spiro.outerTeeth);
+}
+
+export function innerGear(): GearDef | null {
+  const base = gearById(state.spiro.gearId);
+  if (!base) return null;
+  const teeth = clampInt(state.spiro.innerTeeth, 8, outerCount() - 6);
+  return { ...base, teeth, holes: holesFor(teeth) };
+}
+
+export function setOuterTeeth(n: number): void {
+  const teeth = clampInt(n, 40, 180);
+  state.spiro.outerTeeth = teeth;
+  if (state.spiro.innerTeeth > teeth - 8) state.spiro.innerTeeth = Math.max(12, teeth - 12);
+  play('clunk');
+}
+
+export function setInnerTeeth(n: number, colorId?: string): void {
+  const teeth = clampInt(n, 10, Math.max(12, outerCount() - 8));
+  state.spiro.innerTeeth = teeth;
+  state.spiro.gearId = colorId ?? state.spiro.gearId ?? 'red';
+  play('clunk');
+}
+
 function gearRadius(teeth: number): number {
-  return (state.spiro.R * teeth) / STATOR_TEETH;
+  return (state.spiro.R * teeth) / outerCount();
 }
 
 function rotationFor(theta: number, teeth: number): number {
-  return -((STATOR_TEETH - teeth) / teeth) * theta;
+  return -((outerCount() - teeth) / teeth) * theta;
 }
 
 export function gearCenter(theta = state.spiro.theta): { x: number; y: number; r: number } | null {
-  const gear = gearById(state.spiro.gearId);
+  const gear = innerGear();
   if (!gear) return null;
   const r = gearRadius(gear.teeth);
   const orbit = statorPoint(state.spiro.shape, state.spiro.cx, state.spiro.cy, Math.max(12, state.spiro.R - r), theta);
@@ -74,21 +126,12 @@ export function gearCenter(theta = state.spiro.theta): { x: number; y: number; r
 }
 
 export function penPosition(theta: number): { x: number; y: number } | null {
-  const gear = gearById(state.spiro.gearId);
+  const gear = innerGear();
   const center = gearCenter(theta);
   if (!gear || !center) return null;
   const rot = rotationFor(theta, gear.teeth);
-  const child = gearById(state.spiro.childId);
-  if (!child || child.teeth >= gear.teeth) {
-    const hole = holeOffset(state.spiro.hole % gear.holes, gear.holes, center.r, rot);
-    return { x: center.x + hole.x, y: center.y + hole.y };
-  }
-  const r2 = (center.r * child.teeth) / gear.teeth;
-  const rot2 = rot + ((gear.teeth - child.teeth) / child.teeth) * theta;
-  const cx = center.x + (center.r - r2) * Math.cos(rot);
-  const cy = center.y + (center.r - r2) * Math.sin(rot);
-  const hole = holeOffset(state.spiro.childHole % child.holes, child.holes, r2, rot2);
-  return { x: cx + hole.x, y: cy + hole.y };
+  const hole = holeOffset(state.spiro.hole % gear.holes, gear.holes, center.r, rot);
+  return { x: center.x + hole.x, y: center.y + hole.y };
 }
 
 export function hitStator(x: number, y: number): boolean {
@@ -108,7 +151,7 @@ export function hitWindKey(x: number, y: number): boolean {
 
 export function hoverHole(x: number, y: number): void {
   if (motor) return;
-  const gear = gearById(state.spiro.gearId);
+  const gear = innerGear();
   const center = gearCenter();
   if (!gear || !center) return;
   if (Math.hypot(x - center.x, y - center.y) > center.r + 6) return;
@@ -129,46 +172,37 @@ export function hoverHole(x: number, y: number): void {
   }
 }
 
-export function assignGear(id: string, asChild: boolean): boolean {
+export function assignGear(id: string): boolean {
   const gear = gearById(id);
   if (!gear) return false;
-  if (asChild) {
-    const parent = gearById(state.spiro.gearId);
-    if (!parent || gear.teeth >= parent.teeth) {
-      play('clunk', 0.6);
-      return false;
-    }
-    state.spiro.childId = id;
-    play('clunk');
-    return true;
-  }
-  state.spiro.gearId = id;
-  const child = gearById(state.spiro.childId);
-  if (child && child.teeth >= gear.teeth) state.spiro.childId = null;
-  play('clunk');
+  setInnerTeeth(gear.teeth, id);
   return true;
 }
 
 export function resetKit(): void {
-  state.spiro.gearId = null;
-  state.spiro.childId = null;
+  state.spiro.R = 200;
+  state.spiro.cx = 480;
+  state.spiro.cy = 320;
+  state.spiro.outerTeeth = 96;
+  state.spiro.innerTeeth = 36;
+  state.spiro.gearId = 'red';
   state.spiro.theta = 0;
   motor = null;
   play('pop');
 }
 
-function widthFor(speed: number): number {
-  const base = state.level === 1 ? 34 : state.brushWidth;
-  return Math.max(1, base * (speed > 1.8 ? 0.55 : 1));
-}
-
-function drawBetween(a: number, b: number): void {
-  const p0 = penPosition(a);
-  const p1 = penPosition(b);
-  if (!p0 || !p1) return;
-  const speed = Math.abs(b - a) * 6;
-  if (speed > 1.6 && Math.random() < 0.22) return;
-  segment(p0.x, p0.y, p1.x, p1.y, widthFor(speed), speed);
+export function drawBetween(a: number, b: number): void {
+  // Sample the actual gear curve in canvas space, independent of mouse speed or
+  // animation frame rate. No skipped sections or long chords across the curve.
+  const steps = Math.max(1, Math.ceil(Math.abs(b - a) * state.spiro.R * 2 / 1.5));
+  let previous = penPosition(a);
+  if (!previous) return;
+  for (let i = 1; i <= steps; i++) {
+    const next = penPosition(a + (b - a) * i / steps);
+    if (!next) return;
+    segment(previous.x, previous.y, next.x, next.y, state.brushWidth, 0);
+    previous = next;
+  }
 }
 
 export function crankStart(x: number, y: number): void {
@@ -193,15 +227,13 @@ export function crankMove(x: number, y: number): void {
 }
 
 export function startMotor(): void {
-  const gear = gearById(state.spiro.gearId);
+  const gear = innerGear();
   if (!gear || motor) {
     play('clunk', 0.7);
     return;
   }
-  const child = gearById(state.spiro.childId);
-  const outer = Math.max(1, gear.teeth / gcd(STATOR_TEETH, gear.teeth));
-  const inner = child && child.teeth < gear.teeth ? Math.max(1, child.teeth / gcd(gear.teeth, child.teeth)) : 1;
-  const cycles = outer * inner;
+  const outer = Math.max(1, gear.teeth / gcd(outerCount(), gear.teeth));
+  const cycles = outer;
   pushHistory();
   beginStrokeGeneration();
   state.spiro.theta = 0;
@@ -219,17 +251,13 @@ export function tickMotor(now: number): void {
   const t = Math.min(1, (now - motor.start) / motor.duration);
   const eased = t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2;
   const theta = eased * motor.thetaMax;
-  const steps = Math.max(1, Math.ceil(Math.abs(theta - motor.lastTheta) / 0.035));
-  for (let i = 1; i <= steps; i++) {
-    const a0 = motor.lastTheta + ((theta - motor.lastTheta) * (i - 1)) / steps;
-    const a1 = motor.lastTheta + ((theta - motor.lastTheta) * i) / steps;
-    drawBetween(a0, a1);
-  }
+  drawBetween(motor.lastTheta, theta);
   state.spiro.theta = theta;
   motor.lastTheta = theta;
   playThrottled('whir', 80, 0.55 + t * 1.5);
   if (t >= 1) {
     motor = null;
+    bakeStaticStrokes(baseCtx);
     play('motor-stop');
   }
 }
@@ -253,25 +281,19 @@ export function drawRig(ctx: CanvasRenderingContext2D): void {
   ctx.stroke();
   ctx.setLineDash([]);
 
-  const gear = gearById(state.spiro.gearId);
+  const handle = resizeHandle();
+  ctx.beginPath();
+  ctx.arc(handle.x, handle.y, 14, 0, Math.PI * 2);
+  ctx.fillStyle = '#FFD166'; ctx.fill();
+  ctx.strokeStyle = '#1A1A1A'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = '#1A1A1A'; ctx.font = 'bold 19px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('↗', handle.x, handle.y);
+
+  const gear = innerGear();
   const center = gearCenter();
   if (gear && center) {
     drawGear(ctx, gear, center.x, center.y, center.r, rotationFor(state.spiro.theta, gear.teeth), state.spiro.hole);
-    const child = gearById(state.spiro.childId);
-    if (child && child.teeth < gear.teeth) {
-      const rot = rotationFor(state.spiro.theta, gear.teeth);
-      const r2 = (center.r * child.teeth) / gear.teeth;
-      const rot2 = rot + ((gear.teeth - child.teeth) / child.teeth) * state.spiro.theta;
-      drawGear(
-        ctx,
-        child,
-        center.x + (center.r - r2) * Math.cos(rot),
-        center.y + (center.r - r2) * Math.sin(rot),
-        r2,
-        rot2,
-        state.spiro.childHole,
-      );
-    }
     if (state.spiro.drive === 'auto' && !motor) {
       ctx.save();
       ctx.translate(center.x, center.y);

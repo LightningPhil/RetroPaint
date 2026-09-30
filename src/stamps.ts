@@ -1,28 +1,22 @@
-import { play, playThrottled } from './audio';
-import { baseCtx, H, W } from './canvas';
-import { emit } from './bus';
+import { playThrottled } from './audio';
+import { baseCtx } from './canvas';
 import { mirrorPoints } from './draw';
-import { pushHistory } from './history';
-import { bakeLive, clearLive } from './live';
 import { state } from './state';
-
-export interface CustomStamp {
-  canvas: HTMLCanvasElement;
-  url: string;
-}
-
-export const customStamps: CustomStamp[] = [];
+import { bakeStaticStrokes } from './live';
 
 export const STAMP_BANKS: { id: string; label: string; items: string[] }[] = [
-  { id: 'critters', label: 'Critters', items: ['🐶', '🐱', '🐭', '🐰', '🦊', '🐸', '🐧', '🐢', '🐙', '🦋'] },
-  { id: 'scenery', label: 'Scenery', items: ['🌳', '🌴', '🌵', '🌸', '⭐', '🌈', '⛰️', '🌊', '☀️', '🌙'] },
-  { id: 'rides', label: 'Rides', items: ['🚗', '🚌', '🏎️', '🚜', '✈️', '🚀', '🛸', '⛵', '🚲', '🚂'] },
-  { id: 'history', label: 'History', items: ['🏰', '👑', '⚔️', '🛡️', '🗿', '🏺', '🦖', '🌋', '📯', '⚓'] },
-  { id: 'cartoons', label: 'Toons', items: ['🤖', '👽', '👾', '🤡', '👻', '🎃', '😀', '😎', '🤩', '💩'] },
-  { id: 'shapes', label: 'Shapes', items: ['vec:star', 'vec:heart', 'vec:triangle', 'vec:diamond', 'vec:blob'] },
+  { id: 'critters', label: '🐾 Animals', items: ['🐶', '🐱', '🐭', '🐰', '🦊', '🐸', '🐧', '🐢', '🐙', '🦋', '🦄', '🦁', '🐨', '🐼', '🐝', '🐬', '🦉', '🦕'] },
+  { id: 'scenery', label: '🌿 Nature', items: ['🌳', '🌴', '🌵', '🌸', '⭐', '🌈', '⛰️', '🌊', '☀️', '🌙', '🍄', '🌻', '🍀', '❄️', '🌎', '🌺', '🍁', '🐚'] },
+  { id: 'rides', label: '🚀 Rides', items: ['🚗', '🚌', '🏎️', '🚜', '✈️', '🚀', '🛸', '⛵', '🚲', '🚂', '🚁', '🚒', '🚑', '🛵', '🎈', '🛶', '🚢', '🛰️'] },
+  { id: 'history', label: '🏰 Adventure', items: ['🏰', '👑', '⚔️', '🛡️', '🗿', '🏺', '🦖', '🌋', '📯', '⚓', '🧙', '🧚', '🐉', '💎', '🗺️', '🏴‍☠️', '🔮', '🦴'] },
+  { id: 'cartoons', label: '🤖 Faces', items: ['🤖', '👽', '👾', '🤡', '👻', '🎃', '😀', '😎', '🤩', '💩', '🥳', '😴', '😍', '🙃', '😺', '🥸', '😇', '🤠'] },
+  { id: 'treats', label: '🍓 Treats', items: ['🍓', '🍉', '🍒', '🍋', '🍎', '🍇', '🍍', '🥕', '🍕', '🍔', '🍟', '🍿', '🍩', '🍪', '🧁', '🍦', '🍭', '🎂'] },
+  { id: 'play', label: '⚽ Play', items: ['⚽', '🏀', '🎾', '🏈', '🏓', '🪁', '🎸', '🥁', '🎹', '🎺', '🎨', '🧩', '🎲', '🧸', '🎁', '🏆', '🎯', '🎪'] },
+  { id: 'shapes', label: '★ Shapes', items: ['vec:star', 'vec:heart', 'vec:triangle', 'vec:diamond', 'vec:blob'] },
 ];
 
 export function placeStamp(x: number, y: number): void {
+  bakeStaticStrokes(baseCtx);
   for (const point of mirrorPoints(x, y)) drawStamp(point.x, point.y);
   playThrottled('thwack', 42, 0.75 + Math.random() * 0.5);
 }
@@ -30,14 +24,12 @@ export function placeStamp(x: number, y: number): void {
 function drawStamp(x: number, y: number): void {
   const scale = state.stampScale;
   baseCtx.save();
+  baseCtx.globalAlpha = state.opacity;
   baseCtx.translate(x, y);
-  baseCtx.rotate((state.stampRotation * Math.PI) / 180);
+  const jiggle = state.stampSpin === 'auto' ? (Math.random() - 0.5) * ((28 * Math.PI) / 180) : 0;
+  baseCtx.rotate(jiggle);
   baseCtx.scale(state.stampFlipH ? -scale : scale, state.stampFlipV ? -scale : scale);
-  if (state.stampId.startsWith('custom:')) {
-    const index = Number(state.stampId.slice(7));
-    const stamp = customStamps[index];
-    if (stamp) baseCtx.drawImage(stamp.canvas, -stamp.canvas.width / 2, -stamp.canvas.height / 2);
-  } else if (state.stampId.startsWith('vec:')) {
+  if (state.stampId.startsWith('vec:')) {
     drawVector(baseCtx, state.stampId);
   } else {
     baseCtx.font = '68px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
@@ -83,63 +75,4 @@ function drawVector(ctx: CanvasRenderingContext2D, id: string): void {
   }
   ctx.fill();
   ctx.stroke();
-}
-
-export function cutSelection(points: { x: number; y: number }[]): CustomStamp | null {
-  if (points.length < 12) return null;
-  let minX = W;
-  let minY = H;
-  let maxX = 0;
-  let maxY = 0;
-  for (const p of points) {
-    minX = Math.min(minX, p.x);
-    minY = Math.min(minY, p.y);
-    maxX = Math.max(maxX, p.x);
-    maxY = Math.max(maxY, p.y);
-  }
-  const bw = Math.ceil(maxX - minX);
-  const bh = Math.ceil(maxY - minY);
-  if (bw < 8 || bh < 8) return null;
-
-  pushHistory();
-  bakeLive(baseCtx, performance.now());
-  clearLive();
-
-  const mask = document.createElement('canvas');
-  mask.width = W;
-  mask.height = H;
-  const mctx = mask.getContext('2d')!;
-  trace(mctx, points);
-  mctx.clip();
-  mctx.drawImage(baseCtx.canvas, 0, 0);
-
-  const cut = document.createElement('canvas');
-  cut.width = bw;
-  cut.height = bh;
-  cut.getContext('2d')!.drawImage(mask, minX, minY, bw, bh, 0, 0, bw, bh);
-
-  baseCtx.save();
-  trace(baseCtx, points);
-  baseCtx.clip();
-  baseCtx.globalCompositeOperation = 'source-over';
-  baseCtx.fillStyle = '#ffffff';
-  baseCtx.fillRect(0, 0, W, H);
-  baseCtx.restore();
-
-  const url = cut.toDataURL();
-  const stamp = { canvas: cut, url };
-  customStamps.push(stamp);
-  if (customStamps.length > 16) customStamps.shift();
-  state.stampId = `custom:${customStamps.length - 1}`;
-  play('rip');
-  emit('stamps');
-  emit('cutout', { url, x: minX, y: minY, w: bw, h: bh });
-  return stamp;
-}
-
-function trace(ctx: CanvasRenderingContext2D, points: { x: number; y: number }[]): void {
-  ctx.beginPath();
-  ctx.moveTo(points[0].x, points[0].y);
-  for (const p of points) ctx.lineTo(p.x, p.y);
-  ctx.closePath();
 }

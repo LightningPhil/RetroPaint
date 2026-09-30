@@ -9,7 +9,6 @@ export type ToolId =
   | 'spray'
   | 'shapes'
   | 'bucket'
-  | 'wand'
   | 'sponge'
   | 'scissors'
   | 'eraser'
@@ -23,17 +22,18 @@ export type Applicator =
   | 'gouache'
   | 'watercolor'
   | 'mist'
-  | 'splatter';
+  | 'splatter'
+  | 'confetti';
 
-export type SymmetryMode = 'off' | 'v' | 'h' | '4' | '8';
-export type ShapeKind = 'line' | 'rect' | 'circle' | 'poly';
+export type SymmetryMode = 'off' | 'v' | 'h' | '4' | '6' | '8' | '10' | '12';
+export type ShapeKind = 'line' | 'rect' | 'circle' | 'poly' | 'spline';
 export type EraserMode = 'scrub' | 'blackhole' | 'pixelate' | 'invert' | 'emboss';
 export type StatorShape = 'circle' | 'oval' | 'square' | 'cross';
 export type Drive = 'manual' | 'auto';
 export type BlendMode = 'snap' | 'ooze';
 
 export interface LiveSpec {
-  kind: 'conveyor' | 'rainbow-time' | 'texture';
+  kind: 'conveyor' | 'rainbow-time' | 'texture' | 'neon' | 'solid' | 'rainbow' | 'glitter';
   colors: string[];
   speed: number;
   mode: BlendMode;

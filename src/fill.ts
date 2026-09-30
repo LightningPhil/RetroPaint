@@ -1,5 +1,7 @@
 import { play } from './audio';
+import { renderPaintPath } from './stroke-renderer';
 import { baseCtx, paintThroughMask, viewCtx, W, H } from './canvas';
+import { mirrorPoints } from './draw';
 import { pushHistory } from './history';
 import { addFill, addSparkle, blankMask, renderLive, subtractMask } from './live';
 import {
@@ -8,11 +10,12 @@ import {
   fillSpecFor,
   isAnimatedMaterial,
   patternFor,
+  glitterPattern,
   previewColor,
   sampleInk,
   stopsFor,
 } from './materials';
-import { currentAlpha, state } from './state';
+import { currentAlpha, state, strokeApplicator } from './state';
 import type { GradientLine, LiveSpec, Spark } from './types';
 
 export interface PendingGradient {
@@ -65,7 +68,7 @@ export function cancelPending(): void {
   dragPin = null;
 }
 
-export function floodAt(x: number, y: number, wand: boolean, line: { x1: number; y1: number; x2: number; y2: number } | null): void {
+export function floodAt(x: number, y: number, line: { x1: number; y1: number; x2: number; y2: number } | null): void {
   paintViewReady();
   const pixels = viewCtx.getImageData(0, 0, W, H).data;
   const mask = floodMask(pixels, Math.floor(x), Math.floor(y));
@@ -88,7 +91,7 @@ export function floodAt(x: number, y: number, wand: boolean, line: { x1: number;
     };
     return;
   }
-  commitMask(maskCanvas, wand);
+  commitMask(maskCanvas);
 }
 
 export function lockPending(): void {
@@ -123,7 +126,7 @@ export function lockPending(): void {
   play('splash');
 }
 
-function commitMask(mask: HTMLCanvasElement, wand: boolean): void {
+function commitMask(mask: HTMLCanvasElement): void {
   pushHistory();
   subtractMask(mask);
   const id = activeInkId();
@@ -138,8 +141,7 @@ function commitMask(mask: HTMLCanvasElement, wand: boolean): void {
   } else {
     paintSolid(baseCtx, mask, id);
   }
-  if (wand) play('chime');
-  else play('splash');
+  play('splash');
 }
 
 function paintSolid(ctx: CanvasRenderingContext2D, mask: HTMLCanvasElement, id: string): void {
@@ -150,6 +152,8 @@ function paintSolid(ctx: CanvasRenderingContext2D, mask: HTMLCanvasElement, id: 
       sctx.fillStyle = state.neonTint;
       sctx.shadowColor = state.neonTint;
       sctx.shadowBlur = 24;
+    } else if (id === 'sparkle') {
+      sctx.fillStyle = glitterPattern();
     } else if (id.startsWith('tex-')) {
       sctx.fillStyle = patternFor(id) ?? previewColor(id);
     } else if (id.startsWith('grad-')) {
@@ -163,8 +167,8 @@ function paintSolid(ctx: CanvasRenderingContext2D, mask: HTMLCanvasElement, id: 
     sctx.fillRect(0, 0, W, H);
     if (neon) {
       sctx.shadowBlur = 0;
-      sctx.globalCompositeOperation = 'lighter';
-      sctx.fillStyle = 'rgba(255,255,255,0.85)';
+      sctx.globalCompositeOperation = 'source-over';
+      sctx.fillStyle = 'rgba(255,255,255,0.16)';
       sctx.fillRect(0, 0, W, H);
     }
   });
@@ -300,29 +304,19 @@ function paintViewReady(): void {
 }
 
 export function drawShape(kind: 'line' | 'rect' | 'circle', x0: number, y0: number, x1: number, y1: number, ctx: CanvasRenderingContext2D, commit: boolean): void {
-  if (!commit) {
-    ctx.save();
-    ctx.lineWidth = state.level === 1 ? 34 : state.brushWidth;
-    ctx.strokeStyle = previewColor(activeInkId());
-    ctx.lineCap = 'round';
-    traceShape(ctx, kind, x0, y0, x1, y1);
-    ctx.stroke();
-    ctx.restore();
-    return;
+  layOutline(outlinePoints(kind, x0, y0, x1, y1), ctx, commit);
+}
+
+export function strokePath(points: { x: number; y: number }[], ctx: CanvasRenderingContext2D, commit: boolean, close: boolean): void {
+  if (points.length < 2) return;
+  const pts = [points[0]];
+  for (let i = 1; i < points.length; i++) walkLine(pts, points[i - 1].x, points[i - 1].y, points[i].x, points[i].y);
+  if (close) {
+    const last = points[points.length - 1];
+    const first = points[0];
+    walkLine(pts, last.x, last.y, first.x, first.y);
   }
-  const width = state.level === 1 ? 34 : state.brushWidth;
-  if (kind === 'line') {
-    const steps = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 4));
-    for (let i = 0; i < steps; i++) {
-      const t0 = i / steps;
-      const t1 = (i + 1) / steps;
-      segmentSafe(x0 + (x1 - x0) * t0, y0 + (y1 - y0) * t0, x0 + (x1 - x0) * t1, y0 + (y1 - y0) * t1, width);
-    }
-    return;
-  }
-  // Rasterize the outline through the same inks by stamping along the geometry.
-  const pts = shapePoints(kind, x0, y0, x1, y1);
-  for (let i = 1; i < pts.length; i++) segmentSafe(pts[i - 1].x, pts[i - 1].y, pts[i].x, pts[i].y, width);
+  layOutline(pts, ctx, commit);
 }
 
 function segmentSafe(x0: number, y0: number, x1: number, y1: number, width: number): void {
@@ -336,31 +330,65 @@ export function setShapePainter(fn: (x0: number, y0: number, x1: number, y1: num
   shapePainter = fn;
 }
 
-function traceShape(ctx: CanvasRenderingContext2D, kind: 'line' | 'rect' | 'circle', x0: number, y0: number, x1: number, y1: number): void {
-  ctx.beginPath();
-  if (kind === 'line') {
-    ctx.moveTo(x0, y0);
-    ctx.lineTo(x1, y1);
-  } else if (kind === 'rect') ctx.rect(x0, y0, x1 - x0, y1 - y0);
-  else ctx.arc(x0, y0, Math.hypot(x1 - x0, y1 - y0), 0, Math.PI * 2);
+const SHAPE_STEP = 3;
+
+function shapeWidth(): number {
+  const width = state.brushWidth;
+  if (strokeApplicator() === 'callig') return width * 1.12;
+  if (strokeApplicator() === 'watercolor') return width * 1.2;
+  return width;
 }
 
-function shapePoints(kind: 'rect' | 'circle', x0: number, y0: number, x1: number, y1: number): { x: number; y: number }[] {
+function walkLine(pts: { x: number; y: number }[], x0: number, y0: number, x1: number, y1: number): void {
+  const dist = Math.hypot(x1 - x0, y1 - y0);
+  const steps = Math.max(1, Math.ceil(dist / SHAPE_STEP));
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps;
+    pts.push({ x: x0 + (x1 - x0) * t, y: y0 + (y1 - y0) * t });
+  }
+}
+
+function outlinePoints(kind: 'line' | 'rect' | 'circle', x0: number, y0: number, x1: number, y1: number): { x: number; y: number }[] {
+  if (kind === 'line') {
+    const pts = [{ x: x0, y: y0 }];
+    walkLine(pts, x0, y0, x1, y1);
+    return pts;
+  }
   if (kind === 'rect') {
-    return [
-      { x: x0, y: y0 },
-      { x: x1, y: y0 },
-      { x: x1, y: y1 },
-      { x: x0, y: y1 },
-      { x: x0, y: y0 },
-    ];
+    const pts = [{ x: x0, y: y0 }];
+    walkLine(pts, x0, y0, x1, y0);
+    walkLine(pts, x1, y0, x1, y1);
+    walkLine(pts, x1, y1, x0, y1);
+    walkLine(pts, x0, y1, x0, y0);
+    return pts;
   }
   const r = Math.hypot(x1 - x0, y1 - y0);
+  const sweep = Math.PI * 2;
+  const steps = Math.max(16, Math.ceil((sweep * Math.max(r, 1)) / SHAPE_STEP));
   const pts: { x: number; y: number }[] = [];
-  const steps = Math.max(12, Math.ceil(r / 3));
   for (let i = 0; i <= steps; i++) {
-    const a = (i / steps) * Math.PI * 2;
+    const a = (i / steps) * sweep;
     pts.push({ x: x0 + Math.cos(a) * r, y: y0 + Math.sin(a) * r });
   }
   return pts;
+}
+
+function layOutline(pts: { x: number; y: number }[], ctx: CanvasRenderingContext2D, commit: boolean): void {
+  if (pts.length < 2) return;
+  const width = shapeWidth();
+  if (!commit) {
+    const id = activeInkId();
+    const lanes = pts.map(p => mirrorPoints(p.x, p.y));
+    for (let lane = 0; lane < lanes[0].length; lane++) {
+      const path = lanes.map(p => ({ ...p[lane], w: width }));
+      const bitmap = renderPaintPath(path, {
+        kind: id === 'neon' ? 'neon' : id === 'rainbow' ? 'rainbow' : id === 'sparkle' ? 'glitter' : 'solid',
+        color: id === 'sparkle' ? state.sparkleTint : id === 'neon' ? state.neonTint : id.startsWith('tex-') ? id : previewColor(id),
+        applicator: strokeApplicator(),
+      });
+      if (bitmap) { ctx.save(); ctx.globalAlpha = currentAlpha(); ctx.drawImage(bitmap.canvas, bitmap.x, bitmap.y); ctx.restore(); }
+    }
+    return;
+  }
+  for (let i = 1; i < pts.length; i++) segmentSafe(pts[i - 1].x, pts[i - 1].y, pts[i].x, pts[i].y, width);
 }

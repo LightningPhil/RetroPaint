@@ -2,185 +2,183 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Dazzle</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RetroPaint</title>
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
 </head>
-<body data-level="1">
-  <div id="wordmark">DAZZLE</div>
+<body>
+  <header id="topBar">
+    <div id="wordmark"><span>Retro</span><span>Paint</span></div>
+    <label id="sizeControl">🖌 Size <input id="brushSize" type="range" min="4" max="48" step="1" value="22"></label>
+    <label id="opacityControl">◐ Strength <input id="opacity" type="range" min="0.15" max="1" step="0.05" value="1"></label>
+    <button type="button" id="undoBtn" class="action-btn panic">UNDO</button>
+    <button type="button" id="clearBtn" class="action-btn">CLEAR</button>
+    <button type="button" id="saveBtn" class="action-btn">SAVE</button>
+  </header>
 
-  <div id="toolBin">
-    <button type="button" class="tool-btn scan-item active" data-tool="draw" data-min-level="1"><span>🖌️</span>Brush</button>
-    <button type="button" class="tool-btn scan-item" data-tool="shapes" data-min-level="2"><span>🟦</span>Shapes</button>
-    <button type="button" class="tool-btn scan-item" data-tool="bucket" data-min-level="1"><span>🪣</span>Bucket</button>
-    <button type="button" class="tool-btn scan-item magic" data-tool="spray" data-min-level="3"><span>💨</span>Spray</button>
-    <button type="button" class="tool-btn scan-item magic" data-tool="wand" data-min-level="3"><span>✨</span>Wand</button>
-    <button type="button" class="tool-btn scan-item" data-tool="sponge" data-min-level="3"><span>🧽</span>Smudge</button>
-    <button type="button" class="tool-btn scan-item destructive" data-tool="scissors" data-min-level="3"><span>✂️</span>Scissors</button>
-    <button type="button" class="tool-btn scan-item destructive" data-tool="eraser" data-min-level="2"><span>🌪️</span>Eraser</button>
-    <button type="button" class="tool-btn scan-item" data-tool="stamp" data-min-level="2"><span>🪵</span>Stamp</button>
-    <button type="button" class="tool-btn scan-item magic" id="symBtn" data-min-level="3"><span>❄️</span>Symmetry</button>
-    <button type="button" class="tool-btn scan-item magic" data-tool="spiro" data-min-level="4"><span>⚙️</span>Spiro</button>
-  </div>
+  <aside id="toolBin">
+    <button type="button" class="tool-btn active" data-tool="draw"><span>🖌️</span>Brushes</button>
+    <button type="button" class="tool-btn" data-tool="shapes"><span>🟦</span>Shapes</button>
+    <button type="button" class="tool-btn" data-tool="bucket"><span>🪣</span>Bucket</button>
+    <button type="button" class="tool-btn magic" data-tool="spray"><span>💨</span>Spray</button>
+    <button type="button" class="tool-btn" data-tool="sponge"><span>🧽</span>Smudge</button>
+    <button type="button" class="tool-btn destructive" data-tool="scissors"><span>▧</span>Select</button>
+    <button type="button" class="tool-btn destructive" data-tool="eraser"><span>🌪️</span>Eraser</button>
+    <button type="button" class="tool-btn" data-tool="stamp"><span>🦋</span>Stamps</button>
+    <button type="button" class="tool-btn magic" id="symBtn"><span>❄️</span>Symmetry</button>
+    <button type="button" class="tool-btn magic" data-tool="spiro"><span>⚙️</span>Spiro</button>
+  </aside>
 
-  <div id="penDrawer" class="drawer" data-min-level="3">
-    <strong>Pens</strong>
-    <div class="row">
-      <button type="button" class="choice scan-item active" data-applicator="marker">Squeaky Marker</button>
-      <button type="button" class="choice scan-item" data-applicator="biro">Biro</button>
-      <button type="button" class="choice scan-item" data-applicator="callig">Calligraphy</button>
-      <button type="button" class="choice scan-item" data-applicator="gouache">Poster Paint</button>
-      <button type="button" class="choice scan-item" data-applicator="watercolor">Watercolor</button>
+  <div id="canvasSlot">
+    <div id="stage">
+
     </div>
   </div>
 
-  <div id="sprayDrawer" class="drawer" data-min-level="3">
+  <footer id="bottomTray">
+    <div class="tray-tabs" id="materialTabs">
+      <button type="button" class="tray-tab active" data-target="tray-solids">🎨 Colours</button>
+      <button type="button" class="tray-tab" data-target="tray-textures">🧱 Textures</button>
+      <button type="button" class="tray-tab" data-target="tray-gradients" hidden>🌅 Gradients</button>
+      <button type="button" class="tray-tab" data-target="tray-live">🪄 Live ink</button>
+    </div>
+    <div id="tray-solids" class="tray-grid"></div>
+    <div id="tray-textures" class="tray-grid panel"></div>
+    <div id="tray-gradients" class="tray-grid panel">
+      <label class="grad-toggle"><input id="gradToggle" type="checkbox" role="switch"><span class="switch" aria-hidden="true"></span> Drag a gradient</label>
+      <button type="button" id="gradFrom" class="chip">Start</button>
+      <button type="button" id="gradTo" class="chip">End</button>
+      <div id="gradPresets" class="tray-grid"></div>
+    </div>
+    <div id="tray-live" class="tray-grid panel">
+      <div id="beltPicks" class="belt-picks"></div>
+      <div id="beltTrack" class="belt-track">
+        <button type="button" class="belt-slot" data-slot="0"></button>
+        <button type="button" class="belt-slot" data-slot="1"></button>
+        <button type="button" class="belt-slot" data-slot="2"></button>
+        <button type="button" class="belt-slot" data-slot="3"></button>
+        <button type="button" class="belt-slot" data-slot="4"></button>
+        <button type="button" class="belt-slot" data-slot="5"></button>
+        <button type="button" class="belt-slot" data-slot="6"></button>
+        <button type="button" class="belt-slot" data-slot="7"></button>
+      </div>
+      <button type="button" id="addBeltBtn" class="action-btn">Add color</button>
+      <button type="button" id="clearBeltBtn" class="action-btn">Clear</button>
+      <label class="speed-label">Speed <input id="beltSpeed" class="speed" type="range" min="-8" max="8" step="1" value="3" aria-label="Belt speed"></label>
+      <button type="button" id="beltMode" class="choice">OOZE</button>
+    </div>
+  </footer>
+
+  <div id="penDrawer" class="drawer">
+    <strong>Brushes &amp; pens</strong>
+    <div class="row">
+      <button type="button" class="choice active" data-applicator="marker">Squeaky Marker</button>
+      <button type="button" class="choice" data-applicator="biro">Biro</button>
+      <button type="button" class="choice" data-applicator="callig">Calligraphy</button>
+      <button type="button" class="choice" data-applicator="gouache">Poster Paint</button>
+      <button type="button" class="choice" data-applicator="watercolor">Watercolor</button>
+    </div>
+  </div>
+
+  <div id="sprayDrawer" class="drawer">
     <strong>Spray can</strong>
     <div class="row">
-      <button type="button" class="choice scan-item active" data-applicator="mist">Fine Mist</button>
-      <button type="button" class="choice scan-item" data-applicator="splatter" data-min-level="4">Splatter</button>
+      <button type="button" class="choice active" data-applicator="mist">Fine Mist</button>
+      <button type="button" class="choice" data-applicator="splatter">Splatter</button>
+      <button type="button" class="choice" data-applicator="confetti">Confetti</button>
     </div>
   </div>
 
   <div id="shapesDrawer" class="drawer">
     <strong>Shape</strong>
     <div class="row">
-      <button type="button" class="choice scan-item active" data-shape="line">Line</button>
-      <button type="button" class="choice scan-item" data-shape="rect">Rectangle</button>
-      <button type="button" class="choice scan-item" data-shape="circle">Circle</button>
-      <button type="button" class="choice scan-item" data-shape="poly">Polyline</button>
+      <button type="button" class="choice active" data-shape="line">Line</button>
+      <button type="button" class="choice" data-shape="rect">Rectangle</button>
+      <button type="button" class="choice" data-shape="circle">Circle</button>
+      <button type="button" class="choice" data-shape="poly">Polyline</button>
+      <button type="button" class="choice" data-shape="spline">Spline</button>
     </div>
+    <button type="button" id="finishPath" class="choice">Finish path</button>
+    <p class="hint">Polyline &amp; spline: tap to add points. Tap Finish or press Enter. Tap the first point to close. Escape cancels.</p>
+  </div>
+
+  <div id="selectionDrawer" class="drawer">
+    <strong>Select &amp; move</strong>
+    <div class="row">
+      <button type="button" class="choice active" data-select="rect">Rectangle</button>
+      <button type="button" class="choice" data-select="lasso">Lasso</button>
+    </div>
+    <label class="selection-toggle"><input id="transparentSelection" type="checkbox"> ▧ Transparent white paper</label>
+    <div class="row selection-actions">
+      <button type="button" class="choice" id="copySelection">Copy</button>
+      <button type="button" class="choice" id="cutSelection">Cut</button>
+      <button type="button" class="choice" id="pasteSelection">Paste</button>
+      <button type="button" class="choice" id="doneSelection">Place</button>
+      <button type="button" class="choice" id="cancelSelection">Cancel</button>
+    </div>
+    <p class="hint">Draw around a piece, then drag it. Copy keeps the original. Transparent skips white paper when you place it.</p>
   </div>
 
   <div id="eraserDrawer" class="drawer">
     <strong>Eraser</strong>
     <div class="row">
-      <button type="button" class="choice scan-item active" data-eraser="scrub">Scrub</button>
-      <button type="button" class="choice scan-item" data-eraser="blackhole" data-min-level="3">Black Hole</button>
-      <button type="button" class="choice scan-item" data-eraser="pixelate" data-min-level="4">Pixelate</button>
-      <button type="button" class="choice scan-item" data-eraser="invert" data-min-level="4">Invert</button>
-      <button type="button" class="choice scan-item" data-eraser="emboss" data-min-level="4">Emboss</button>
+      <button type="button" class="choice active" data-eraser="scrub">Scrub</button>
+      <button type="button" class="choice" data-eraser="blackhole">Black Hole</button>
+      <button type="button" class="choice" data-eraser="pixelate">Pixelate</button>
+      <button type="button" class="choice" data-eraser="invert">Invert</button>
+      <button type="button" class="choice" data-eraser="emboss">Emboss</button>
     </div>
   </div>
 
-  <div id="symDrawer" class="drawer" data-min-level="3">
+  <div id="symDrawer" class="drawer">
     <strong>Symmetry</strong>
     <div class="row">
-      <button type="button" class="choice scan-item" data-sym="v">Vertical</button>
-      <button type="button" class="choice scan-item" data-sym="h">Horizontal</button>
-      <button type="button" class="choice scan-item" data-sym="4">4-way</button>
-      <button type="button" class="choice scan-item active" data-sym="8">8-way</button>
-      <button type="button" class="choice scan-item" data-sym="off">Off</button>
+      <button type="button" class="choice" data-sym="v">Vertical</button>
+      <button type="button" class="choice" data-sym="h">Horizontal</button>
+      <button type="button" class="choice" data-sym="4">4-way</button>
+      <button type="button" class="choice active" data-sym="8">8-way</button>
+      <button type="button" class="choice" data-sym="6">6-way</button>
+      <button type="button" class="choice" data-sym="10">10-way</button>
+      <button type="button" class="choice" data-sym="12">12-way</button>
+      <button type="button" class="choice" data-sym="off">Off</button>
     </div>
   </div>
 
   <div id="stampDrawer" class="drawer">
+    <strong>Stamps</strong>
     <div class="tray-tabs" id="stampTabs"></div>
     <div id="stampGrid" class="stamp-grid"></div>
-    <div id="customGrid" class="stamp-grid"></div>
     <div class="stamp-controls">
-      <label data-min-level="2">Size <input id="stampScale" type="range" min="0.4" max="2.6" step="0.1" value="1"></label>
-      <label data-min-level="3">Rotate <input id="stampRotate" type="range" min="0" max="360" step="5" value="0"></label>
-      <button type="button" id="flipH" class="choice scan-item" data-min-level="3">Flip H</button>
-      <button type="button" id="flipV" class="choice scan-item" data-min-level="3">Flip V</button>
+      <label>Size <input id="stampScale" type="range" min="0.4" max="2.6" step="0.1" value="1"></label>
+      <button type="button" id="spinMode" class="choice">Rotate: Fixed</button>
+      <button type="button" id="flipH" class="choice">Flip sideways</button>
+      <button type="button" id="flipV" class="choice">Upside down</button>
     </div>
   </div>
 
-  <div id="spiroDrawer" class="drawer" data-min-level="4">
-    <strong>Spiro-Kit</strong>
+  <div id="spiroDrawer" class="drawer">
+    <strong>Spiro kit</strong>
+    <label class="teeth-field">↔ Ring size <input id="ringSize" type="range" min="60" max="290" value="200"></label>
+    <label class="teeth-field">Outer teeth <input id="outerTeeth" type="number" min="40" max="180" value="96"></label>
+    <div id="outerChoices" class="row"></div>
+    <label class="teeth-field">Inner teeth <input id="innerTeeth" type="number" min="10" max="170" value="36"></label>
     <div id="gearBox" class="gear-box"></div>
     <div class="row">
-      <button type="button" class="choice scan-item active" data-drive="manual">Manual</button>
-      <button type="button" class="choice scan-item" data-drive="auto">Auto</button>
+      <button type="button" class="choice active" data-drive="manual">Manual</button>
+      <button type="button" class="choice" data-drive="auto">Auto</button>
     </div>
     <div class="row">
-      <button type="button" class="choice scan-item active" data-stator="circle">Ring</button>
-      <button type="button" class="choice scan-item" data-stator="oval">Oval</button>
-      <button type="button" class="choice scan-item" data-stator="square">Square</button>
-      <button type="button" class="choice scan-item" data-stator="cross">Cross</button>
+      <button type="button" class="choice active" data-stator="circle">Ring</button>
+      <button type="button" class="choice" data-stator="oval">Oval</button>
+      <button type="button" class="choice" data-stator="square">Square</button>
+      <button type="button" class="choice" data-stator="cross">Cross</button>
     </div>
-    <button type="button" id="windBtn" class="choice scan-item">Wind the key</button>
-    <button type="button" id="nestBtn" class="choice scan-item">Nest next gear: off</button>
-    <button type="button" id="spiroReset" class="choice scan-item">Reset kit</button>
-    <p class="hint">Drag a gear onto the ring. Hover the holes. Wind the key in Auto.</p>
+    <button type="button" id="windBtn" class="choice">Wind the key</button>
+    <button type="button" id="spiroReset" class="choice">Reset kit</button>
+    <p class="hint">Drag the ring to move it. Drag its yellow handle to resize. Pick a gear, then turn it or wind the key!</p>
   </div>
 
-  <div id="stage">
-    <div id="dim"></div>
-    <div id="quads"></div>
-  </div>
 
-  <div id="topBar">
-    <div id="skillBox">
-      <span>Skill</span>
-      <input id="levelSlider" type="range" min="1" max="4" step="1" value="1" aria-label="Skill level">
-      <div class="level-pips">
-        <button type="button" class="pip scan-item" data-level="1">1</button>
-        <button type="button" class="pip scan-item" data-level="2">2</button>
-        <button type="button" class="pip scan-item" data-level="3">3</button>
-        <button type="button" class="pip scan-item" data-level="4">4</button>
-      </div>
-    </div>
-    <label id="sizeControl" data-min-level="2">Size <input id="brushSize" type="range" min="4" max="48" step="1" value="22"></label>
-    <label id="opacityControl" data-min-level="4">Opacity <input id="opacity" type="range" min="0.15" max="1" step="0.05" value="1"></label>
-    <button type="button" id="switchBtn" class="action-btn scan-item">Switch</button>
-    <button type="button" id="undoBtn" class="action-btn scan-item panic">UNDO</button>
-    <button type="button" id="clearBtn" class="action-btn scan-item">CLEAR</button>
-    <button type="button" id="saveBtn" class="action-btn scan-item">SAVE</button>
-  </div>
-
-  <div id="bottomTray">
-    <div class="tray-tabs" id="materialTabs">
-      <button type="button" class="tray-tab scan-item active" data-target="tray-solids">Colors</button>
-      <button type="button" class="tray-tab scan-item" data-target="tray-textures" data-min-level="2">Textures</button>
-      <button type="button" class="tray-tab scan-item" data-target="tray-gradients" data-min-level="3">Gradients</button>
-      <button type="button" class="tray-tab scan-item" data-target="tray-live" data-min-level="4">Live Ink</button>
-      <label class="grad-toggle" data-min-level="3"><input id="gradToggle" type="checkbox"> Drag a gradient</label>
-    </div>
-    <div id="tray-solids" class="tray-grid"></div>
-    <div id="tray-textures" class="tray-grid panel"></div>
-    <div id="tray-gradients" class="tray-grid panel">
-      <button type="button" id="gradFrom" class="chip scan-item">Start</button>
-      <button type="button" id="gradTo" class="chip scan-item">End</button>
-      <div id="gradPresets" class="tray-grid"></div>
-    </div>
-    <div id="tray-live" class="tray-grid panel">
-      <div id="beltTrack" class="belt-track">
-        <button type="button" class="belt-slot scan-item" data-slot="0"></button>
-        <button type="button" class="belt-slot scan-item" data-slot="1"></button>
-        <button type="button" class="belt-slot scan-item" data-slot="2"></button>
-        <button type="button" class="belt-slot scan-item" data-slot="3"></button>
-        <button type="button" class="belt-slot scan-item" data-slot="4"></button>
-        <button type="button" class="belt-slot scan-item" data-slot="5"></button>
-        <button type="button" class="belt-slot scan-item" data-slot="6"></button>
-        <button type="button" class="belt-slot scan-item" data-slot="7"></button>
-      </div>
-      <button type="button" id="addBeltBtn" class="action-btn scan-item">Add color</button>
-      <button type="button" id="clearBeltBtn" class="action-btn scan-item">Clear</button>
-      <div class="belt-controls">
-        <input id="beltSpeed" class="throttle" type="range" min="-8" max="8" step="1" value="3" aria-label="Speed throttle">
-        <button type="button" id="beltMode" class="choice scan-item">OOZE</button>
-      </div>
-    </div>
-    <div id="rainbowDial" data-min-level="3">
-      <span>Rainbow</span>
-      <button type="button" class="choice scan-item active" data-rainbow="distance">Distance</button>
-      <button type="button" class="choice scan-item" data-rainbow="time">Time</button>
-    </div>
-  </div>
-
-  <div id="modalBg">
-    <div class="modal-box">
-      <h2>Save as picture or movie?</h2>
-      <div class="row">
-        <button type="button" id="expPng" class="action-btn">Picture</button>
-        <button type="button" id="expVid" class="action-btn movie">Movie</button>
-      </div>
-      <button type="button" id="closeModal" class="action-btn">Cancel</button>
-    </div>
-  </div>
-
-  <div id="cutout" hidden><img alt="Cut out stamp"></div>
   <div id="gearGhost" hidden></div>
   <script type="module" src="/src/main.ts"></script>
 </body>

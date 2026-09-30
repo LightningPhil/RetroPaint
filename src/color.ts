@@ -31,7 +31,13 @@ export function darkenHex(hex: string, amount: number): string {
 
 export function rainbowCss(turns: number): string {
   const hue = ((turns % 360) + 360) % 360;
-  return `hsl(${hue}, 100%, 50%)`;
+  // Return real RGB pigment so watercolor transparency and colour mixing work
+  // just as they do for the solid swatches (their helpers expect hex colours).
+  const chroma = 0.88 * 0.98;
+  const second = chroma * (1 - Math.abs((hue / 60) % 2 - 1));
+  const m = 0.49 - chroma / 2;
+  const [r, g, b] = hue < 60 ? [chroma, second, 0] : hue < 120 ? [second, chroma, 0] : hue < 180 ? [0, chroma, second] : hue < 240 ? [0, second, chroma] : hue < 300 ? [second, 0, chroma] : [chroma, 0, second];
+  return rgbToHex((r + m) * 255, (g + m) * 255, (b + m) * 255);
 }
 
 export function isHex(value: string): boolean {
