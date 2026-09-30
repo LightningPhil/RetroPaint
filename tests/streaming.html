@@ -1,0 +1,4 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Rainbow streaming benchmark</title>
+<style>body{font:16px system-ui;background:#eef1f5;color:#263047;margin:28px}h1{font-size:26px}table{border-collapse:collapse;background:white}th,td{padding:14px 20px;border:1px solid #bfc7d7;text-align:left}canvas{display:block;max-width:850px;width:100%;margin-top:20px;border:1px solid #bfc7d7}#stage{display:none}</style>
+<h1>Rainbow: sustained drawing</h1><p>60,000 pointer samples without lifting the brush. Median update + render time, including pixel readback.</p>
+<table><thead><tr><th>Brush</th><th>Early frame</th><th>Frame after 60,000 samples</th><th>Retained points</th></tr></thead><tbody id="results"></tbody></table><p id="status">Running…</p><div id="stage"></div><div id="sample"></div><script type="module" src="./streaming.ts"></script></html>

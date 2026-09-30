@@ -1,7 +1,9 @@
+import { bindClearConfirmation } from './clear-confirmation';
+import { sliceCount } from './symmetry-mask';
 import { unlockAudio } from './audio';
 import { play } from './audio';
 import { bus } from './bus';
-import { isHex } from './color';
+import { isHex, mixHex, neonColor } from './color';
 import { exportPng } from './export';
 import { cancelPending, getPending } from './fill';
 import { startSqueegee } from './effects';
@@ -42,11 +44,16 @@ export function initUi(): void {
   document.addEventListener('keydown', onKey);
 }
 
+let beltSlots: HTMLButtonElement[] | null = null;
+let beltSignature = '';
 export function updateBelt(now: number): void {
   beltNow = now;
-  const slots = [...document.querySelectorAll<HTMLButtonElement>('.belt-slot')];
+  const slots = beltSlots ??= [...document.querySelectorAll<HTMLButtonElement>('.belt-slot')];
   const colors = state.conveyor;
   const shift = colors.length ? Math.floor(now * state.beltSpeed * 0.002) : 0;
+  const signature = colors.join(',') + ':' + (colors.length ? shift % colors.length : 0);
+  if (signature === beltSignature) return;
+  beltSignature = signature;
   slots.forEach((slot, index) => {
     if (!colors.length || index >= colors.length) {
       slot.style.background = '#d0d0d0';
@@ -316,12 +323,23 @@ function bindTools(): void {
   });
   document.querySelectorAll<HTMLButtonElement>('[data-sym]').forEach((btn) => {
     btn.addEventListener('click', () => {
+      commitSelection();
       state.symmetry = btn.dataset.sym as SymmetryMode;
+      state.symmetrySlice %= sliceCount();
+      state.choosingSlice = state.symmetryMask && state.symmetry !== 'off';
       openDrawer = null;
       play('clunk');
       sync();
     });
   });
+  const maskToggle = document.getElementById('symmetryMask') as HTMLButtonElement;
+  maskToggle.addEventListener('click', () => {
+    commitSelection();
+    state.symmetryMask = !state.symmetryMask;
+    state.choosingSlice = state.symmetryMask;
+    openDrawer = null; sync();
+  });
+  bus.addEventListener('symmetry-mask', sync);
   document.querySelectorAll<HTMLButtonElement>('[data-drive]').forEach((btn) => {
     btn.addEventListener('click', () => {
       state.spiro.drive = btn.dataset.drive === 'auto' ? 'auto' : 'manual';
@@ -348,12 +366,12 @@ function bindTools(): void {
     sync();
   });
   document.getElementById('undoBtn')!.addEventListener('click', doUndo);
-  document.getElementById('clearBtn')!.addEventListener('click', () => {
+  bindClearConfirmation(document.getElementById('clearBtn') as HTMLButtonElement, () => {
     if (state.busy) return;
     commitSelection();
     state.poly = [];
     startSqueegee();
-  });
+  }, undefined, () => !state.busy);
 }
 
 function bindSliders(): void {
@@ -590,7 +608,8 @@ function selectInk(id: string, el: HTMLElement): void {
   el.classList.add('selected');
   const glitter = document.querySelector<HTMLElement>('[data-ink="sparkle"]');
   if (glitter) glitter.style.backgroundImage = 'url(' + glitterThumb() + ')';
-  document.documentElement.style.setProperty('--neon-tint', state.neonTint);
+  document.documentElement.style.setProperty('--neon-tint', neonColor(state.neonTint));
+  document.documentElement.style.setProperty('--neon-core', mixHex(neonColor(state.neonTint), '#ffffff', 0.34));
   updatePathControls();
 }
 
@@ -627,6 +646,11 @@ function sync(): void {
   markChoices('[data-shape]', state.shape);
   markChoices('[data-eraser]', state.eraserMode);
   markChoices('[data-sym]', state.symmetry);
+  const maskToggle = document.getElementById('symmetryMask') as HTMLButtonElement;
+  const masked = state.symmetryMask && state.symmetry !== 'off';
+  maskToggle.classList.toggle('active', masked);
+  maskToggle.setAttribute('aria-pressed', String(masked));
+  maskToggle.disabled = state.symmetry === 'off';
   markChoices('[data-drive]', state.spiro.drive);
   markChoices('[data-stator]', state.spiro.shape);
   document.querySelectorAll<HTMLElement>('.drawer').forEach(drawer => drawer.classList.toggle('open', drawer.id === openDrawer));
@@ -697,6 +721,7 @@ function doUndo(): void {
 }
 
 function onKey(event: KeyboardEvent): void {
+  if ((document.getElementById('clearConfirmation') as HTMLDialogElement)?.open) return;
   if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
   const key = event.key.toLowerCase();
   if (event.ctrlKey || event.metaKey) {
@@ -706,7 +731,7 @@ function onKey(event: KeyboardEvent): void {
     else if (key === 'v' && hasClipboard()) { event.preventDefault(); selectTool('scissors'); pasteSelection(); }
     return;
   }
-  if (key === 'escape') { cancelSelection(); state.poly = []; cancelPending(); openDrawer = null; sync(); }
+  if (key === 'escape') { state.choosingSlice=false; cancelSelection(); state.poly = []; cancelPending(); openDrawer = null; sync(); }
   if (key === 'enter' && !(event.target instanceof HTMLButtonElement)) { commitSelection(); finishPath(); }
   if (key === 'delete' || key === 'backspace') {
     if (hasSelection()) { event.preventDefault(); deleteSelection(); }
@@ -742,7 +767,7 @@ function decorateControls(): void {
   for (const attribute of ['applicator', 'shape', 'eraser', 'sym', 'drive', 'stator', 'select']) {
     document.querySelectorAll<HTMLElement>('[data-' + attribute + ']').forEach(btn => labelIcon(btn, btn.dataset[attribute]!));
   }
-  const map: Record<string, string> = { undoBtn: 'undo', clearBtn: 'clear', saveBtn: 'save', copySelection: 'copy', cutSelection: 'cut', pasteSelection: 'paste', doneSelection: 'done', cancelSelection: 'close', finishPath: 'done', flipH: 'flipH', flipV: 'flipV', spiroReset: 'undo', windBtn: 'wind', addBeltBtn: 'plus', clearBeltBtn: 'clear' };
+  const map: Record<string, string> = { symmetryMask: 'slice', undoBtn: 'undo', clearBtn: 'clear', saveBtn: 'save', copySelection: 'copy', cutSelection: 'cut', pasteSelection: 'paste', doneSelection: 'done', cancelSelection: 'close', finishPath: 'done', flipH: 'flipH', flipV: 'flipV', spiroReset: 'undo', windBtn: 'wind', addBeltBtn: 'plus', clearBeltBtn: 'clear' };
   for (const [id, name] of Object.entries(map)) labelIcon(document.getElementById(id)!, name);
   document.querySelectorAll<HTMLElement>('.drawer').forEach(drawer => {
     drawer.setAttribute('role', 'region');

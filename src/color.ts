@@ -43,3 +43,13 @@ export function rainbowCss(turns: number): string {
 export function isHex(value: string): boolean {
   return /^#[0-9a-f]{6}$/i.test(value);
 }
+
+/** Preserve the chosen hue while lifting dark/muted pigment into fluorescent colour. */
+export function neonColor(hex: string): string {
+  const rgb=hexToRgb(hex);
+  if(!rgb)return '#38e8ff';
+  const low=Math.min(rgb.r,rgb.g,rgb.b),high=Math.max(rgb.r,rgb.g,rgb.b),range=high-low;
+  // Neutral inks become an icy light rather than a harsh white stripe.
+  if(range<12)return '#66e8ff';
+  return rgbToHex(26+229*(rgb.r-low)/range,26+229*(rgb.g-low)/range,26+229*(rgb.b-low)/range);
+}

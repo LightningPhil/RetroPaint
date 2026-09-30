@@ -1,3 +1,5 @@
+import { RainbowStroke } from './rainbow-stroke';
+import { lanePolygon, clipPolygon, type Point } from './symmetry-mask';
 import { paintStroke } from './brush';
 import { renderPaintPath, type PathPaint } from './stroke-renderer';
 import { cloneCanvas, paintThroughMask, W, H } from './canvas';
@@ -11,6 +13,8 @@ export interface LiveStroke {
   spec: LiveSpec;
   generation: number;
   lane: number;
+  clip?: Point[] | null;
+  rainbow?: RainbowStroke;
 }
 
 export interface LiveFill {
@@ -41,13 +45,16 @@ export function hasLive(): boolean {
 }
 
 export function specMatches(a: LiveSpec, b: LiveSpec): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
+  return a === b || (a.kind === b.kind && a.speed === b.speed && a.mode === b.mode &&
+    a.along === b.along && a.texture === b.texture && a.colors.length === b.colors.length &&
+    a.colors.every((color, i) => color === b.colors[i]));
 }
 
-export function startStroke(spec: LiveSpec, applicator: Applicator, opacity: number, generation: number, lane: number): LiveStroke {
+export function startStroke(spec: LiveSpec, applicator: Applicator, opacity: number, generation: number, lane: number, start?: Point): LiveStroke {
   for (let i = strokes.length - 1; i >= Math.max(0, strokes.length - 12); i--) {
     const last = strokes[i];
     if (
+      (!start || !last.points.length || Math.hypot(last.points.at(-1)!.x-start.x,last.points.at(-1)!.y-start.y)<0.05) &&
       last.generation === generation &&
       last.lane === lane &&
       last.applicator === applicator &&
@@ -58,9 +65,18 @@ export function startStroke(spec: LiveSpec, applicator: Applicator, opacity: num
       return last;
     }
   }
-  const stroke: LiveStroke = { points: [], opacity, applicator, spec, generation, lane };
+  const stroke: LiveStroke = { points: [], opacity, applicator, spec, generation, lane, clip: lanePolygon(lane) };
   strokes.push(stroke);
   return stroke;
+}
+
+/** Rasterise new rainbow samples immediately and retain only the last point. */
+export function appendStrokePoint(stroke: LiveStroke, point: {x:number;y:number;w:number}):void {
+  if(stroke.spec.kind==='rainbow'){
+    stroke.rainbow ??= new RainbowStroke(stroke.applicator,Math.max(1,point.w));
+    stroke.rainbow.append(point);
+    stroke.points[0]={...point};stroke.points.length=1;
+  }else stroke.points.push(point);
 }
 
 export function addSparkle(x: number, y: number, size: number, color: string): void {
@@ -97,7 +113,8 @@ export function punchDisc(x: number, y: number, radius: number): void {
     fill.sparkles = fill.sparkles.filter((p) => (p.x - x) ** 2 + (p.y - y) ** 2 > r2);
   }
   for (const stroke of strokes) {
-    stroke.points = stroke.points.filter((p) => (p.x - x) ** 2 + (p.y - y) ** 2 > r2);
+    if(stroke.rainbow)stroke.rainbow.erase(ctx=>{ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.fill();});
+    else stroke.points = stroke.points.filter((p) => (p.x - x) ** 2 + (p.y - y) ** 2 > r2);
   }
   for (let i = sparkles.length - 1; i >= 0; i--) {
     const p = sparkles[i];
@@ -120,7 +137,10 @@ export function subtractMask(mask: HTMLCanvasElement): void {
     ctx.globalCompositeOperation = 'source-over';
     fill.sparkles = fill.sparkles.filter((p) => !inside(p.x, p.y));
   }
-  for (const stroke of strokes) stroke.points = stroke.points.filter((p) => !inside(p.x, p.y));
+  for (const stroke of strokes) {
+    if(stroke.rainbow)stroke.rainbow.erase(ctx=>ctx.drawImage(mask,0,0));
+    else stroke.points = stroke.points.filter((p) => !inside(p.x, p.y));
+  }
   for (let i = sparkles.length - 1; i >= 0; i--) {
     if (inside(sparkles[i].x, sparkles[i].y)) sparkles.splice(i, 1);
   }
@@ -157,6 +177,11 @@ function renderFill(ctx: CanvasRenderingContext2D, fill: LiveFill, now: number):
 }
 
 export function renderStroke(ctx: CanvasRenderingContext2D, stroke: LiveStroke, now: number): void {
+  ctx.save(); clipPolygon(ctx,stroke.clip ?? null);
+  try { renderStrokeContent(ctx,stroke,now); } finally { ctx.restore(); }
+}
+function renderStrokeContent(ctx: CanvasRenderingContext2D, stroke: LiveStroke, now: number): void {
+  if(stroke.rainbow){stroke.rainbow.render(ctx,stroke.opacity);return;}
   if (stroke.points.length === 0) return;
   if (isStaticStroke(stroke.spec)) {
     let cached = pathCache.get(stroke);
@@ -248,6 +273,8 @@ export function snapshotLive(): LiveSnapshot {
       spec: { ...stroke.spec, colors: [...stroke.spec.colors] },
       generation: stroke.generation,
       lane: stroke.lane,
+      clip: stroke.clip?.map(p=>({...p})),
+      rainbow: stroke.rainbow?.clone(),
     })),
     fills: fills.map((fill) => ({
       mask: cloneCanvas(fill.mask),
@@ -272,6 +299,8 @@ export function restoreLive(snap: LiveSnapshot): void {
       spec: { ...stroke.spec, colors: [...stroke.spec.colors] },
       generation: stroke.generation,
       lane: stroke.lane,
+      clip: stroke.clip?.map(p=>({...p})),
+      rainbow: stroke.rainbow?.clone(),
     });
   }
   for (const fill of snap.fills) {

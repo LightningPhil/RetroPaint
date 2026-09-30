@@ -1,0 +1,13 @@
+import markup from '../index.html?raw';
+const parsed=new DOMParser().parseFromString(markup,'text/html');
+for(const script of parsed.querySelectorAll('script'))script.remove();
+document.body.replaceChildren(...Array.from(parsed.body.childNodes));
+await import('../src/main');
+const {artwork}=await import('../src/artwork');
+const {state}=await import('../src/state');
+const {beginStrokeGeneration,segment}=await import('../src/draw');
+const {bakeStaticStrokes}=await import('../src/live');
+const {baseCtx}=await import('../src/canvas');
+state.ink='rainbow';state.applicator='marker';beginStrokeGeneration();
+for(let i=1;i<=180;i++)segment(180+(i-1)*3,310+Math.sin((i-1)/24)*65,180+i*3,310+Math.sin(i/24)*65,30,0);
+bakeStaticStrokes(baseCtx);artwork.restore(performance.now()-121000);

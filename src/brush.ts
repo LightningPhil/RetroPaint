@@ -1,5 +1,5 @@
 import { resetPaint } from './canvas';
-import { darkenHex, hexToRgb, mixHex } from './color';
+import { darkenHex, hexToRgb, mixHex, neonColor } from './color';
 import { state } from './state';
 import type { Applicator } from './types';
 
@@ -24,7 +24,7 @@ function strokeLine(
   x1: number,
   y1: number,
   width: number,
-  color: string | CanvasPattern,
+  color: string | CanvasPattern | CanvasGradient,
   dx = 0,
   dy = 0,
 ): void {
@@ -43,7 +43,7 @@ export function paintStroke(
   x1: number,
   y1: number,
   width: number,
-  color: string | CanvasPattern,
+  color: string | CanvasPattern | CanvasGradient,
   alpha: number,
   applicator: Applicator,
   neon: boolean,
@@ -81,21 +81,10 @@ function paintNeon(
   width: number,
   alpha: number,
 ): void {
-  ctx.globalCompositeOperation = 'source-over';
-  ctx.shadowColor = state.neonTint;
-  ctx.shadowBlur = Math.max(12, width * 0.95);
-  ctx.globalAlpha = alpha * 0.6;
-  strokeLine(ctx, x0, y0, x1, y1, width * 0.9, state.neonTint);
-  ctx.shadowBlur = Math.max(4, width * 0.28);
-  ctx.globalAlpha = alpha;
-  strokeLine(ctx, x0, y0, x1, y1, width * 0.6, state.neonTint);
-  ctx.shadowBlur = 0;
-  strokeLine(ctx, x0, y0, x1, y1, Math.max(1, width * 0.25), mixHex(state.neonTint, '#ffffff', 0.64));
-  strokeLine(ctx, x0, y0, x1, y1, Math.max(0.7, width * 0.09), '#fff9f2');
-  resetPaint(ctx);
+  paintNeonPath(ctx,[{x:x0,y:y0,w:width},{x:x1,y:y1,w:width}],state.neonTint,alpha);
 }
 
-/** Paint the entire light tube in passes, so new dabs cannot cover its bright core. */
+/** A continuous fluorescent ribbon: coloured centre, gradual shading, soft spill. */
 export function paintNeonPath(ctx: CanvasRenderingContext2D, points: { x: number; y: number; w: number }[], tint: string, alpha: number): void {
   if (!points.length) return;
   ctx.save(); resetPaint(ctx);
@@ -104,14 +93,19 @@ export function paintNeonPath(ctx: CanvasRenderingContext2D, points: { x: number
   for (const p of points.slice(1)) ctx.lineTo(p.x, p.y);
   if (points.every(p => p.x === points[0].x && p.y === points[0].y)) ctx.lineTo(points[0].x + 0.01, points[0].y);
   if (points.length > 2 && Math.hypot(points[0].x - points.at(-1)!.x, points[0].y - points.at(-1)!.y) < 0.05) ctx.closePath();
-  const pass = (w: number, color: string, blur: number, opacity: number) => {
-    ctx.lineWidth = w; ctx.strokeStyle = color; ctx.shadowColor = tint; ctx.shadowBlur = blur; ctx.globalAlpha = alpha * opacity; ctx.stroke();
+  const fluorescent=neonColor(tint);
+  const pass=(w:number,color:string,blur:number,opacity:number)=>{
+    ctx.lineWidth=w;ctx.strokeStyle=color;ctx.filter=blur ? 'blur('+blur+'px)' : 'none';
+    ctx.globalAlpha=alpha*opacity;ctx.stroke();
   };
-  pass(width * 0.98, tint, Math.max(10, width * 0.8), 0.2);
-  pass(width * 0.76, tint, Math.max(4, width * 0.3), 0.7);
-  pass(width * 0.54, mixHex(tint, '#ffffff', 0.12), 0, 1);
-  pass(Math.max(1, width * 0.28), mixHex(tint, '#ffffff', 0.64), 0, 1);
-  pass(Math.max(0.75, width * 0.1), '#fffaf6', 0, 1);
+  pass(width*1.1,fluorescent,Math.max(3,width*0.5),0.38);
+  pass(width*0.86,fluorescent,Math.max(0.7,width*0.09),0.95);
+  // Fine nested contours form a smooth colour profile, with no white filament.
+  // Render each as a whole path so joins and intersections keep even coverage.
+  for(let i=0;i<=24;i++){
+    const t=i/24,light=t*t*(3-2*t)*0.34;
+    pass(width*(0.78-0.69*t),mixHex(fluorescent,'#ffffff',light),0,1);
+  }
   ctx.restore();
 }
 
@@ -122,7 +116,7 @@ function paintMarker(
   x1: number,
   y1: number,
   width: number,
-  color: string | CanvasPattern,
+  color: string | CanvasPattern | CanvasGradient,
   alpha: number,
   speed: number,
   lite: boolean,
@@ -146,7 +140,7 @@ function paintBiro(
   x1: number,
   y1: number,
   width: number,
-  color: string | CanvasPattern,
+  color: string | CanvasPattern | CanvasGradient,
   alpha: number,
   speed: number,
   lite: boolean,
@@ -196,7 +190,7 @@ function paintCalligraphy(
   x1: number,
   y1: number,
   width: number,
-  color: string | CanvasPattern,
+  color: string | CanvasPattern | CanvasGradient,
   alpha: number,
 ): void {
   const w = Math.max(1.4, width);
@@ -254,7 +248,7 @@ function paintGouache(
   x1: number,
   y1: number,
   width: number,
-  color: string | CanvasPattern,
+  color: string | CanvasPattern | CanvasGradient,
   alpha: number,
   speed: number,
   lite: boolean,
@@ -281,7 +275,7 @@ function paintWatercolor(
   x1: number,
   y1: number,
   width: number,
-  color: string | CanvasPattern,
+  color: string | CanvasPattern | CanvasGradient,
   alpha: number,
   lite: boolean,
 ): void {
@@ -315,7 +309,7 @@ export function paintSprayDot(
   x: number,
   y: number,
   radius: number,
-  color: string | CanvasPattern,
+  color: string | CanvasPattern | CanvasGradient,
   alpha: number,
   kind: 'mist' | 'splatter' | 'fleck',
   neon: boolean,
@@ -323,20 +317,13 @@ export function paintSprayDot(
   resetPaint(ctx);
   const r = Math.max(0.4, radius);
   if (neon) {
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.shadowColor = state.neonTint;
-    ctx.shadowBlur = kind === 'mist' ? 8 : 14;
-    ctx.globalAlpha = alpha * 0.9;
-    ctx.fillStyle = state.neonTint;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(x, y, Math.max(0.4, r * 0.28), 0, Math.PI * 2);
-    ctx.fill();
+    const tint=neonColor(typeof color==='string'?color:state.neonTint);
+    ctx.shadowColor=tint;ctx.shadowBlur=kind==='mist'?8:14;ctx.globalAlpha=alpha;
+    const glow=ctx.createRadialGradient(x,y,0,x,y,r);
+    glow.addColorStop(0,mixHex(tint,'#ffffff',0.34));
+    glow.addColorStop(0.45,mixHex(tint,'#ffffff',0.15));
+    glow.addColorStop(0.78,tint);glow.addColorStop(1,fade(tint));
+    ctx.fillStyle=glow;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
     resetPaint(ctx);
     return;
   }

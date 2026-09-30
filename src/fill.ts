@@ -1,3 +1,6 @@
+import { activeSector, insideSector, clipLane } from './symmetry-mask';
+import { symmetryTransforms } from './symmetry';
+import { neonColor } from './color';
 import { play } from './audio';
 import { renderPaintPath } from './stroke-renderer';
 import { baseCtx, paintThroughMask, viewCtx, W, H } from './canvas';
@@ -69,11 +72,20 @@ export function cancelPending(): void {
 }
 
 export function floodAt(x: number, y: number, line: { x1: number; y1: number; x2: number; y2: number } | null): void {
+  if (!insideSector(x,y)) return;
   paintViewReady();
   const pixels = viewCtx.getImageData(0, 0, W, H).data;
-  const mask = floodMask(pixels, Math.floor(x), Math.floor(y));
+  const sector=activeSector();
+  const mask = floodMask(pixels, Math.floor(x), Math.floor(y), sector ? (x,y)=>insideSector(x+0.5,y+0.5,sector) : undefined);
   if (!mask) return;
-  const maskCanvas = maskToCanvas(mask);
+  let maskCanvas = maskToCanvas(mask);
+  if (sector) {
+    const source=maskCanvas; maskCanvas=blankMask(); const ctx=maskCanvas.getContext('2d')!;
+    for (const [lane,t] of symmetryTransforms().entries()) {
+      ctx.save(); clipLane(ctx,lane); ctx.translate(W/2,H/2); ctx.transform(t.a,t.c,t.b,t.d,0,0); ctx.translate(-W/2,-H/2);
+      ctx.drawImage(source,0,0); ctx.restore();
+    }
+  }
   if (line) {
     const from = state.gradientPreset ? state.ink : state.gradientFrom;
     const to = state.gradientPreset ? state.ink : state.gradientTo;
@@ -149,8 +161,8 @@ function paintSolid(ctx: CanvasRenderingContext2D, mask: HTMLCanvasElement, id: 
   paintThroughMask(ctx, mask, (sctx) => {
     sctx.globalAlpha = currentAlpha();
     if (neon) {
-      sctx.fillStyle = state.neonTint;
-      sctx.shadowColor = state.neonTint;
+      sctx.fillStyle = neonColor(state.neonTint);
+      sctx.shadowColor = neonColor(state.neonTint);
       sctx.shadowBlur = 24;
     } else if (id === 'sparkle') {
       sctx.fillStyle = glitterPattern();
@@ -238,7 +250,7 @@ function sparklesAlong(mask: HTMLCanvasElement, line: GradientLine): Spark[] {
   return pts;
 }
 
-export function floodMask(pixels: Uint8ClampedArray, sx: number, sy: number): Uint8Array | null {
+export function floodMask(pixels: Uint8ClampedArray, sx: number, sy: number, allowed?: (x:number,y:number)=>boolean): Uint8Array | null {
   if (sx < 0 || sy < 0 || sx >= W || sy >= H) return null;
   const mask = new Uint8Array(W * H);
   const start = (sy * W + sx) * 4;
@@ -247,6 +259,7 @@ export function floodMask(pixels: Uint8ClampedArray, sx: number, sy: number): Ui
   const tb = pixels[start + 2];
   const ta = pixels[start + 3];
   const match = (i: number) => {
+    if (allowed && !allowed(i%W,Math.floor(i/W))) return false;
     const p = i * 4;
     return Math.abs(pixels[p] - tr) + Math.abs(pixels[p + 1] - tg) + Math.abs(pixels[p + 2] - tb) + Math.abs(pixels[p + 3] - ta) <= 48;
   };
@@ -378,7 +391,9 @@ function layOutline(pts: { x: number; y: number }[], ctx: CanvasRenderingContext
   const width = shapeWidth();
   if (!commit) {
     const id = activeInkId();
-    const lanes = pts.map(p => mirrorPoints(p.x, p.y));
+    const paths = [pts];
+    for (const points of paths) {
+    const lanes = points.map(p => mirrorPoints(p.x, p.y));
     for (let lane = 0; lane < lanes[0].length; lane++) {
       const path = lanes.map(p => ({ ...p[lane], w: width }));
       const bitmap = renderPaintPath(path, {
@@ -386,7 +401,8 @@ function layOutline(pts: { x: number; y: number }[], ctx: CanvasRenderingContext
         color: id === 'sparkle' ? state.sparkleTint : id === 'neon' ? state.neonTint : id.startsWith('tex-') ? id : previewColor(id),
         applicator: strokeApplicator(),
       });
-      if (bitmap) { ctx.save(); ctx.globalAlpha = currentAlpha(); ctx.drawImage(bitmap.canvas, bitmap.x, bitmap.y); ctx.restore(); }
+      if (bitmap) { ctx.save(); clipLane(ctx,lane); ctx.globalAlpha = currentAlpha(); ctx.drawImage(bitmap.canvas, bitmap.x, bitmap.y); ctx.restore(); }
+    }
     }
     return;
   }

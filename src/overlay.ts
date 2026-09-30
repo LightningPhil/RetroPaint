@@ -1,3 +1,5 @@
+import { activeSector, sectorPolygon, polygonPath, sliceAt } from './symmetry-mask';
+import { mirrorPoints } from './symmetry';
 import { uiCtx, W, H } from './canvas';
 import { drawShape, getPending, strokePath } from './fill';
 import { drawSqueegee } from './effects';
@@ -56,10 +58,15 @@ export function renderOverlay(): void {
 
   drawSqueegee(uiCtx);
   renderSelection(uiCtx, true);
-  if (state.cursor && (state.tool === 'sponge' || state.tool === 'eraser' || state.tool === 'spray')) {
+  if (state.cursor && !state.choosingSlice && (state.tool === 'sponge' || state.tool === 'eraser' || state.tool === 'spray')) {
     const radius = state.tool === 'sponge' ? Math.max(12, state.brushWidth) : state.tool === 'spray' ? state.brushWidth * 2.6 : state.brushWidth * 0.8;
     uiCtx.save();
-    uiCtx.beginPath(); uiCtx.arc(state.cursor.x, state.cursor.y, radius, 0, Math.PI * 2);
+    uiCtx.beginPath();
+    const cursors = state.tool === 'sponge' ? mirrorPoints(state.cursor.x, state.cursor.y) : [state.cursor];
+    for (const point of cursors) {
+      uiCtx.moveTo(point.x + radius, point.y);
+      uiCtx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+    }
     uiCtx.strokeStyle = '#ffffffaa'; uiCtx.lineWidth = 3; uiCtx.stroke();
     uiCtx.strokeStyle = '#26304799'; uiCtx.lineWidth = 1; uiCtx.setLineDash([4, 4]); uiCtx.stroke();
     uiCtx.restore();
@@ -74,6 +81,7 @@ export function renderOverlay(): void {
       uiCtx.fill();
     }
   }
+  drawSymmetryMask(uiCtx);
 }
 
 function drawGuides(ctx: CanvasRenderingContext2D): void {
@@ -118,4 +126,23 @@ function pin(ctx: CanvasRenderingContext2D, x: number, y: number, fill: string):
   ctx.lineWidth = 4;
   ctx.strokeStyle = '#1A1A1A';
   ctx.stroke();
+}
+
+function drawSymmetryMask(ctx: CanvasRenderingContext2D): void {
+  const sector = activeSector();
+  if (!sector) return;
+  if (state.choosingSlice && state.cursor) sector.slice = sliceAt(state.cursor.x,state.cursor.y);
+  const polygon = sectorPolygon(sector);
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0,0,W,H); polygonPath(ctx,polygon);
+  ctx.fillStyle='rgba(38,48,71,0.16)'; ctx.fill('evenodd'); ctx.clip('evenodd');
+  ctx.setLineDash([]); ctx.strokeStyle='#8064b9'; ctx.lineWidth=3; ctx.lineCap='round';
+  // The rail sits wholly outside the dotted seam, leaving the working paper clear.
+  for (let i=0;i<polygon.length;i++) {
+    const a=polygon[i],b=polygon[(i+1)%polygon.length],length=Math.hypot(b.x-a.x,b.y-a.y);
+    if (length<0.1) continue;
+    const dx=(b.y-a.y)/length*5,dy=-(b.x-a.x)/length*5;
+    ctx.beginPath();ctx.moveTo(a.x+dx,a.y+dy);ctx.lineTo(b.x+dx,b.y+dy);ctx.stroke();
+  }
+  ctx.restore();
 }

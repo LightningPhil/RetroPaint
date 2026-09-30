@@ -1,3 +1,4 @@
+import { clearConfirmationOpen } from './clear-confirmation';
 import { tickDrips, tickHole, tickSqueegee } from './effects';
 import { tickSpray } from './input';
 import { renderOverlay } from './overlay';
@@ -10,11 +11,13 @@ export function startLoop(): void {
   const frame = (now: number) => {
     const dt = Math.min(50, now - last);
     last = now;
-    tickSqueegee(dt);
-    tickHole(dt);
-    tickDrips(dt);
-    tickSpray();
-    tickMotor(now);
+    if (!clearConfirmationOpen()) {
+      tickSqueegee(dt);
+      tickHole(dt);
+      tickDrips(dt);
+      tickSpray();
+      tickMotor(now);
+    }
     paintFrame(now);
     renderOverlay();
     updateBelt(now);

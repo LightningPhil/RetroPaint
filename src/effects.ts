@@ -1,9 +1,12 @@
+import { artwork } from './artwork';
+import { activeSector, clipSegment, paintSectorPatch } from './symmetry-mask';
 import { play } from './audio';
 import { base, baseCtx, cloneCanvas, H, W } from './canvas';
 import { pushHistory } from './history';
 import { bakeLive, clearLive } from './live';
 import { currentWidth, state } from './state';
-import { advect } from './smudge';
+import { advectMany } from './smudge';
+import { mirrorMotion } from './symmetry';
 
 export interface Drip {
   x: number;
@@ -33,6 +36,7 @@ export function startSqueegee(): void {
   bakeLive(baseCtx, performance.now());
   clearLive();
   wipe = { t: 0, snap: cloneCanvas(base) };
+  artwork.reset();
   state.busy = true;
   play('squeegee');
 }
@@ -69,7 +73,7 @@ export function tickSqueegee(dt: number): void {
 }
 
 export function startHole(x: number, y: number): void {
-  if (isBusy()) return;
+  if (isBusy() || x+58<=0 || y+58<=0 || x-58>=W || y-58>=H) return;
   pushHistory();
   bakeLive(baseCtx, performance.now());
   clearLive();
@@ -112,12 +116,14 @@ export function tickHole(dt: number): void {
       img.data[di + 3] = 255;
     }
   }
-  baseCtx.putImageData(img, x0, y0);
+  paintSectorPatch(baseCtx,img,x0,y0,x,y,r);
   if (hole.life <= 0) {
-    baseCtx.fillStyle = '#ffffff';
-    baseCtx.beginPath();
-    baseCtx.arc(x, y, r * 0.94, 0, Math.PI * 2);
-    baseCtx.fill();
+    if (activeSector()) {
+      const clear=baseCtx.createImageData(img.width,img.height); clear.data.fill(255);
+      paintSectorPatch(baseCtx,clear,x0,y0,x,y,r*0.94);
+    } else {
+      baseCtx.fillStyle='#ffffff';baseCtx.beginPath();baseCtx.arc(x,y,r*0.94,0,Math.PI*2);baseCtx.fill();
+    }
     hole = null;
     state.busy = false;
   }
@@ -149,13 +155,21 @@ export function beginBake(): void {
 }
 
 export function smudge(x: number, y: number, dx: number, dy: number, radius: number): void {
-  const pad = radius + Math.hypot(dx, dy) + 2;
-  const left = Math.max(0, Math.floor(x - pad)), top = Math.max(0, Math.floor(y - pad));
-  const right = Math.min(W, Math.ceil(x + pad)), bottom = Math.min(H, Math.ceil(y + pad));
-  if (right <= left || bottom <= top) return;
-  const patch = baseCtx.getImageData(left, top, right - left, bottom - top);
-  patch.data.set(advect(patch.data, patch.width, patch.height, x - left, y - top, dx, dy, radius, 0.88 * state.opacity));
-  baseCtx.putImageData(patch, left, top);
+  const sector=activeSector();
+  const dabs=(sector ? [{x,y,dx,dy}] : mirrorMotion(x,y,dx,dy)).filter(p=>p.x+radius>0&&p.y+radius>0&&p.x-radius<W&&p.y-radius<H);
+  if(!dabs.length)return;
+  const pad=radius+Math.hypot(dx,dy)+2;
+  const left=Math.max(0,Math.floor(Math.min(...dabs.map(p=>p.x))-pad));
+  const top=Math.max(0,Math.floor(Math.min(...dabs.map(p=>p.y))-pad));
+  const right=Math.min(W,Math.ceil(Math.max(...dabs.map(p=>p.x))+pad));
+  const bottom=Math.min(H,Math.ceil(Math.max(...dabs.map(p=>p.y))+pad));
+  if(right<=left||bottom<=top)return;
+  const patch=baseCtx.getImageData(left,top,right-left,bottom-top);
+  patch.data.set(advectMany(patch.data,patch.width,patch.height,dabs.map(p=>({...p,x:p.x-left,y:p.y-top})),radius,0.88*state.opacity, sector ? (px,py,sx,sy)=>{
+    const line=clipSegment({x:px+left+0.5,y:py+top+0.5},{x:sx+left+0.5,y:sy+top+0.5},sector,0.5);
+    return line ? {x:line[1].x-left-0.5,y:line[1].y-top-0.5} : {x:px,y:py};
+  } : undefined));
+  paintSectorPatch(baseCtx,patch,left,top,x,y,radius);
 }
 
 export function pixelateAt(x: number, y: number): void {
@@ -242,7 +256,7 @@ function filterDisc(
   if (w < 2 || h < 2) return;
   const img = baseCtx.getImageData(x0, y0, w, h);
   paint(img.data, w, h, x - x0, y - y0);
-  baseCtx.putImageData(img, x0, y0);
+  paintSectorPatch(baseCtx,img,x0,y0,x,y,radius);
 }
 
 export function drawSqueegee(ctx: CanvasRenderingContext2D): void {

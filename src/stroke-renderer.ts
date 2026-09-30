@@ -1,6 +1,6 @@
 import { paintStroke, paintNeonPath } from './brush';
 import { H, W } from './canvas';
-import { rainbowCss } from './color';
+import { RainbowStroke } from './rainbow-stroke';
 import { glitterPattern, patternFor, previewColor } from './materials';
 import type { Applicator, Pt } from './types';
 
@@ -32,9 +32,9 @@ function grain(x: number, y: number): number {
   return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
 }
 
-/** Render coverage once for a connected path, then colour it. Opacity never builds
- * up at mouse samples, corners, or Spiro subdivisions. The bitmap is cropped so
- * normal brush strokes do not allocate or process the whole canvas. */
+/** Static pigments use one coverage mask. Rainbow deposits colour locally:
+ * extending a stroke must not recolour earlier paint outside the moving nib.
+ * Cropped bitmaps avoid allocating and processing the whole canvas. */
 export function renderPaintPath(points: Pt[], paint: PathPaint): { canvas: HTMLCanvasElement; x: number; y: number } | null {
   if (!points.length) return null;
   const width = Math.max(1, points[0].w);
@@ -54,6 +54,15 @@ export function renderPaintPath(points: Pt[], paint: PathPaint): { canvas: HTMLC
   if (paint.kind === 'neon') {
     paintNeonPath(ctx, local.map(p => ({ ...p, w: nibWidth })), paint.color, 1);
     return { canvas, x, y };
+  }
+
+  if (paint.kind === 'rainbow') {
+    // Keep rasterisation in paper coordinates, matching the streaming layer.
+    // Translating tiny segments before rasterisation can change edge coverage.
+    const stroke=new RainbowStroke(paint.applicator,width);
+    for(const point of points)stroke.append(point);
+    ctx.translate(-x,-y);stroke.render(ctx,1);ctx.setTransform(1,0,0,1,0,0);
+    return {canvas,x,y};
   }
 
   const mask = surface(w, h);
@@ -94,34 +103,7 @@ export function renderPaintPath(points: Pt[], paint: PathPaint): { canvas: HTMLC
     coverage.clearRect(0, 0, w, h); coverage.drawImage(feather, 0, 0);
   }
 
-  if (paint.kind === 'rainbow') {
-    let total = 0;
-    for (let i = 1; i < local.length; i++) total += Math.hypot(local[i].x - local[i - 1].x, local[i].y - local[i - 1].y);
-    const closed = local.length > 2 && Math.hypot(local[0].x - local.at(-1)!.x, local[0].y - local.at(-1)!.y) < 0.05;
-    const rate = closed && total > 1 ? Math.max(1, Math.round(total / 600)) * 360 / total : 0.6;
-    // The colour field extends beyond the coverage mask. Round, overlapping
-    // patches here cannot produce beaded opacity along the final outline.
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.lineWidth = width * 2 + 12;
-    let distance = 0;
-    if (total < 0.01) { ctx.fillStyle = rainbowCss(0); ctx.fillRect(0, 0, w, h); }
-    for (let i = 1; i < local.length; i++) {
-      const a = local[i - 1], b = local[i];
-      const length = Math.hypot(b.x - a.x, b.y - a.y);
-      if (length < 0.001) continue;
-      const extension = width + 6;
-      const ux = (b.x - a.x) / length, uy = (b.y - a.y) / length;
-      const gradient = ctx.createLinearGradient(a.x - ux * extension, a.y - uy * extension, b.x + ux * extension, b.y + uy * extension);
-      const span = length + extension * 2;
-      const stops = Math.max(2, Math.ceil(span / 8));
-      for (let j = 0; j <= stops; j++) {
-        const along = Math.max(0, Math.min(total, distance - extension + span * j / stops));
-        gradient.addColorStop(j / stops, rainbowCss(along * rate));
-      }
-      ctx.strokeStyle = gradient;
-      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-      distance += length;
-    }
-  } else {
+  {
     // Anchor pigment to paper coordinates, including during cropped rendering.
     ctx.translate(-x, -y);
     ctx.fillStyle = paint.kind === 'glitter' ? glitterPattern(paint.color) : paint.color.startsWith('tex-') ? patternFor(paint.color) ?? previewColor(paint.color) : paint.color;

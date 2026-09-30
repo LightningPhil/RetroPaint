@@ -1,4 +1,6 @@
 const paths: Record<string, string> = {
+  clock: '<circle fill="#a8d9f7" cx="12" cy="12" r="10"/><path d="M12 5v7l5 3M12 2v1m10 9h-1M12 22v-1M2 12h1"/>',
+  slice: '<circle cx="12" cy="12" r="10"/><path fill="#ffd16f" d="M12 12V2a10 10 0 0 1 8.66 15z"/>',
   plus: '<circle fill="#93dfbd" cx="12" cy="12" r="10"/><path d="M6 12h12M12 6v12"/>',
   blend: '<circle fill="#f7aa76" cx="8" cy="12" r="7"/><circle fill="#b9a4e8" fill-opacity=".7" cx="16" cy="12" r="7"/>',
   marker: '<path fill="#ffcc5c" d="m6 16 8-12 5 4-8 12-6 1z"/><path d="m12 7 5 4M6 16l5 4M4 22l3-3"/>',

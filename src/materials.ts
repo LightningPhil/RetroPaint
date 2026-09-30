@@ -1,4 +1,4 @@
-import { isHex, mixHex, rainbowCss } from './color';
+import { isHex, mixHex, rainbowCss, neonColor } from './color';
 import { state } from './state';
 import type { BlendMode, GradientLine, LiveSpec } from './types';
 
@@ -166,7 +166,7 @@ export function thumbFor(id: string): string {
 
 export function previewColor(id: string, _now = 0): string {
   if (isHex(id)) return id;
-  if (id === 'neon') return state.neonTint;
+  if (id === 'neon') return neonColor(state.neonTint);
   if (id === 'rainbow') return rainbowCss(0);
   if (id === 'sparkle') return state.sparkleTint;
   if (id === 'tex-brick') return '#C4492C';
@@ -196,7 +196,7 @@ export function stopsFor(line: GradientLine, now: number): { t: number; color: s
 export function sampleInk(id: string, now: number, distance: number): string {
   if (id === 'live') return sampleConveyor(state.conveyor, state.beltSpeed, state.beltMode, now, distance);
   if (id === 'rainbow') return rainbowCss(distance * 0.55);
-  if (id === 'neon') return state.neonTint;
+  if (id === 'neon') return neonColor(state.neonTint);
   if (id === 'sparkle') return state.sparkleTint;
   return previewColor(id, now);
 }

@@ -1,6 +1,7 @@
+import { activeSector, sectorPolygon, clipPolygon } from './symmetry-mask';
 import { playThrottled } from './audio';
-import { baseCtx } from './canvas';
-import { mirrorPoints } from './draw';
+import { baseCtx, W, H } from './canvas';
+import { symmetryTransforms } from './symmetry';
 import { state } from './state';
 import { bakeStaticStrokes } from './live';
 
@@ -17,16 +18,25 @@ export const STAMP_BANKS: { id: string; label: string; items: string[] }[] = [
 
 export function placeStamp(x: number, y: number): void {
   bakeStaticStrokes(baseCtx);
-  for (const point of mirrorPoints(x, y)) drawStamp(point.x, point.y);
+  const jiggle = state.stampSpin === 'auto' ? (Math.random() - 0.5) * ((28 * Math.PI) / 180) : 0;
+  for (const t of symmetryTransforms()) {
+    baseCtx.save();
+    baseCtx.translate(W / 2, H / 2);
+    baseCtx.transform(t.a, t.c, t.b, t.d, 0, 0);
+    baseCtx.translate(-W / 2, -H / 2);
+    const sector=activeSector();
+    if (sector) clipPolygon(baseCtx,sectorPolygon(sector));
+    drawStamp(x, y, jiggle);
+    baseCtx.restore();
+  }
   playThrottled('thwack', 42, 0.75 + Math.random() * 0.5);
 }
 
-function drawStamp(x: number, y: number): void {
+function drawStamp(x: number, y: number, jiggle: number): void {
   const scale = state.stampScale;
   baseCtx.save();
   baseCtx.globalAlpha = state.opacity;
   baseCtx.translate(x, y);
-  const jiggle = state.stampSpin === 'auto' ? (Math.random() - 0.5) * ((28 * Math.PI) / 180) : 0;
   baseCtx.rotate(jiggle);
   baseCtx.scale(state.stampFlipH ? -scale : scale, state.stampFlipV ? -scale : scale);
   if (state.stampId.startsWith('vec:')) {

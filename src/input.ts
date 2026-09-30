@@ -1,3 +1,5 @@
+import { activeSector, insideSector, clipSegment, sliceAt } from './symmetry-mask';
+import { bus } from './bus';
 import { unlockAudio } from './audio';
 import { baseCtx, eventPos, view, viewCtx } from './canvas';
 import { bakeStaticStrokes } from './live';
@@ -25,7 +27,7 @@ interface Ptr {
   t: number;
   still: number;
   gen: number;
-  mode: 'draw' | 'spray' | 'shape' | 'lasso' | 'grad' | 'pin' | 'ring' | 'crank' | 'stamp' | 'filter' | 'smudge' | 'ignore' | 'selectionMove' | 'resize';
+  mode: 'draw' | 'spray' | 'shape' | 'lasso' | 'grad' | 'pin' | 'ring' | 'crank' | 'stamp' | 'filter' | 'smudge' | 'ignore' | 'bucket' | 'selectionMove' | 'resize';
   smudgePath?: SmudgePath;
   lasso: { x: number; y: number }[];
   ringDx: number;
@@ -53,7 +55,7 @@ export function sprayPointers(): Ptr[] {
 }
 
 export function tapCanvas(x: number, y: number): void {
-  if (isBusy() || state.busy) return;
+  if (isBusy() || state.busy || chooseSource(x,y)) return;
   if (state.tool === 'bucket') {
     floodAt(x, y, null);
     return;
@@ -75,6 +77,7 @@ function onDown(event: PointerEvent): void {
   if (ptrs.size && (state.tool === 'sponge' || state.tool === 'scissors')) return;
   view.setPointerCapture(event.pointerId);
   const pos = eventPos(event);
+  if (chooseSource(pos.x,pos.y)) return;
   const pin = hitPin(pos.x, pos.y);
   if (pin) {
     setPinDrag(pin);
@@ -133,7 +136,8 @@ function onDown(event: PointerEvent): void {
   if (state.tool === 'bucket') {
     const gradient = state.gradientDrag || state.ink.startsWith('grad-');
     if (!gradient) {
-      floodAt(pos.x, pos.y, null);
+      if (insideSector(pos.x,pos.y)) floodAt(pos.x, pos.y, null);
+      else ptrs.set(event.pointerId, blank(event.pointerId, pos, 'bucket'));
       return;
     }
     ptrs.set(event.pointerId, blank(event.pointerId, pos, 'grad'));
@@ -152,7 +156,7 @@ function onDown(event: PointerEvent): void {
   else if (state.tool === 'eraser' && state.eraserMode !== 'scrub') ptr.mode = 'filter';
 
   if (!groupSaved && ptr.mode !== 'lasso') {
-    if (ptr.mode === 'smudge' || ptr.mode === 'filter') beginBake();
+    if (ptr.mode === 'smudge' || ptr.mode === 'filter' || (activeSector() && state.tool === 'eraser')) beginBake();
     else pushHistory();
     groupSaved = true;
   }
@@ -172,6 +176,7 @@ function onDown(event: PointerEvent): void {
 
 function onMove(event: PointerEvent): void {
   state.cursor = eventPos(event);
+  view.style.cursor = 'crosshair';
   const ptr = ptrs.get(event.pointerId);
   if (!ptr) {
     if (state.tool === 'spiro') hoverHole(eventPos(event).x, eventPos(event).y);
@@ -186,7 +191,8 @@ function onMove(event: PointerEvent): void {
   if (dist < 1.2) ptr.still += dt;
   else ptr.still = 0;
 
-  if (ptr.mode === 'selectionMove') moveSelection(pos.x - ptr.x, pos.y - ptr.y);
+  if (ptr.mode === 'bucket' && insideSector(pos.x,pos.y)) { floodAt(pos.x,pos.y,null); ptr.mode='ignore'; }
+  else if (ptr.mode === 'selectionMove') moveSelection(pos.x - ptr.x, pos.y - ptr.y);
   else if (ptr.mode === 'resize') setRingRadius(Math.hypot(pos.x - state.spiro.cx, pos.y - state.spiro.cy) * ptr.ringDx);
   else if (ptr.mode === 'pin') movePin(pos.x, pos.y);
   else if (ptr.mode === 'ring') {
@@ -263,8 +269,14 @@ function onUp(event: PointerEvent): void {
   if (ptr.mode === 'grad') {
     setPreview(null);
     const dist = Math.hypot(pos.x - ptr.sx, pos.y - ptr.sy);
-    if (dist < 8) floodAt(ptr.sx, ptr.sy, null);
-    else floodAt(ptr.sx, ptr.sy, { x1: ptr.sx, y1: ptr.sy, x2: pos.x, y2: pos.y });
+    const clipped = clipSegment({x:ptr.sx,y:ptr.sy},pos);
+    if (clipped) {
+      const [entry,end] = clipped;
+      const length = Math.hypot(end.x-entry.x,end.y-entry.y);
+      const nudge = insideSector(ptr.sx,ptr.sy) ? 0 : Math.min(1,1/Math.max(length,0.001));
+      const seed = {x:entry.x+(end.x-entry.x)*nudge,y:entry.y+(end.y-entry.y)*nudge};
+      floodAt(seed.x,seed.y,dist<8 ? null : {x1:ptr.sx,y1:ptr.sy,x2:pos.x,y2:pos.y});
+    }
   }
   if (ptr.mode === 'draw' && state.tool === 'draw' && state.applicator === 'callig') {
     for (let i = 0; i < 10; i++) layCalligraphy(ptr, pos.x, pos.y, ptr.lastSpeed);
@@ -377,4 +389,13 @@ export function tickSpray(): void {
     useGeneration(ptr.gen);
     sprayCloud(ptr.x, ptr.y, ptr.still);
   }
+}
+
+function chooseSource(x: number, y: number): boolean {
+  if (!state.choosingSlice || !activeSector()) return false;
+  commitSelection();
+  state.symmetrySlice=sliceAt(x,y); state.choosingSlice=false;
+  state.poly=[]; setPreview(null);
+  bus.dispatchEvent(new Event('symmetry-mask'));
+  return true;
 }
