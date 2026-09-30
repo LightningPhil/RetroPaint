@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RetroPaint</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <script type="module" crossorigin src="./assets/index-qnYiXJjU.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-1yZUqPVc.css">
+</head>
+<body>
+  <header id="topBar">
+    <div id="wordmark"><span>Retro</span><span>Paint</span></div>
+    <label id="sizeControl">🖌 Size <input id="brushSize" type="range" min="4" max="48" step="1" value="22"></label>
+    <label id="opacityControl">◐ Strength <input id="opacity" type="range" min="0.15" max="1" step="0.05" value="1"></label>
+    <button type="button" id="undoBtn" class="action-btn panic">UNDO</button>
+    <button type="button" id="clearBtn" class="action-btn">CLEAR</button>
+    <button type="button" id="saveBtn" class="action-btn">SAVE</button>
+  </header>
+
+  <aside id="toolBin">
+    <button type="button" class="tool-btn active" data-tool="draw"><span>🖌️</span>Brushes</button>
+    <button type="button" class="tool-btn" data-tool="shapes"><span>🟦</span>Shapes</button>
+    <button type="button" class="tool-btn" data-tool="bucket"><span>🪣</span>Bucket</button>
+    <button type="button" class="tool-btn magic" data-tool="spray"><span>💨</span>Spray</button>
+    <button type="button" class="tool-btn" data-tool="sponge"><span>🧽</span>Smudge</button>
+    <button type="button" class="tool-btn destructive" data-tool="scissors"><span>▧</span>Select</button>
+    <button type="button" class="tool-btn destructive" data-tool="eraser"><span>🌪️</span>Eraser</button>
+    <button type="button" class="tool-btn" data-tool="stamp"><span>🦋</span>Stamps</button>
+    <button type="button" class="tool-btn magic" id="symBtn"><span>❄️</span>Symmetry</button>
+    <button type="button" class="tool-btn magic" data-tool="spiro"><span>⚙️</span>Spiro</button>
+  </aside>
+
+  <div id="canvasSlot">
+    <div id="stage">
+
+    </div>
+  </div>
+
+  <footer id="bottomTray">
+    <div class="tray-tabs" id="materialTabs">
+      <button type="button" class="tray-tab active" data-target="tray-solids">🎨 Colours</button>
+      <button type="button" class="tray-tab" data-target="tray-textures">🧱 Textures</button>
+      <button type="button" class="tray-tab" data-target="tray-gradients" hidden>🌅 Gradients</button>
+      <button type="button" class="tray-tab" data-target="tray-live">🪄 Live ink</button>
+    </div>
+    <div id="tray-solids" class="tray-grid"></div>
+    <div id="tray-textures" class="tray-grid panel"></div>
+    <div id="tray-gradients" class="tray-grid panel">
+      <label class="grad-toggle"><input id="gradToggle" type="checkbox" role="switch"><span class="switch" aria-hidden="true"></span> Drag a gradient</label>
+      <button type="button" id="gradFrom" class="chip">Start</button>
+      <button type="button" id="gradTo" class="chip">End</button>
+      <div id="gradPresets" class="tray-grid"></div>
+    </div>
+    <div id="tray-live" class="tray-grid panel">
+      <div id="beltPicks" class="belt-picks"></div>
+      <div id="beltTrack" class="belt-track">
+        <button type="button" class="belt-slot" data-slot="0"></button>
+        <button type="button" class="belt-slot" data-slot="1"></button>
+        <button type="button" class="belt-slot" data-slot="2"></button>
+        <button type="button" class="belt-slot" data-slot="3"></button>
+        <button type="button" class="belt-slot" data-slot="4"></button>
+        <button type="button" class="belt-slot" data-slot="5"></button>
+        <button type="button" class="belt-slot" data-slot="6"></button>
+        <button type="button" class="belt-slot" data-slot="7"></button>
+      </div>
+      <button type="button" id="addBeltBtn" class="action-btn">Add color</button>
+      <button type="button" id="clearBeltBtn" class="action-btn">Clear</button>
+      <label class="speed-label">Speed <input id="beltSpeed" class="speed" type="range" min="-8" max="8" step="1" value="3" aria-label="Belt speed"></label>
+      <button type="button" id="beltMode" class="choice">OOZE</button>
+    </div>
+  </footer>
+
+  <div id="penDrawer" class="drawer">
+    <strong>Brushes &amp; pens</strong>
+    <div class="row">
+      <button type="button" class="choice active" data-applicator="marker">Squeaky Marker</button>
+      <button type="button" class="choice" data-applicator="biro">Biro</button>
+      <button type="button" class="choice" data-applicator="callig">Calligraphy</button>
+      <button type="button" class="choice" data-applicator="gouache">Poster Paint</button>
+      <button type="button" class="choice" data-applicator="watercolor">Watercolor</button>
+    </div>
+  </div>
+
+  <div id="sprayDrawer" class="drawer">
+    <strong>Spray can</strong>
+    <div class="row">
+      <button type="button" class="choice active" data-applicator="mist">Fine Mist</button>
+      <button type="button" class="choice" data-applicator="splatter">Splatter</button>
+      <button type="button" class="choice" data-applicator="confetti">Confetti</button>
+    </div>
+  </div>
+
+  <div id="shapesDrawer" class="drawer">
+    <strong>Shape</strong>
+    <div class="row">
+      <button type="button" class="choice active" data-shape="line">Line</button>
+      <button type="button" class="choice" data-shape="rect">Rectangle</button>
+      <button type="button" class="choice" data-shape="circle">Circle</button>
+      <button type="button" class="choice" data-shape="poly">Polyline</button>
+      <button type="button" class="choice" data-shape="spline">Spline</button>
+    </div>
+    <button type="button" id="finishPath" class="choice">Finish path</button>
+    <p class="hint">Polyline &amp; spline: tap to add points. Tap Finish or press Enter. Tap the first point to close. Escape cancels.</p>
+  </div>
+
+  <div id="selectionDrawer" class="drawer">
+    <strong>Select &amp; move</strong>
+    <div class="row">
+      <button type="button" class="choice active" data-select="rect">Rectangle</button>
+      <button type="button" class="choice" data-select="lasso">Lasso</button>
+    </div>
+    <label class="selection-toggle"><input id="transparentSelection" type="checkbox"> ▧ Transparent white paper</label>
+    <div class="row selection-actions">
+      <button type="button" class="choice" id="copySelection">Copy</button>
+      <button type="button" class="choice" id="cutSelection">Cut</button>
+      <button type="button" class="choice" id="pasteSelection">Paste</button>
+      <button type="button" class="choice" id="doneSelection">Place</button>
+      <button type="button" class="choice" id="cancelSelection">Cancel</button>
+    </div>
+    <p class="hint">Draw around a piece, then drag it. Copy keeps the original. Transparent skips white paper when you place it.</p>
+  </div>
+
+  <div id="eraserDrawer" class="drawer">
+    <strong>Eraser</strong>
+    <div class="row">
+      <button type="button" class="choice active" data-eraser="scrub">Scrub</button>
+      <button type="button" class="choice" data-eraser="blackhole">Black Hole</button>
+      <button type="button" class="choice" data-eraser="pixelate">Pixelate</button>
+      <button type="button" class="choice" data-eraser="invert">Invert</button>
+      <button type="button" class="choice" data-eraser="emboss">Emboss</button>
+    </div>
+  </div>
+
+  <div id="symDrawer" class="drawer">
+    <strong>Symmetry</strong>
+    <div class="row">
+      <button type="button" class="choice" data-sym="v">Vertical</button>
+      <button type="button" class="choice" data-sym="h">Horizontal</button>
+      <button type="button" class="choice" data-sym="4">4-way</button>
+      <button type="button" class="choice active" data-sym="8">8-way</button>
+      <button type="button" class="choice" data-sym="6">6-way</button>
+      <button type="button" class="choice" data-sym="10">10-way</button>
+      <button type="button" class="choice" data-sym="12">12-way</button>
+      <button type="button" class="choice" data-sym="off">Off</button>
+    </div>
+  </div>
+
+  <div id="stampDrawer" class="drawer">
+    <strong>Stamps</strong>
+    <div class="tray-tabs" id="stampTabs"></div>
+    <div id="stampGrid" class="stamp-grid"></div>
+    <div class="stamp-controls">
+      <label>Size <input id="stampScale" type="range" min="0.4" max="2.6" step="0.1" value="1"></label>
+      <button type="button" id="spinMode" class="choice">Rotate: Fixed</button>
+      <button type="button" id="flipH" class="choice">Flip sideways</button>
+      <button type="button" id="flipV" class="choice">Upside down</button>
+    </div>
+  </div>
+
+  <div id="spiroDrawer" class="drawer">
+    <strong>Spiro kit</strong>
+    <label class="teeth-field">↔ Ring size <input id="ringSize" type="range" min="60" max="290" value="200"></label>
+    <label class="teeth-field">Outer teeth <input id="outerTeeth" type="number" min="40" max="180" value="96"></label>
+    <div id="outerChoices" class="row"></div>
+    <label class="teeth-field">Inner teeth <input id="innerTeeth" type="number" min="10" max="170" value="36"></label>
+    <div id="gearBox" class="gear-box"></div>
+    <div class="row">
+      <button type="button" class="choice active" data-drive="manual">Manual</button>
+      <button type="button" class="choice" data-drive="auto">Auto</button>
+    </div>
+    <div class="row">
+      <button type="button" class="choice active" data-stator="circle">Ring</button>
+      <button type="button" class="choice" data-stator="oval">Oval</button>
+      <button type="button" class="choice" data-stator="square">Square</button>
+      <button type="button" class="choice" data-stator="cross">Cross</button>
+    </div>
+    <button type="button" id="windBtn" class="choice">Wind the key</button>
+    <button type="button" id="spiroReset" class="choice">Reset kit</button>
+    <p class="hint">Drag the ring to move it. Drag its yellow handle to resize. Pick a gear, then turn it or wind the key!</p>
+  </div>
+
+
+  <div id="gearGhost" hidden></div>
+</body>
+</html>
