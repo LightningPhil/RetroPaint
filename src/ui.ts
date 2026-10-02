@@ -1,4 +1,5 @@
 import { bindClearConfirmation } from './clear-confirmation';
+import { bindColourWheel } from './colour-wheel';
 import { initPaperView } from './paper-view';
 import { sliceCount } from './symmetry-mask';
 import { unlockAudio } from './audio';
@@ -38,7 +39,7 @@ function updateInkPreview(): void {
   preview.style.background = state.liveArmed
     ? `linear-gradient(135deg,${(state.conveyor.length > 1 ? state.conveyor : ['#ef476f','#ffd166','#06d6a0']).join(',')})`
     : selected?.style.background || chipBackground(activeInkId());
-  preview.innerHTML = state.liveArmed ? '' : selected?.querySelector('.ink-sample')?.outerHTML || '';
+  preview.innerHTML = state.liveArmed || selected?.id === 'colourWheelBtn' ? '' : selected?.querySelector('.ink-sample')?.outerHTML || '';
 }
 
 function bindMobilePalette(): void {
@@ -54,7 +55,7 @@ function bindMobilePalette(): void {
   document.getElementById('toolBin')!.addEventListener('click', closePalette);
   document.getElementById('view')!.addEventListener('pointerdown', closePalette);
   document.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && tray.classList.contains('palette-open')) {
+    if (event.key === 'Escape' && !document.querySelector('dialog[open]') && tray.classList.contains('palette-open')) {
       closePalette(); toggle.focus();
     }
   });
@@ -161,6 +162,21 @@ function buildSolids(): void {
   addFx(effects, 'rainbow', 'linear-gradient(45deg, red, yellow, lime, cyan, magenta)');
   addFx(effects, 'neon', '#263047');
   addFx(effects, 'sparkle', 'url(' + glitterThumb() + ')');
+  const wheel = document.createElement('button');
+  wheel.type = 'button'; wheel.id = 'colourWheelBtn';
+  wheel.className = 'color-btn square ink-effect colour-wheel-btn';
+  wheel.title = 'Choose any colour';
+  wheel.setAttribute('aria-label', 'Colour wheel');
+  wheel.setAttribute('aria-haspopup', 'dialog');
+  wheel.style.background = state.neonTint;
+  wheel.innerHTML = '<span class="wheel-icon" aria-hidden="true"></span><span class="ink-label">Wheel</span>';
+  effects.append(wheel);
+  bindColourWheel(wheel, () => isHex(state.ink) ? state.ink : state.neonTint, hex => {
+    wheel.dataset.ink = hex; wheel.style.background = hex;
+    selectInk(hex, wheel);
+  });
+  wheel.draggable = true;
+  wheel.addEventListener('dragstart', event => event.dataTransfer?.setData('text/plain', `ink:${wheel.dataset.ink || state.neonTint}`));
 }
 
 function addFx(tray: HTMLElement, id: string, background: string): void {
@@ -708,16 +724,22 @@ function selectInk(id: string, el: HTMLElement): void {
   state.ink = id;
   if (isHex(id)) {
     state.neonTint = id;
-    if (id !== '#FFFFFF') state.sparkleTint = id === '#1A1A1A' ? '#FFE566' : id;
+    if (id.toUpperCase() !== '#FFFFFF') state.sparkleTint = id.toUpperCase() === '#1A1A1A' ? '#FFE566' : id;
   }
-  document.querySelectorAll('.color-btn').forEach((btn) => btn.classList.remove('selected'));
-  el.classList.add('selected');
+  markInkSelection(el);
   const glitter = document.querySelector<HTMLElement>('[data-ink="sparkle"]');
   if (glitter) glitter.style.backgroundImage = 'url(' + glitterThumb() + ')';
   document.documentElement.style.setProperty('--neon-tint', neonColor(state.neonTint));
   document.documentElement.style.setProperty('--neon-core', mixHex(neonColor(state.neonTint), '#ffffff', 0.34));
   updatePathControls();
   updateInkPreview();
+}
+
+function markInkSelection(selected: HTMLElement | null): void {
+  document.querySelectorAll<HTMLElement>('.color-btn').forEach(btn => {
+    btn.classList.toggle('selected', btn === selected);
+    btn.setAttribute('aria-pressed', String(btn === selected));
+  });
 }
 
 function selectTool(tool: ToolId): void {
@@ -796,9 +818,9 @@ function sync(): void {
     const toggle = document.getElementById('gradToggle') as HTMLInputElement | null;
     if (toggle) toggle.checked = false;
     if (state.ink.startsWith('grad-')) state.ink = isHex(state.neonTint) ? state.neonTint : '#E53935';
-    document.querySelectorAll<HTMLElement>('.color-btn').forEach((btn) => {
-      btn.classList.toggle('selected', btn.dataset.ink === state.ink);
-    });
+    const selected = document.querySelector<HTMLElement>('.color-btn.selected');
+    markInkSelection(selected?.dataset.ink?.toLowerCase() === state.ink.toLowerCase() ? selected
+      : [...document.querySelectorAll<HTMLElement>('.color-btn')].find(btn => btn.dataset.ink?.toLowerCase() === state.ink.toLowerCase()) ?? null);
     const panel = document.getElementById('tray-gradients');
     if (panel && panel.style.display === 'flex') showTray('tray-solids');
   }
@@ -833,7 +855,7 @@ function doUndo(): void {
 }
 
 function onKey(event: KeyboardEvent): void {
-  if ((document.getElementById('clearConfirmation') as HTMLDialogElement)?.open) return;
+  if (document.querySelector('dialog[open]')) return;
   if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
   const key = event.key.toLowerCase();
   if (event.ctrlKey || event.metaKey) {
