@@ -62,6 +62,38 @@ function bindMobilePalette(): void {
   updateInkPreview();
 }
 
+function updateDrawerSettings(drawer: HTMLElement): void {
+  const button = drawer.querySelector<HTMLButtonElement>('.drawer-settings');
+  if (!button) return;
+  const secondary = drawer.classList.contains('settings-open');
+  const stamps = drawer.id === 'stampDrawer';
+  button.innerHTML = icon(secondary ? 'back' : 'settings') + `<span>${secondary ? 'Back' : 'More'}</span>`;
+  button.setAttribute('aria-pressed', String(secondary));
+  button.setAttribute('aria-label', secondary ? (stamps ? 'Back to stamps' : 'Back to Spiro') : (stamps ? 'Stamp size and turn' : 'Spiro ring options'));
+  drawer.querySelector('strong')!.textContent = phoneLayout.matches && secondary
+    ? (stamps ? 'Size & turn' : 'Ring & gears')
+    : (stamps ? 'Stamps' : 'Spiro kit');
+}
+
+function bindDrawerSettings(): void {
+  for (const id of ['stampDrawer', 'spiroDrawer']) {
+    const drawer = document.getElementById(id)!;
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'drawer-settings';
+    drawer.append(button);
+    button.addEventListener('click', () => {
+      drawer.classList.toggle('settings-open');
+      updateDrawerSettings(drawer); layoutStage();
+    });
+    updateDrawerSettings(drawer);
+  }
+  phoneLayout.addEventListener('change', () => {
+    document.querySelectorAll<HTMLElement>('.settings-open').forEach(drawer => {
+      drawer.classList.remove('settings-open'); updateDrawerSettings(drawer);
+    });
+  });
+}
+
 export function initUi(): void {
   buildSolids();
   buildTextures();
@@ -75,6 +107,7 @@ export function initUi(): void {
   bindExport();
   bindSelection();
   decorateControls();
+  bindDrawerSettings();
   bindMobilePalette();
   bindLayout();
   initPaperView(phoneLayout);
@@ -557,15 +590,26 @@ function layoutStage(): void {
   }
   stage.style.width = `${Math.floor(width)}px`;
   stage.style.height = `${Math.floor(height)}px`;
-  stage.style.left = `${Math.floor((rect.width - width) / 2)}px`;
-  stage.style.top = `${Math.floor((rect.height - height) / 2)}px`;
+  const compact = phoneLayout.matches;
+  const landscape = compact && window.innerWidth > window.innerHeight;
+  stage.style.left = `${Math.floor(landscape ? rect.width - width : (rect.width - width) / 2)}px`;
+  const paperTop = compact ? rect.height - height : (rect.height - height) / 2;
+  stage.style.top = `${Math.floor(paperTop)}px`;
   const tool = bin.getBoundingClientRect();
   document.querySelectorAll<HTMLElement>('.drawer').forEach((drawer) => {
     drawer.style.zoom = '1';
-    if (phoneLayout.matches) {
-      // Phone menus reflow in CSS. Never shrink their touch targets to fit.
-      drawer.style.removeProperty('left');
-      drawer.style.removeProperty('top');
+    if (compact) {
+      if (landscape) drawer.style.left = `${Math.max(8, tool.left)}px`;
+      else drawer.style.removeProperty('left');
+      // Put options above the fitted paper where space permits. Opening a menu
+      // never resizes or moves the artwork underneath the child's finger.
+      if (drawer.id === openDrawer) {
+        const gap = 8;
+        const edge = Math.max(gap, document.getElementById('topBar')!.getBoundingClientRect().top);
+        const preferred = Math.min(tool.top, rect.top + paperTop - drawer.offsetHeight - gap);
+        const top = Math.max(edge, Math.min(preferred, window.innerHeight - drawer.offsetHeight - gap));
+        drawer.style.top = `${Math.floor(top)}px`;
+      }
       return;
     }
     const portrait = tool.width > tool.height * 2;
@@ -716,7 +760,12 @@ function sync(): void {
   maskToggle.disabled = state.symmetry === 'off';
   markChoices('[data-drive]', state.spiro.drive);
   markChoices('[data-stator]', state.spiro.shape);
-  document.querySelectorAll<HTMLElement>('.drawer').forEach(drawer => drawer.classList.toggle('open', drawer.id === openDrawer));
+  document.querySelectorAll<HTMLElement>('.drawer').forEach(drawer => {
+    drawer.classList.toggle('open', drawer.id === openDrawer);
+    if (drawer.id !== openDrawer && drawer.classList.contains('settings-open')) {
+      drawer.classList.remove('settings-open'); updateDrawerSettings(drawer);
+    }
+  });
   document.querySelectorAll<HTMLButtonElement>('[data-select]').forEach(btn => btn.classList.toggle('active', btn.dataset.select === state.selectionMode));
   updateSelectionButtons();
   updatePathControls();

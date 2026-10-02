@@ -23,11 +23,15 @@ export function initPaperView(compact: MediaQueryList): void {
   let zoom = 1, x = 0, y = 0, moving = false;
   let pointer: { id: number; x: number; y: number } | null = null;
   const draw = () => {
-    const maxX = Math.max(0, (stage.offsetWidth * zoom - slot.clientWidth) / 2);
-    const maxY = Math.max(0, (stage.offsetHeight * zoom - slot.clientHeight) / 2);
-    x = Math.max(-maxX, Math.min(maxX, x));
-    y = Math.max(-maxY, Math.min(maxY, y));
+    const scaledWidth = stage.offsetWidth * zoom, scaledHeight = stage.offsetHeight * zoom;
+    const left = stage.offsetLeft + (stage.offsetWidth - scaledWidth) / 2;
+    const top = stage.offsetTop + (stage.offsetHeight - scaledHeight) / 2;
+    x = scaledWidth > slot.clientWidth ? Math.max(slot.clientWidth - scaledWidth - left, Math.min(-left, x)) : 0;
+    y = scaledHeight > slot.clientHeight
+      ? Math.max(slot.clientHeight - scaledHeight - top, Math.min(-top, y))
+      : Math.min(0, slot.clientHeight - scaledHeight - top);
     stage.style.transform = `translate(${x}px,${y}px) scale(${zoom})`;
+    controls.style.top = `${Math.max(4, top + y - 56)}px`;
     smaller.disabled = zoom === 1; larger.disabled = zoom === 4;
     pan.disabled = zoom === 1;
     if (zoom === 1) moving = false;
@@ -59,6 +63,7 @@ export function initPaperView(compact: MediaQueryList): void {
   window.addEventListener('blur', stop);
   document.getElementById('toolBin')!.addEventListener('click', () => { moving = false; stop(); draw(); });
   compact.addEventListener('change', () => { zoom = 1; x = y = 0; stop(); draw(); });
-  new ResizeObserver(draw).observe(slot);
+  const observer = new ResizeObserver(draw);
+  observer.observe(slot); observer.observe(stage);
   draw();
 }

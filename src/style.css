@@ -202,12 +202,13 @@ body { height:100dvh; -webkit-user-select:none; }
   .belt-track { display:grid; grid-template-columns:repeat(4,44px); width:100%; justify-content:center; border:0; padding:2px; gap:0; }
   .belt-slot { width:44px; height:44px; border:5px solid #e9e4d9; }
   .speed-label { min-height:44px; } .speed { height:40px; width:110px; }
-  .drawer,#stampDrawer,#spiroDrawer { width:min(460px,calc(100% - env(safe-area-inset-left) - env(safe-area-inset-right) - 16px)); left:50%; top:50%; transform:translate(-50%,-50%); padding:12px; gap:10px; border-radius:18px; }
-  .drawer>strong { min-height:36px; display:flex; align-items:center; }
+  .drawer,#stampDrawer,#spiroDrawer { width:min(350px,calc(100% - env(safe-area-inset-left) - env(safe-area-inset-right) - 16px)); left:50%; top:max(8px,env(safe-area-inset-top)); transform:translateX(-50%); padding:10px; gap:8px; border-radius:18px; }
+  .drawer>strong { min-height:34px; display:flex; align-items:center; font-size:18px; }
   .drawer-close { width:44px; height:44px; top:8px; right:8px; }
   .choice { min-height:44px; }
   .row { gap:6px; }
-  #penDrawer .choice,#shapesDrawer .row .choice,#eraserDrawer .choice,#sprayDrawer .choice,#symDrawer .choice { min-height:70px; padding:6px 2px; }
+  #penDrawer .choice,#shapesDrawer .row .choice,#eraserDrawer .choice,#sprayDrawer .choice,#symDrawer .choice { min-height:58px; padding:4px 2px; font-size:11px; }
+  #penDrawer .icon,#shapesDrawer .row .icon,#eraserDrawer .icon,#sprayDrawer .icon,#symDrawer .icon { width:28px; height:28px; }
   #stampTabs { gap:4px; }
   #stampTabs .tray-tab { min-height:44px; padding:3px 1px; font-size:11px; }
   .stamp-grid { gap:4px; }
@@ -255,7 +256,7 @@ body { height:100dvh; -webkit-user-select:none; }
   .drawer { width:min(560px,calc(100% - 24px)); gap:8px; }
   #penDrawer .row,#shapesDrawer .row,#eraserDrawer .row { grid-template-columns:repeat(5,minmax(0,1fr)); }
   #symDrawer .row { grid-template-columns:repeat(3,minmax(0,1fr)); }
-  #symDrawer .choice { min-height:54px; flex-direction:row; }
+  #symDrawer .choice { min-height:48px; flex-direction:row; }
   #stampDrawer { width:min(760px,calc(100% - env(safe-area-inset-left) - env(safe-area-inset-right) - 24px)); grid-template-columns:1fr 190px; }
   #stampDrawer.open { display:grid; }
   #stampDrawer>strong { grid-column:1 / -1; }
@@ -335,4 +336,47 @@ body { height:100dvh; -webkit-user-select:none; }
 
 @media (max-width:650px) and (max-height:500px) and (orientation:landscape) {
   .belt-track { display:grid; grid-template-columns:repeat(4,44px); }
+}
+
+/* A short chooser leaves the drawing visible; extra controls use the same panel. */
+.drawer-settings { display:none; }
+@media (max-width:600px), (max-height:500px) and (max-width:1000px) {
+  .drawer-settings { display:flex; flex-direction:column; align-items:center; justify-content:center; position:absolute; top:8px; right:58px; width:44px; height:44px; padding:3px; border:0; border-radius:50%; background:#eee9df; cursor:pointer; }
+  .drawer-settings .icon { width:20px; height:20px; }
+  .drawer-settings span { font-size:9px; font-weight:800; line-height:12px; }
+  #stampDrawer>strong,#spiroDrawer>strong { padding-right:94px; }
+  #stampDrawer .stamp-controls { display:none; }
+  #stampDrawer.settings-open #stampTabs,#stampDrawer.settings-open #stampGrid { display:none !important; }
+  #stampDrawer.settings-open .stamp-controls { display:flex; border:0; padding-top:4px; }
+  #spiroDrawer:not(.settings-open) #outerField,#spiroDrawer:not(.settings-open) #innerField,#spiroDrawer:not(.settings-open) #outerChoices,#spiroDrawer:not(.settings-open) #statorChoices,#spiroDrawer:not(.settings-open) #spiroReset,#spiroDrawer:not(.settings-open) .hint { display:none; }
+  #spiroDrawer.settings-open #ringField,#spiroDrawer.settings-open #gearBox,#spiroDrawer.settings-open #driveChoices,#spiroDrawer.settings-open #windBtn { display:none; }
+  #spiroDrawer #ringField { grid-column:1 / -1; grid-row:2; }
+  #spiroDrawer #gearBox { grid-column:1 / -1; grid-row:3; }
+  #spiroDrawer #driveChoices { grid-column:1; grid-row:4; }
+  #spiroDrawer #spiroActions { grid-column:2; grid-row:4; }
+  #spiroDrawer #driveChoices .choice { flex:1; flex-direction:column; padding:3px; gap:2px; font-size:11px; }
+  #spiroDrawer #spiroActions .choice { min-height:54px; }
+  #spiroDrawer.settings-open #outerField { grid-column:1; grid-row:2; }
+  #spiroDrawer.settings-open #innerField { grid-column:2; grid-row:2; }
+  #spiroDrawer.settings-open #outerChoices { grid-column:1 / -1; grid-row:3; }
+  #spiroDrawer.settings-open #statorChoices { grid-column:1 / -1; grid-row:4; }
+  #spiroDrawer.settings-open #spiroActions { grid-column:1 / -1; grid-row:5; }
+  #spiroDrawer.settings-open .hint { grid-column:1 / -1; grid-row:6; }
+}
+@media (max-height:500px) and (max-width:1000px) and (orientation:landscape) {
+  .drawer,#stampDrawer,#spiroDrawer,#selectionDrawer { width:min(324px,calc(100% - 24px)); transform:none; padding:10px; gap:8px; }
+  #stampDrawer.open { display:flex; }
+  #stampTabs { grid-template-columns:repeat(4,minmax(0,1fr)); }
+  #stampGrid { grid-template-columns:repeat(6,minmax(0,1fr)); }
+  .stamp-controls { border-left:0; }
+  .stamp-controls .choice { flex-basis:auto; flex-direction:column; justify-content:center; }
+  #penDrawer .row,#shapesDrawer .row,#eraserDrawer .row { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  #symDrawer .choice { flex-direction:column; min-height:58px; }
+  .selection-actions .choice { flex:1 0 28%; }
+}
+
+@media (max-width:600px), (max-height:500px) and (max-width:1000px) {
+  .drawer .hint { font-size:11px; line-height:1.35; }
+  .selection-actions .choice { padding:4px 3px; gap:2px; font-size:11px; }
+  .selection-actions .icon { width:22px; height:22px; }
 }

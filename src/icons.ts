@@ -1,4 +1,6 @@
 const paths: Record<string, string> = {
+  settings: '<path fill="#d9b5f6" d="m10 2 4 0 1 4 4-1 2 4-3 3 3 3-2 4-4-1-1 4h-4l-1-4-4 1-2-4 3-3-3-3 2-4 4 1z"/><circle fill="#fffdf7" cx="12" cy="12" r="4"/>',
+  back: '<path d="M21 12H3m7-7-7 7 7 7"/>',
   zoomIn: '<circle cx="10" cy="10" r="7"/><path d="m15 15 7 7M6 10h8m-4-4v8"/>',
   zoomOut: '<circle cx="10" cy="10" r="7"/><path d="m15 15 7 7M6 10h8"/>',
   fit: '<path d="M3 9V3h6m6 0h6v6m0 6v6h-6M9 21H3v-6"/><rect x="7" y="8" width="10" height="8" rx="1"/>',

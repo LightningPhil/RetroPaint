@@ -33,18 +33,51 @@ await run('Toolbar and all ten tools fit without overlap', () => {
     assert(button.getBoundingClientRect().height>=44,'Tool is too short to tap');
   }
 });
-await run('Every tool menu fits without scrollbars or shrinking', async () => {
+await run('Fitted paper sits at the bottom of its drawing space', () => {
+  const paper=el('#stage').getBoundingClientRect(),slot=el('#canvasSlot').getBoundingClientRect();
+  assert(Math.abs(paper.bottom-slot.bottom)<2,'Paper is still vertically centred');
+});
+await run('Tool menus fit and keep most of the picture visible', async () => {
   for (const tool of ['draw','shapes','spray','scissors','eraser','stamp','spiro']) {
+    const paper=el('#stage').getBoundingClientRect().toJSON();
     click(`[data-tool="${tool}"]`); await frame();
     const drawer=el('.drawer.open'); fits(drawer,tool);
+    assert(JSON.stringify(paper)===JSON.stringify(el('#stage').getBoundingClientRect().toJSON()),'Tool menu moved paper');
+    const d=drawer.getBoundingClientRect();
+    const covered=Math.max(0,Math.min(d.right,paper.right)-Math.max(d.left,paper.left))*Math.max(0,Math.min(d.bottom,paper.bottom)-Math.max(d.top,paper.top));
+    assert(covered/(paper.width*paper.height)<0.5, `${tool} hides most of the picture`);
     assert(drawer.scrollHeight<=drawer.clientHeight+1, `${tool} scrolls vertically`);
     for(const button of drawer.querySelectorAll<HTMLElement>('button')) {
+      if (!button.getClientRects().length) continue;
       fits(button,button.textContent!);
       assert(button.getBoundingClientRect().height>=43.5,`${tool}: ${button.textContent} too short`);
     }
     click('.drawer.open .drawer-close');
   }
   click('#symBtn'); await frame(); fits(el('.drawer.open'),'Symmetry'); click('.drawer.open .drawer-close');
+});
+await run('Stamp and Spiro settings remain accessible in compact panels', async () => {
+  for(const tool of ['stamp','spiro']) {
+    click(`[data-tool="${tool}"]`); click('.drawer.open .drawer-settings'); await frame();
+    const drawer=el('.drawer.open'); fits(drawer,`${tool} settings`);
+    assert(el(tool==='stamp'?'#stampScale':'#outerTeeth').getClientRects().length,'Settings did not open');
+    click('.drawer.open .drawer-settings'); await frame();
+    assert(el(tool==='stamp'?'#stampGrid':'#gearBox').getClientRects().length,'Chooser did not return');
+    click('.drawer.open .drawer-close');
+  }
+});
+await run('Tool choices also leave most of the zoomed drawing space visible', async () => {
+  click('[aria-label="Zoom in"]'); click('[aria-label="Zoom in"]'); await frame();
+  const slot=el('#canvasSlot').getBoundingClientRect(),paper=el('#view').getBoundingClientRect();
+  const visible={left:Math.max(slot.left,paper.left),right:Math.min(slot.right,paper.right),top:Math.max(slot.top,paper.top),bottom:Math.min(slot.bottom,paper.bottom)};
+  for(const tool of ['draw','shapes','spray','scissors','eraser','stamp','spiro']) {
+    click(`[data-tool="${tool}"]`); await frame();
+    const d=el('.drawer.open').getBoundingClientRect();
+    const covered=Math.max(0,Math.min(d.right,visible.right)-Math.max(d.left,visible.left))*Math.max(0,Math.min(d.bottom,visible.bottom)-Math.max(d.top,visible.top));
+    assert(covered/((visible.right-visible.left)*(visible.bottom-visible.top))<0.5,`${tool} covers most of the zoomed paper`);
+    click('.drawer.open .drawer-close');
+  }
+  click('[aria-label="Fit whole picture"]');
 });
 await run('All palette tabs fit and opening them does not move paper', async () => {
   click('[data-tool="bucket"]');
