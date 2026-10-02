@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#dceee5">
   <title>RetroPaint</title>
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
-  <script type="module" crossorigin src="./assets/index-Bt5SWcxL.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-D-miBtER.css">
+  <script type="module" crossorigin src="./assets/index-DJmT53iI.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-CLhdL3M-.css">
 </head>
 <body>
   <header id="topBar">
@@ -38,6 +39,8 @@
   </div>
 
   <footer id="bottomTray">
+    <button type="button" id="paletteToggle" class="action-btn" aria-expanded="false" aria-controls="trayContents"><span id="currentInk" aria-hidden="true"></span><span>Colours &amp; ink</span><span class="palette-chevron" aria-hidden="true">⌃</span></button>
+    <div id="trayContents">
     <div class="tray-tabs" id="materialTabs">
       <button type="button" class="tray-tab active" data-target="tray-solids">🎨 Colours</button>
       <button type="button" class="tray-tab" data-target="tray-textures">🧱 Textures</button>
@@ -68,6 +71,7 @@
       <button type="button" id="clearBeltBtn" class="action-btn">Clear</button>
       <label class="speed-label">Speed <input id="beltSpeed" class="speed" type="range" min="-8" max="8" step="1" value="3" aria-label="Belt speed"></label>
       <button type="button" id="beltMode" class="choice">OOZE</button>
+    </div>
     </div>
   </footer>
 
@@ -161,23 +165,25 @@
 
   <div id="spiroDrawer" class="drawer">
     <strong>Spiro kit</strong>
-    <label class="teeth-field">↔ Ring size <input id="ringSize" type="range" min="60" max="290" value="200"></label>
-    <label class="teeth-field">Outer teeth <input id="outerTeeth" type="number" min="40" max="180" value="96"></label>
+    <label class="teeth-field" id="ringField">↔ Ring size <input id="ringSize" type="range" min="60" max="290" value="200"></label>
+    <label class="teeth-field" id="outerField">Outer teeth <input id="outerTeeth" type="number" min="40" max="180" value="96"></label>
     <div id="outerChoices" class="row"></div>
-    <label class="teeth-field">Inner teeth <input id="innerTeeth" type="number" min="10" max="170" value="36"></label>
+    <label class="teeth-field" id="innerField">Inner teeth <input id="innerTeeth" type="number" min="10" max="170" value="36"></label>
     <div id="gearBox" class="gear-box"></div>
-    <div class="row">
+    <div class="row" id="driveChoices">
       <button type="button" class="choice active" data-drive="manual">Manual</button>
       <button type="button" class="choice" data-drive="auto">Auto</button>
     </div>
-    <div class="row">
+    <div class="row" id="statorChoices">
       <button type="button" class="choice active" data-stator="circle">Ring</button>
       <button type="button" class="choice" data-stator="oval">Oval</button>
       <button type="button" class="choice" data-stator="square">Square</button>
       <button type="button" class="choice" data-stator="cross">Cross</button>
     </div>
-    <button type="button" id="windBtn" class="choice">Wind the key</button>
-    <button type="button" id="spiroReset" class="choice">Reset kit</button>
+    <div id="spiroActions" class="row">
+      <button type="button" id="windBtn" class="choice">Wind the key</button>
+      <button type="button" id="spiroReset" class="choice">Reset kit</button>
+    </div>
     <p class="hint">Drag the ring to move it. Drag its yellow handle to resize. Pick a gear, then turn it or wind the key!</p>
   </div>
 

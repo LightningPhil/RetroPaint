@@ -1,4 +1,8 @@
 const paths: Record<string, string> = {
+  zoomIn: '<circle cx="10" cy="10" r="7"/><path d="m15 15 7 7M6 10h8m-4-4v8"/>',
+  zoomOut: '<circle cx="10" cy="10" r="7"/><path d="m15 15 7 7M6 10h8"/>',
+  fit: '<path d="M3 9V3h6m6 0h6v6m0 6v6h-6M9 21H3v-6"/><rect x="7" y="8" width="10" height="8" rx="1"/>',
+  hand: '<path fill="#ffd16f" d="M8 12V5a2 2 0 0 1 4 0v6-8a2 2 0 0 1 4 0v8-6a2 2 0 0 1 4 0v11c0 5-4 7-8 7-3 0-5-2-7-5l-3-5c-1-2 1-4 3-2l3 3z"/>',
   clock: '<circle fill="#a8d9f7" cx="12" cy="12" r="10"/><path d="M12 5v7l5 3M12 2v1m10 9h-1M12 22v-1M2 12h1"/>',
   slice: '<circle cx="12" cy="12" r="10"/><path fill="#ffd16f" d="M12 12V2a10 10 0 0 1 8.66 15z"/>',
   plus: '<circle fill="#93dfbd" cx="12" cy="12" r="10"/><path d="M6 12h12M12 6v12"/>',

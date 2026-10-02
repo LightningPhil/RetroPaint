@@ -46,8 +46,30 @@ export function initInput(): void {
   view.addEventListener('pointermove', onMove);
   view.addEventListener('pointerup', onUp);
   view.addEventListener('pointercancel', onUp);
+  view.addEventListener('lostpointercapture', event => cancelPointer(event.pointerId));
+  window.addEventListener('blur', cancelPointers);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) cancelPointers(); });
   view.addEventListener('pointerleave', () => { state.cursor = null; });
   view.addEventListener('contextmenu', (event) => event.preventDefault());
+}
+
+function cancelPointer(id: number): void {
+  const ptr = ptrs.get(id);
+  if (!ptr) return;
+  ptrs.delete(id);
+  setPreview(null);
+  state.cursor = null;
+  if (ptr.mode === 'selectionMove') cancelSelection();
+  if (ptr.mode === 'pin') setPinDrag(null);
+  if (!ptrs.size) {
+    groupSaved = false;
+    // Keep pigment already laid down, without inventing a final segment to (0,0).
+    bakeStaticStrokes(baseCtx);
+  }
+}
+
+function cancelPointers(): void {
+  for (const id of ptrs.keys()) cancelPointer(id);
 }
 
 export function sprayPointers(): Ptr[] {
@@ -242,17 +264,12 @@ function onMove(event: PointerEvent): void {
 }
 
 function onUp(event: PointerEvent): void {
+  if (event.type === 'pointercancel') { cancelPointer(event.pointerId); return; }
   const ptr = ptrs.get(event.pointerId);
   ptrs.delete(event.pointerId);
   if (!ptr) return;
   const pos = eventPos(event);
-  if (event.type === 'pointercancel') {
-    setPreview(null);
-    if (ptr.mode === 'selectionMove') cancelSelection();
-    if (ptr.mode === 'pin') setPinDrag(null);
-    if (!ptrs.size) groupSaved = false;
-    return;
-  }
+  if (event.pointerType === 'touch') state.cursor = null;
   if (ptr.mode === 'smudge') ptr.smudgePath?.move(pos.x, pos.y, true);
   if (ptr.mode === 'selectionMove') moveSelection(pos.x - ptr.x, pos.y - ptr.y);
   if (ptr.mode === 'pin') setPinDrag(null);

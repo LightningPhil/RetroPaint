@@ -350,6 +350,26 @@ function pointer(type:string,x:number,y:number) {
   const r=view.getBoundingClientRect();
   view.dispatchEvent(new PointerEvent(type,{pointerId:77,button:0,buttons:type==='pointerup'?0:1,clientX:r.left+x,clientY:r.top+y}));
 }
+check('Losing touch capture stops spraying immediately', () => {
+  reset(); state.tool='spray'; state.applicator='mist';
+  pointer('pointerdown',400,300); tickSpray();
+  pointer('lostpointercapture',0,0);
+  const stopped=image(); tickSpray(); tickSpray();
+  assert(image()===stopped, 'An interrupted pointer kept spraying');
+});
+check('Cancelled touch strokes keep pigment without a line to the origin', () => {
+  reset(); pointer('pointerdown',400,300); pointer('pointermove',500,300);
+  pointer('pointercancel',0,0);
+  assert(pixel(450,300)!=='255,255,255,255');
+  assert(pixel(200,150)==='255,255,255,255');
+  const stopped=image(); pointer('pointermove',600,300); pointer('pointerup',600,300);
+  assert(image()===stopped, 'Cancelled drawing resumed');
+});
+check('Switching away from the app stops held spray pointers', () => {
+  reset(); state.tool='spray'; state.applicator='mist';
+  pointer('pointerdown',400,300); tickSpray(); window.dispatchEvent(new Event('blur'));
+  const stopped=image(); tickSpray(); assert(image()===stopped);
+});
 check('The first click chooses the slice; the next stroke can start outside and paint on entry',()=>{
   reset();state.symmetry='8';state.symmetryMask=true;state.choosingSlice=true;
   const before=image();pointer('pointerdown',600,360);pointer('pointerup',600,360);

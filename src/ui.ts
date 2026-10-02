@@ -1,4 +1,5 @@
 import { bindClearConfirmation } from './clear-confirmation';
+import { initPaperView } from './paper-view';
 import { sliceCount } from './symmetry-mask';
 import { unlockAudio } from './audio';
 import { play } from './audio';
@@ -24,6 +25,42 @@ const SOLIDS = ['#E53935', '#FDD835', '#1E88E5', '#43A047', '#1A1A1A', '#EF476F'
 let stampBank = 'critters';
 let beltNow = 0;
 let openDrawer: string | null = null;
+const phoneLayout = matchMedia('(max-width: 600px), (max-height: 500px) and (max-width: 1000px)');
+
+function closePalette(): void {
+  document.getElementById('bottomTray')!.classList.remove('palette-open');
+  document.getElementById('paletteToggle')!.setAttribute('aria-expanded', 'false');
+}
+
+function updateInkPreview(): void {
+  const selected = document.querySelector<HTMLElement>('.color-btn.selected');
+  const preview = document.getElementById('currentInk')!;
+  preview.style.background = state.liveArmed
+    ? `linear-gradient(135deg,${(state.conveyor.length > 1 ? state.conveyor : ['#ef476f','#ffd166','#06d6a0']).join(',')})`
+    : selected?.style.background || chipBackground(activeInkId());
+  preview.innerHTML = state.liveArmed ? '' : selected?.querySelector('.ink-sample')?.outerHTML || '';
+}
+
+function bindMobilePalette(): void {
+  const tray = document.getElementById('bottomTray')!;
+  const toggle = document.getElementById('paletteToggle')!;
+  toggle.addEventListener('click', () => {
+    const open = !tray.classList.contains('palette-open');
+    openDrawer = null;
+    sync();
+    tray.classList.toggle('palette-open', open);
+    toggle.setAttribute('aria-expanded', String(open));
+  });
+  document.getElementById('toolBin')!.addEventListener('click', closePalette);
+  document.getElementById('view')!.addEventListener('pointerdown', closePalette);
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && tray.classList.contains('palette-open')) {
+      closePalette(); toggle.focus();
+    }
+  });
+  phoneLayout.addEventListener('change', closePalette);
+  updateInkPreview();
+}
 
 export function initUi(): void {
   buildSolids();
@@ -38,7 +75,9 @@ export function initUi(): void {
   bindExport();
   bindSelection();
   decorateControls();
+  bindMobilePalette();
   bindLayout();
+  initPaperView(phoneLayout);
   sync();
   document.addEventListener('pointerdown', () => unlockAudio());
   document.addEventListener('keydown', onKey);
@@ -234,20 +273,32 @@ function buildGears(): void {
 }
 
 function startGearDrag(event: PointerEvent, id: string, color: string): void {
+  if (event.button !== 0) return;
   event.preventDefault();
+  const target = event.currentTarget as HTMLElement;
+  target.setPointerCapture(event.pointerId);
   const ghost = document.getElementById('gearGhost')!;
   const startX = event.clientX;
   const startY = event.clientY;
   ghost.hidden = false;
   ghost.style.background = color;
   const move = (ev: PointerEvent) => {
+    if (ev.pointerId !== event.pointerId) return;
     ghost.style.left = `${ev.clientX - 24}px`;
     ghost.style.top = `${ev.clientY - 24}px`;
   };
-  const up = (ev: PointerEvent) => {
+  const cleanup = () => {
     ghost.hidden = true;
     window.removeEventListener('pointermove', move);
     window.removeEventListener('pointerup', up);
+    window.removeEventListener('pointercancel', cancel);
+    window.removeEventListener('blur', cleanup);
+    target.removeEventListener('lostpointercapture', cleanup);
+  };
+  const cancel = (ev: PointerEvent) => { if (ev.pointerId === event.pointerId) cleanup(); };
+  const up = (ev: PointerEvent) => {
+    if (ev.pointerId !== event.pointerId) return;
+    cleanup();
     const moved = Math.hypot(ev.clientX - startX, ev.clientY - startY);
     const pos = canvasToClientInverse(ev.clientX, ev.clientY);
     if (pos && moved > 8) {
@@ -262,6 +313,9 @@ function startGearDrag(event: PointerEvent, id: string, color: string): void {
   move(event);
   window.addEventListener('pointermove', move);
   window.addEventListener('pointerup', up);
+  window.addEventListener('pointercancel', cancel);
+  window.addEventListener('blur', cleanup);
+  target.addEventListener('lostpointercapture', cleanup);
 }
 
 function canvasToClientInverse(clientX: number, clientY: number): { x: number; y: number } | null {
@@ -480,6 +534,7 @@ function bindLayout(): void {
     watch.forEach((el) => observer.observe(el));
   }
   window.addEventListener('resize', layoutStage);
+  window.visualViewport?.addEventListener('resize', layoutStage);
   layoutStage();
 }
 
@@ -490,7 +545,7 @@ function layoutStage(): void {
   if (!slot || !stage || !bin) return;
   const rect = slot.getBoundingClientRect();
   const uiScale = Number(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')) || 1;
-  const pad = 12 * uiScale;
+  const pad = phoneLayout.matches ? 0 : 12 * uiScale;
   const availW = Math.max(80, rect.width - pad * 2);
   const availH = Math.max(80, rect.height - pad * 2);
   const aspect = 960 / 640;
@@ -507,6 +562,12 @@ function layoutStage(): void {
   const tool = bin.getBoundingClientRect();
   document.querySelectorAll<HTMLElement>('.drawer').forEach((drawer) => {
     drawer.style.zoom = '1';
+    if (phoneLayout.matches) {
+      // Phone menus reflow in CSS. Never shrink their touch targets to fit.
+      drawer.style.removeProperty('left');
+      drawer.style.removeProperty('top');
+      return;
+    }
     const portrait = tool.width > tool.height * 2;
     const gap = 12 * uiScale;
     const anchorX = portrait ? gap : tool.right + gap;
@@ -562,6 +623,7 @@ function renderStampBank(): void {
       stampBank = bank.id;
       play('clunk');
       renderStampBank();
+      layoutStage();
     });
     tabs.append(tab);
   }
@@ -611,6 +673,7 @@ function selectInk(id: string, el: HTMLElement): void {
   document.documentElement.style.setProperty('--neon-tint', neonColor(state.neonTint));
   document.documentElement.style.setProperty('--neon-core', mixHex(neonColor(state.neonTint), '#ffffff', 0.34));
   updatePathControls();
+  updateInkPreview();
 }
 
 function selectTool(tool: ToolId): void {
@@ -747,6 +810,7 @@ function showTray(id: string): void {
     document.getElementById(panel)!.style.display = panel === id ? 'flex' : 'none';
   }
   state.liveArmed = id === 'tray-live';
+  updateInkPreview();
 }
 
 document.querySelectorAll<HTMLButtonElement>('#materialTabs .tray-tab').forEach((tab) => {
