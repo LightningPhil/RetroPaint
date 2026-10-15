@@ -20,6 +20,8 @@ import {
 } from './materials';
 import { currentAlpha, state, strokeApplicator } from './state';
 import type { GradientLine, LiveSpec, Spark } from './types';
+import type { ShapeKind } from './types';
+import { shapePoints } from './shapes';
 
 export interface PendingGradient {
   mask: HTMLCanvasElement;
@@ -261,7 +263,7 @@ export function floodMask(pixels: Uint8ClampedArray, sx: number, sy: number, all
   const match = (i: number) => {
     if (allowed && !allowed(i%W,Math.floor(i/W))) return false;
     const p = i * 4;
-    return Math.abs(pixels[p] - tr) + Math.abs(pixels[p + 1] - tg) + Math.abs(pixels[p + 2] - tb) + Math.abs(pixels[p + 3] - ta) <= 48;
+    return (ta === 0 && pixels[p + 3] === 0) || Math.abs(pixels[p] - tr) + Math.abs(pixels[p + 1] - tg) + Math.abs(pixels[p + 2] - tb) + Math.abs(pixels[p + 3] - ta) <= state.fillTolerance;
   };
   const stack = [sx, sy];
   let filled = 0;
@@ -316,8 +318,10 @@ function paintViewReady(): void {
   renderLive(viewCtx, performance.now());
 }
 
-export function drawShape(kind: 'line' | 'rect' | 'circle', x0: number, y0: number, x1: number, y1: number, ctx: CanvasRenderingContext2D, commit: boolean): void {
-  layOutline(outlinePoints(kind, x0, y0, x1, y1), ctx, commit);
+export function drawShape(kind: ShapeKind, x0: number, y0: number, x1: number, y1: number, ctx: CanvasRenderingContext2D, commit: boolean): void {
+  const points = shapePoints(kind, x0, y0, x1, y1);
+  if (kind !== 'line') layShapeFill(points, ctx, commit);
+  layOutline(points, ctx, commit);
 }
 
 export function strokePath(points: { x: number; y: number }[], ctx: CanvasRenderingContext2D, commit: boolean, close: boolean): void {
@@ -329,7 +333,25 @@ export function strokePath(points: { x: number; y: number }[], ctx: CanvasRender
     const first = points[0];
     walkLine(pts, last.x, last.y, first.x, first.y);
   }
+  if (close) layShapeFill(pts, ctx, commit);
   layOutline(pts, ctx, commit);
+}
+
+function layShapeFill(points: { x: number; y: number }[], ctx: CanvasRenderingContext2D, commit: boolean): void {
+  if (state.shapeFill === 'none' || !points.length) return;
+  const mask = blankMask(), maskCtx = mask.getContext('2d')!;
+  const lanes = points.map(p => mirrorPoints(p.x, p.y));
+  for (let lane = 0; lane < lanes[0].length; lane++) {
+    maskCtx.save(); clipLane(maskCtx, lane); maskCtx.beginPath();
+    lanes.forEach((p, i) => i ? maskCtx.lineTo(p[lane].x, p[lane].y) : maskCtx.moveTo(p[lane].x, p[lane].y));
+    maskCtx.closePath(); maskCtx.fill(); maskCtx.restore();
+  }
+  const id = state.shapeFill === 'secondary' ? state.secondaryInk : activeInkId();
+  if (commit) {
+    const spec = fillSpecFor(id);
+    if (spec && spec !== 'sparkle') addFill(mask, spec, currentAlpha(), null);
+    else paintSolid(baseCtx, mask, id);
+  } else paintSolid(ctx, mask, id);
 }
 
 function segmentSafe(x0: number, y0: number, x1: number, y1: number, width: number): void {
@@ -361,34 +383,18 @@ function walkLine(pts: { x: number; y: number }[], x0: number, y0: number, x1: n
   }
 }
 
-function outlinePoints(kind: 'line' | 'rect' | 'circle', x0: number, y0: number, x1: number, y1: number): { x: number; y: number }[] {
-  if (kind === 'line') {
-    const pts = [{ x: x0, y: y0 }];
-    walkLine(pts, x0, y0, x1, y1);
-    return pts;
-  }
-  if (kind === 'rect') {
-    const pts = [{ x: x0, y: y0 }];
-    walkLine(pts, x0, y0, x1, y0);
-    walkLine(pts, x1, y0, x1, y1);
-    walkLine(pts, x1, y1, x0, y1);
-    walkLine(pts, x0, y1, x0, y0);
-    return pts;
-  }
-  const r = Math.hypot(x1 - x0, y1 - y0);
-  const sweep = Math.PI * 2;
-  const steps = Math.max(16, Math.ceil((sweep * Math.max(r, 1)) / SHAPE_STEP));
-  const pts: { x: number; y: number }[] = [];
-  for (let i = 0; i <= steps; i++) {
-    const a = (i / steps) * sweep;
-    pts.push({ x: x0 + Math.cos(a) * r, y: y0 + Math.sin(a) * r });
-  }
-  return pts;
-}
-
 function layOutline(pts: { x: number; y: number }[], ctx: CanvasRenderingContext2D, commit: boolean): void {
   if (pts.length < 2) return;
+  if (state.shapeOutline === 'none') return;
   const width = shapeWidth();
+  if (state.shapeOutline === 'solid') {
+    const target = commit ? baseCtx : ctx, lanes = pts.map(p => mirrorPoints(p.x, p.y));
+    for (let lane = 0; lane < lanes[0].length; lane++) {
+      target.save(); clipLane(target, lane); target.globalAlpha = currentAlpha(); target.strokeStyle = previewColor(activeInkId()); target.lineWidth = state.brushWidth;
+      target.beginPath(); lanes.forEach((p, i) => i ? target.lineTo(p[lane].x, p[lane].y) : target.moveTo(p[lane].x, p[lane].y)); target.stroke(); target.restore();
+    }
+    return;
+  }
   if (!commit) {
     const id = activeInkId();
     const paths = [pts];

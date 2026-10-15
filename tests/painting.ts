@@ -20,6 +20,17 @@ import { pushHistory, undo } from '../src/history';
 import { cancelSelection, commitSelection, copySelection, cutSelection, hasSelection, hitSelection, moveSelection, pasteSelection, rectangle, refreshTransparency, selectRegion, renderSelection } from '../src/selection';
 import { drawShape, floodAt, floodMask, setShapePainter, getPending, cancelPending } from '../src/fill';
 import { drawBetween, penPosition, setRingRadius } from '../src/spiro';
+import { activeLayer, addLayer, drawLayerThumbnail, layers, moveLayer, renderLayers, resetLayers, switchLayer, mergeLayerDown, transformLayers } from '../src/layers';
+import { redo } from '../src/history';
+import { flipSelection, invertSelection, resizeSelection, rotateSelection, selectPixelMask, selectionBounds } from '../src/selection';
+import { resizePicture, rotatePicture, flipPicture, cropPicture, removeEdgeBackground, decodeImage } from '../src/editor';
+import { addFill, blankMask } from '../src/live';
+import { makeTextBitmap } from '../src/text-tool';
+import { imageBlob } from '../src/export';
+import { encodeTiff, decodeTiff } from '../src/image-codecs';
+import { loadProjectData, projectData } from '../src/project';
+import { bus } from '../src/bus';
+import { addDrip, tickDrips } from '../src/effects';
 
 initCanvas(); initMaterials();
 setShapePainter((x0,y0,x1,y1,w) => segment(x0,y0,x1,y1,w,0));
@@ -690,6 +701,157 @@ for(const applicator of ['mist','splatter','confetti'] as const){
   });
 }
 reset();
+
+// Paint editing checks share this existing browser harness; no runner or CI is needed.
+check('Layer opacity applies to a whole layer; drawing and erasing leave lower layers intact', () => {
+  resetLayers(96, 64); state.symmetry = 'off'; clearLive();
+  baseCtx.fillStyle = '#0000ff'; baseCtx.fillRect(0, 0, W, H); const lower = activeLayer().id;
+  addLayer(); baseCtx.fillStyle = '#ff0000'; baseCtx.fillRect(10, 10, 20, 20); activeLayer().opacity = 0.5;
+  const canvas = cloneCanvas(base); renderLayers(canvas.getContext('2d')!, 0);
+  const p = canvas.getContext('2d')!.getImageData(15, 15, 1, 1).data;
+  assert(p[0] >= 127 && p[2] >= 127 && p[3] === 255, 'Layer alpha did not composite correctly');
+  switchLayer(lower); assert(pixel(15, 15) === '0,0,255,255', 'Upper layer modified lower pixels');
+});
+check('Undo and Redo restore dimensions, active layer, transparency and hidden layers', () => {
+  resetLayers(96, 64); block(10, 10); const original = image(), paper = activeLayer().id;
+  pushHistory(); addLayer(); activeLayer().name = 'Ink'; activeLayer().visible = false;
+  transformLayers(48, 32, [0.5, 0, 0, 0.5, 0, 0]);
+  undo(); assert(W === 96 && H === 64 && layers.length === 1 && activeLayer().id === paper && image() === original);
+  redo(); assert(Number(W) === 48 && Number(H) === 32 && Number(layers.length) === 2 && activeLayer().name === 'Ink' && !activeLayer().visible && activeLayer().paper === null);
+});
+check('Image resize transforms live ink and crop is reversible', () => {
+  resetLayers(96, 64); reset(); state.liveArmed = true; state.conveyor = ['#ff0000', '#0000ff'];
+  beginStrokeGeneration(); segment(20, 20, 40, 20, 4, 0);
+  resizePicture(48, 32); assert(strokes.length === 1 && strokes[0].points[0].x === 10 && strokes[0].points[0].w === 2, 'Resize flattened live ink');
+  selectRegion(rectangle(5, 5, 35, 25)); cropPicture(); assert(W === 30 && H === 20 && strokes[0].points[0].x === 5);
+  undo(); assert(Number(W) === 48 && Number(H) === 32 && strokes[0].points[0].x === 10);
+  state.liveArmed = false;
+});
+check('Whole-image rotate and flip use correct dimensions and pixel positions', () => {
+  resetLayers(40, 20, null); baseCtx.fillStyle = '#ff0000'; baseCtx.fillRect(2, 3, 4, 4);
+  rotatePicture(90); assert(W === 20 && H === 40 && pixel(14, 4) === '255,0,0,255');
+  flipPicture(true); assert(pixel(5, 4) === '255,0,0,255'); undo(); assert(pixel(14, 4) === '255,0,0,255');
+});
+check('Selection transforms float the piece; Cancel and Undo restore its original source', () => {
+  resetLayers(96, 64); state.transparentSelection = false; baseCtx.fillStyle = '#ff0000'; baseCtx.fillRect(10, 10, 10, 20); const before = image();
+  selectRegion(rectangle(10, 10, 20, 30)); resizeSelection(20, 40); rotateSelection(90); flipSelection(true);
+  assert(selectionBounds()?.width === 40 && selectionBounds()?.height === 20); cancelSelection(); assert(image() === before);
+  selectRegion(rectangle(10, 10, 20, 30)); moveSelection(30, 0); commitSelection(); undo(); assert(image() === before); redo(); assert(pixel(45, 15) === '255,0,0,255');
+});
+check('Invert selection preserves the hole, and a second inversion restores the original region', () => {
+  resetLayers(96, 64); selectRegion(rectangle(10, 10, 30, 30)); invertSelection();
+  assert(hitSelection(3, 3) && !hitSelection(20, 20)); invertSelection(); assert(!hitSelection(3, 3) && hitSelection(20, 20)); cancelSelection();
+});
+check('Colour wand masks delete only connected pixels on a transparent layer', () => {
+  resetLayers(40, 30, null); baseCtx.fillStyle = '#ff0000'; baseCtx.fillRect(2, 2, 8, 8); baseCtx.fillRect(20, 2, 8, 8);
+  const mask = floodMask(baseCtx.getImageData(0, 0, W, H).data, 4, 4)!; selectPixelMask(mask); assert(hitSelection(4, 4) && !hitSelection(24, 4)); cutSelection();
+  assert(pixel(4, 4) === '0,0,0,0' && pixel(24, 4) === '255,0,0,255'); undo(); assert(pixel(4, 4) === '255,0,0,255');
+});
+check('Filled shapes use the second colour, and ovals stay within their dragged bounds', () => {
+  resetLayers(96, 64); reset(); state.shapeFill = 'secondary'; state.shapeOutline = 'none'; state.secondaryInk = '#0000ff';
+  drawShape('ellipse', 10, 10, 70, 50, baseCtx, true); assert(pixel(40, 30) === '0,0,255,255'); assert(pixel(8, 30) === '255,255,255,255');
+  state.shapeFill = 'none'; state.shapeOutline = 'brush'; state.secondaryInk = '#FFFFFF';
+});
+check('Text wraps and preserves font styles and an opaque second-colour background', () => {
+  const canvas = makeTextBitmap({ text: 'Hello RetroPaint\nHave fun!', font: 'Arial', size: 20, width: 90, bold: true, italic: true, underline: true, strike: false, align: 'center', opaque: true }, '#ff0000', '#0000ff');
+  assert(canvas.width === 90 && canvas.height > 60); const pixels = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data;
+  assert(pixels[2] === 255 && pixels[3] === 255); assert(pixels.some((n, i) => i % 4 === 0 && n > 150), 'Text was not painted');
+});
+check('Background removal respects a closed foreground region and is undoable', () => {
+  resetLayers(48, 32); baseCtx.fillStyle = '#ff0000'; baseCtx.fillRect(10, 10, 20, 12); const before = image();
+  removeEdgeBackground(); assert(pixel(0, 0) === '0,0,0,0' && pixel(15, 15) === '255,0,0,255' && activeLayer().paper === null);
+  undo(); assert(image() === before && activeLayer().paper === '#ffffff');
+});
+check('Merge down preserves the visible composite', () => {
+  resetLayers(48, 32); addLayer(); baseCtx.fillStyle = '#ff0000'; baseCtx.fillRect(10, 10, 20, 10); activeLayer().opacity = 0.5;
+  const before = cloneCanvas(base); renderLayers(before.getContext('2d')!, 0); mergeLayerDown();
+  const after = cloneCanvas(base); renderLayers(after.getContext('2d')!, 0); assert(before.toDataURL() === after.toDataURL() && layers.length === 1);
+});
+check('Moving sheets changes the composite and Undo restores order, active sheet and live ink', () => {
+  resetLayers(48, 32); const paper = activeLayer().id;
+  addLayer(); const red = activeLayer().id; baseCtx.fillStyle = '#ff0000'; baseCtx.fillRect(0, 0, W, H);
+  addLayer(); const blue = activeLayer().id;
+  const mask = blankMask(); mask.getContext('2d')!.fillRect(0, 0, W, H);
+  addFill(mask, { kind:'conveyor', colors:['#0000ff'], speed:3, mode:'ooze', along:false, texture:null }, 1, null);
+  const output = cloneCanvas(base), ctx = output.getContext('2d')!;
+  renderLayers(ctx, 0); assert(ctx.getImageData(10, 10, 1, 1).data[2] === 255);
+  pushHistory(); assert(moveLayer(red, blue, true)); renderLayers(ctx, 0);
+  assert(ctx.getImageData(10, 10, 1, 1).data[0] === 255, 'Sheet order did not change visible pixels');
+  undo(); assert(layers.map(layer => layer.id).join(',') === [paper,red,blue].join(',') && activeLayer().id === blue && snapshotLive().fills.length === 1);
+  assert(!moveLayer(blue, red, true) && !moveLayer(blue, blue, false), 'No-op moves changed order');
+  switchLayer(red); assert(pixel(10, 10) === '255,0,0,255', 'Reorder modified the drawing');
+});
+check('Layer thumbnails preserve aspect ratio, opacity and transparent areas and sample active and inactive live ink', () => {
+  resetLayers(48, 24, null); const liveLayer = activeLayer(), mask = blankMask(); mask.getContext('2d')!.fillRect(0, 0, W, H);
+  addFill(mask, { kind:'conveyor', colors:['#ff0000','#0000ff'], speed:3, mode:'ooze', along:false, texture:null }, 1, null);
+  liveLayer.opacity = 0.5;
+  const thumb = document.createElement('canvas'); thumb.width = thumb.height = 48; const ctx = thumb.getContext('2d')!;
+  drawLayerThumbnail(ctx, liveLayer, 0); const before = thumb.toDataURL(), p = ctx.getImageData(20, 20, 1, 1).data;
+  assert(p[3] >= 127 && p[3] <= 128, 'Preview ignored sheet opacity');
+  assert(ctx.getImageData(20, 2, 1, 1).data[3] === 0, 'Preview stretched the picture instead of fitting it');
+  drawLayerThumbnail(ctx, liveLayer, 1000); assert(thumb.toDataURL() !== before, 'Preview did not sample animation');
+  addLayer(); drawLayerThumbnail(ctx, liveLayer, 0); assert(thumb.toDataURL() === before, 'Inactive sheet lost its live preview');
+  drawLayerThumbnail(ctx, activeLayer(), 0); assert(ctx.getImageData(20, 20, 1, 1).data[3] === 0, 'Empty sheet preview retained previous pixels');
+});
+check('Right-click painting uses the second colour without changing the primary ink', () => {
+  resetLayers(96, 64); reset(); state.applicator = 'brush'; state.brushWidth = 6; state.secondaryInk = '#0000ff';
+  const stageStyle = inputStage.style.cssText; inputStage.style.display = 'block';
+  const capture = view.setPointerCapture; view.setPointerCapture = () => {};
+  const send = (type: string, x: number, y: number, button: number) => {
+    const r = view.getBoundingClientRect(); view.dispatchEvent(new PointerEvent(type, { pointerId: 105, button, clientX: r.left + x / W * r.width, clientY: r.top + y / H * r.height }));
+  };
+  try {
+    send('pointerdown', 20, 20, 0); send('pointerup', 20, 20, 0);
+    send('pointerdown', 50, 20, 2); send('pointerup', 50, 20, 2);
+    assert(pixel(20, 20) === '229,57,53,255' && pixel(50, 20) === '0,0,255,255', `Primary ${pixel(20, 20)}, secondary ${pixel(50, 20)}, view ${JSON.stringify(view.getBoundingClientRect())}`); assert(state.ink === '#E53935');
+    state.tool = 'picker'; const choose = (event: Event) => { state.ink = (event as CustomEvent).detail.colour; };
+    bus.addEventListener('pick-colour', choose); send('pointerdown', 50, 20, 0); bus.removeEventListener('pick-colour', choose);
+    assert(state.ink.toLowerCase() === '#0000ff', 'Picker colour was reverted by pointer cleanup');
+  } finally { view.setPointerCapture = capture; inputStage.style.cssText = stageStyle; }
+});
+check('Semi-transparent erasing preserves lower layers and erases live ink with the chosen strength', () => {
+  resetLayers(96, 64); baseCtx.fillStyle = '#0000ff'; baseCtx.fillRect(0, 0, W, H); const lower = activeLayer().id;
+  addLayer(); baseCtx.fillStyle = '#ff0000'; baseCtx.fillRect(10, 10, 50, 30); state.tool = 'eraser'; state.eraserMode = 'scrub'; state.opacity = 0.5; state.brushWidth = 6;
+  const stageStyle = inputStage.style.cssText; inputStage.style.display = 'block';
+  const capture = view.setPointerCapture; view.setPointerCapture = () => {};
+  try {
+    const r = view.getBoundingClientRect(), event = { pointerId: 106, button: 0, clientX: r.left + 30 / W * r.width, clientY: r.top + 25 / H * r.height };
+    view.dispatchEvent(new PointerEvent('pointerdown', event)); view.dispatchEvent(new PointerEvent('pointerup', event));
+    const alpha = baseCtx.getImageData(30, 25, 1, 1).data[3]; assert(alpha >= 125 && alpha <= 130, 'Eraser strength was ignored: ' + alpha);
+    switchLayer(lower); assert(pixel(30, 25) === '0,0,255,255');
+  } finally { view.setPointerCapture = capture; state.opacity = 1; inputStage.style.cssText = stageStyle; }
+});
+check('Wet spray drips continue on their own layer after switching layers', () => {
+  resetLayers(96, 64); addDrip(10, 5, 3, '#ff0000'); const original = baseCtx; addLayer(); tickDrips(100);
+  assert(baseCtx.getImageData(10, 11, 1, 1).data[3] === 0, 'Drip leaked onto the new layer'); assert(original.getImageData(10, 11, 1, 1).data[1] < 100);
+  tickDrips(2000);
+});
+async function asyncCheck(name: string, action: () => Promise<void>): Promise<void> {
+  let error: unknown; try { await action(); } catch (caught) { error = caught; }
+  check(name, () => { if (error) throw error; });
+}
+await asyncCheck('PNG, JPEG, WebP, BMP and GIF exports decode at the actual picture dimensions', async () => {
+  resetLayers(32, 24, null); baseCtx.fillStyle = '#ff0000'; baseCtx.fillRect(5, 5, 12, 10);
+  for (const format of ['png', 'jpeg', 'webp', 'bmp', 'gif']) {
+    const blob = await imageBlob(format), decoded = await decodeImage(blob); assert(decoded.width === 32 && decoded.height === 24, format + ' dimensions changed');
+    const p = decoded.getContext('2d')!.getImageData(10, 10, 1, 1).data; assert(p[0] > 220 && p[1] < 25 && p[2] < 25, format + ' colours changed');
+    if (format === 'png' || format === 'gif' || format === 'webp') assert(decoded.getContext('2d')!.getImageData(0, 0, 1, 1).data[3] === 0, format + ' lost transparency');
+  }
+});
+await asyncCheck('TIFF round-trips RGBA pixels through the local encoder and decoder', async () => {
+  const before = baseCtx.getImageData(0, 0, W, H), decoded = decodeTiff(await encodeTiff(before).arrayBuffer());
+  assert(decoded.toDataURL() === image(), 'TIFF pixels did not round-trip');
+});
+await asyncCheck('Projects round-trip layers, visibility, opacity and live fills; invalid projects leave artwork intact', async () => {
+  resetLayers(48, 32); addLayer(); activeLayer().name = 'Dancing ink'; activeLayer().opacity = 0.65;
+  const mask = blankMask(); mask.getContext('2d')!.fillRect(5, 5, 20, 10);
+  addFill(mask, { kind: 'conveyor', colors: ['#ff0000', '#0000ff'], speed: 3, mode: 'ooze', along: false, texture: null }, 1, null);
+  const source = projectData(); resetLayers(20, 20); await loadProjectData(source);
+  assert(W === 48 && H === 32 && layers.length === 2 && activeLayer().name === 'Dancing ink' && activeLayer().opacity === 0.65 && snapshotLive().fills.length === 1);
+  const before = projectData(); let rejected = false; try { await loadProjectData('{"format":"RetroPaint","version":1,"width":-10}'); } catch { rejected = true; }
+  assert(rejected && projectData() === before, 'A corrupt project damaged the drawing');
+});
+cancelSelection(); resetLayers(960, 640); state.shapeFill = 'none'; state.shapeOutline = 'brush'; state.liveArmed = false;
 
 // A persistent sample sheet for inspecting pigment and smudge quality.
 reset();

@@ -1,4 +1,16 @@
+import { shapePoints } from './shapes';
+import type { ShapeKind } from './types';
 const paths: Record<string, string> = {
+  layers: '<path fill="#d9b5f6" d="m12 2 10 6-10 6L2 8z"/><path d="m2 12 10 6 10-6M2 16l10 6 10-6"/>',
+  eye: '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle fill="#93dfbd" cx="12" cy="12" r="3"/>',
+  eyeOff: '<path d="M3 8c2-2 5-3 9-3 7 0 11 7 11 7a19 19 0 0 1-5 5M1 12s4 7 11 7c2 0 3 0 5-1M3 3l18 18"/>',
+  grip: '<path stroke-width="3" d="M8 5h.1M16 5h.1M8 12h.1M16 12h.1M8 19h.1M16 19h.1"/>',
+  pencil: '<path fill="#ffd16f" d="m3 17 13-14 5 5L8 21l-6 1z"/><path d="m13 6 5 5M3 17l5 4"/>',
+  brush: '<path fill="#93dfbd" d="m10 13 8-11 4 4-10 9z"/><path fill="#e98ba5" d="M10 13c-5-1-2 8-8 8 10 4 14-5 8-8z"/>',
+  oil: '<path fill="#ffd16f" d="m8 2 12 6-5 8-12-6z"/><path d="m8 12-5 10 5 1 5-9m-3-9-3 5m7-3-3 5"/>',
+  crayon: '<path fill="#ef7696" d="m3 17 13-14 5 5L8 22z"/><path d="m7 13 5 5M3 17l5 5"/>',
+  natural: '<path fill="#b99972" d="m3 17 13-14 5 5L8 21l-6 1z"/><path d="m13 6 5 5M3 17l5 4"/>',
+  wand: '<path d="m2 22 13-13M16 2v4m4 3h4m-4 5 3 3M9 3l3 3"/><path fill="#ffd16f" d="m16 6 2 3-2 3-3-3z"/>',
   settings: '<path fill="#d9b5f6" d="m10 2 4 0 1 4 4-1 2 4-3 3 3 3-2 4-4-1-1 4h-4l-1-4-4 1-2-4 3-3-3-3 2-4 4 1z"/><circle fill="#fffdf7" cx="12" cy="12" r="4"/>',
   back: '<path d="M21 12H3m7-7-7 7 7 7"/>',
   zoomIn: '<circle cx="10" cy="10" r="7"/><path d="m15 15 7 7M6 10h8m-4-4v8"/>',
@@ -55,7 +67,10 @@ export function icon(name: string): string {
     const a = i * Math.PI * 2 / numeric;
     return `<path d="M12 12L${12 + Math.cos(a) * 10} ${12 + Math.sin(a) * 10}"/>`;
   }).join('') : '';
-  return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || radial || paths.circle}</svg>`;
+  const shapeNames = ['ellipse', 'roundRect', 'triangle', 'rightTriangle', 'diamond', 'pentagon', 'hexagon', 'star4', 'star5', 'star6', 'heart', 'lightning', 'arrowRight', 'arrowLeft', 'arrowUp', 'arrowDown', 'callout', 'ovalCallout', 'cloud', 'polygon'];
+  const points = shapeNames.includes(name) ? shapePoints(name === 'polygon' ? 'pentagon' : name as ShapeKind, 3, 3, 21, 21) : null;
+  const shape = points ? `<path fill="#d9b5f6" d="M${points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join('L')}Z"/>` : '';
+  return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || radial || shape || paths.circle}</svg>`;
 }
 export function labelIcon(button: HTMLElement, name: string, label = button.textContent ?? ''): void {
   button.innerHTML = `${icon(name)}<span>${label}</span>`;

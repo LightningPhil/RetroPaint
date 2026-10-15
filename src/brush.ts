@@ -64,7 +64,10 @@ export function paintStroke(
     paintNeon(ctx, x0, y0, x1, y1, width, alpha);
     return;
   }
-  if (applicator === 'callig') paintCalligraphy(ctx, x0, y0, x1, y1, width, color, alpha);
+  if (applicator === 'pencil' || applicator === 'brush') strokeLine(ctx, x0, y0, x1, y1, width, color);
+  else if (applicator === 'oil' || applicator === 'crayon') paintGouache(ctx, x0, y0, x1, y1, width, color, alpha, speed, lite);
+  else if (applicator === 'natural') paintWatercolor(ctx, x0, y0, x1, y1, width, color, alpha, lite);
+  else if (applicator === 'callig') paintCalligraphy(ctx, x0, y0, x1, y1, width, color, alpha);
   else if (applicator === 'biro') paintBiro(ctx, x0, y0, x1, y1, width, color, alpha, speed, lite);
   else if (applicator === 'watercolor') paintWatercolor(ctx, x0, y0, x1, y1, width, color, alpha, lite);
   else if (applicator === 'gouache') paintGouache(ctx, x0, y0, x1, y1, width, color, alpha, speed, lite);

@@ -102,6 +102,14 @@ export function renderPaintPath(points: Pt[], paint: PathPaint): { canvas: HTMLC
     fctx.putImageData(pixels, 0, 0);
     coverage.clearRect(0, 0, w, h); coverage.drawImage(feather, 0, 0);
   }
+  if (paint.applicator === 'crayon' || paint.applicator === 'natural') {
+    const pixels = coverage.getImageData(0, 0, w, h);
+    for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) {
+      const i = (yy * w + xx) * 4 + 3, texture = grain(xx + x, yy + y);
+      pixels.data[i] *= paint.applicator === 'crayon' ? (texture < 0.2 ? 0.15 : 0.55 + texture * 0.45) : 0.35 + texture * 0.55;
+    }
+    coverage.putImageData(pixels, 0, 0);
+  }
 
   {
     // Anchor pigment to paper coordinates, including during cropped rendering.
@@ -110,7 +118,7 @@ export function renderPaintPath(points: Pt[], paint: PathPaint): { canvas: HTMLC
     ctx.fillRect(x, y, w, h);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
-  if (paint.applicator === 'gouache' && paint.kind !== 'glitter') {
+  if ((paint.applicator === 'gouache' || paint.applicator === 'oil') && paint.kind !== 'glitter') {
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     for (let i = 0; i < 13; i++) {
       const offset = (i / 12 - 0.5) * width * 0.88;

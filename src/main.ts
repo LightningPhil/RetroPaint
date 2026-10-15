@@ -1,4 +1,6 @@
 import './style.css';
+import './editor.css';
+import './layers.css';
 import { playMarkerPop } from './audio';
 import { initCanvas } from './canvas';
 import { initInput } from './input';

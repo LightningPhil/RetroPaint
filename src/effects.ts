@@ -7,6 +7,7 @@ import { bakeLive, clearLive } from './live';
 import { currentWidth, state } from './state';
 import { advectMany } from './smudge';
 import { mirrorMotion } from './symmetry';
+import { renderLayers, resetLayers } from './layers';
 
 export interface Drip {
   x: number;
@@ -15,6 +16,7 @@ export interface Drip {
   r: number;
   color: string;
   age: number;
+  target: CanvasRenderingContext2D;
 }
 
 export const drips: Drip[] = [];
@@ -27,15 +29,16 @@ export function isBusy(): boolean {
 }
 
 export function addDrip(x: number, y: number, r: number, color: string): void {
-  drips.push({ x, y, vy: 0.4, r, color, age: 0 });
+  drips.push({ x, y, vy: 0.4, r, color, age: 0, target: baseCtx });
 }
 
 export function startSqueegee(): void {
   if (isBusy()) return;
   pushHistory();
-  bakeLive(baseCtx, performance.now());
+  const snapshot = cloneCanvas(base); renderLayers(snapshot.getContext('2d')!, performance.now());
+  resetLayers();
   clearLive();
-  wipe = { t: 0, snap: cloneCanvas(base) };
+  wipe = { t: 0, snap: snapshot };
   artwork.reset();
   state.busy = true;
   play('squeegee');
@@ -131,21 +134,16 @@ export function tickHole(dt: number): void {
 
 export function tickDrips(dt: number): void {
   if (!drips.length) return;
-  baseCtx.setTransform(1, 0, 0, 1, 0, 0);
-  baseCtx.globalAlpha = 0.9;
-  baseCtx.globalCompositeOperation = 'source-over';
   for (let i = drips.length - 1; i >= 0; i--) {
     const drip = drips[i];
+    const ctx = drip.target; ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 0.9; ctx.globalCompositeOperation = 'source-over';
     drip.age += dt;
     drip.vy += dt * 0.004;
     drip.y += drip.vy * dt * 0.08;
-    baseCtx.fillStyle = drip.color;
-    baseCtx.beginPath();
-    baseCtx.arc(drip.x, drip.y, drip.r, 0, Math.PI * 2);
-    baseCtx.fill();
-    if (drip.age > 1100 || drip.y > H + 8) drips.splice(i, 1);
+    ctx.fillStyle = drip.color;
+    ctx.beginPath(); ctx.arc(drip.x, drip.y, drip.r, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    if (drip.age > 1100 || drip.y > ctx.canvas.height + 8) drips.splice(i, 1);
   }
-  baseCtx.globalAlpha = 1;
 }
 
 export function beginBake(): void {

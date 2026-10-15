@@ -1,9 +1,9 @@
-export const W = 960;
-export const H = 640;
+export let W = 960;
+export let H = 640;
 
 export const view = document.createElement('canvas');
 export const ui = document.createElement('canvas');
-export const base = document.createElement('canvas');
+export let base = document.createElement('canvas');
 const scratch = document.createElement('canvas');
 
 view.width = ui.width = base.width = scratch.width = W;
@@ -11,8 +11,20 @@ view.height = ui.height = base.height = scratch.height = H;
 
 export const viewCtx = view.getContext('2d', { willReadFrequently: true })!;
 export const uiCtx = ui.getContext('2d')!;
-export const baseCtx = base.getContext('2d', { willReadFrequently: true })!;
+export let baseCtx = base.getContext('2d', { willReadFrequently: true })!;
 export const scratchCtx = scratch.getContext('2d')!;
+
+export function useBase(canvas: HTMLCanvasElement): void {
+  base = canvas;
+  baseCtx = canvas.getContext('2d', { willReadFrequently: true })!;
+  resetPaint(baseCtx);
+}
+
+export function setCanvasSize(width: number, height: number): void {
+  W = width; H = height;
+  for (const canvas of [view, ui, scratch]) { canvas.width = W; canvas.height = H; }
+  document.dispatchEvent(new Event('canvas-size'));
+}
 
 export function resetPaint(ctx: CanvasRenderingContext2D): void {
   ctx.setTransform(1, 0, 0, 1, 0, 0);

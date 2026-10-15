@@ -1,15 +1,9 @@
-import { viewCtx, base, W, H } from './canvas';
+import { viewCtx } from './canvas';
 import { drawPending } from './fill';
-import { renderLive } from './live';
+import { renderLayers } from './layers';
 import { renderSelection } from './selection';
+import { renderTextPreview } from './text-tool';
 
 export function paintFrame(now: number): void {
-  viewCtx.setTransform(1, 0, 0, 1, 0, 0);
-  viewCtx.globalAlpha = 1;
-  viewCtx.globalCompositeOperation = 'source-over';
-  viewCtx.clearRect(0, 0, W, H);
-  viewCtx.drawImage(base, 0, 0);
-  renderLive(viewCtx, now);
-  drawPending(viewCtx, now);
-  renderSelection(viewCtx);
+  renderLayers(viewCtx, now, ctx => { drawPending(ctx, now); renderSelection(ctx); renderTextPreview(ctx); });
 }

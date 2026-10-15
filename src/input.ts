@@ -1,20 +1,24 @@
 import { activeSector, insideSector, clipSegment, sliceAt } from './symmetry-mask';
-import { bus } from './bus';
+import { bus, emit } from './bus';
 import { unlockAudio } from './audio';
 import { baseCtx, eventPos, view, viewCtx } from './canvas';
 import { bakeStaticStrokes } from './live';
 import { beginStrokeGeneration, dot, segment, sprayCloud, useGeneration } from './draw';
 import { beginBake, embossAt, invertAt, isBusy, pixelateAt, smudge, startHole } from './effects';
-import { drawShape, floodAt, getPending, hitPin, lockPending, movePin, setPinDrag, setShapePainter, strokePath } from './fill';
+import { drawShape, floodAt, floodMask, getPending, hitPin, lockPending, movePin, setPinDrag, setShapePainter, strokePath } from './fill';
 import { pushHistory } from './history';
 import { setPreview } from './preview';
 import { crankMove, crankStart, hitStator, hitWindKey, hoverHole, startMotor } from './spiro';
 import { currentWidth, state } from './state';
 import { placeStamp } from './stamps';
-import { cancelSelection, commitSelection, hitSelection, moveSelection, rectangle, selectRegion } from './selection';
+import { beginSelectionResize, cancelSelection, commitSelection, dragSelectionResize, endSelectionResize, hitSelection, hitSelectionHandle, moveSelection, rectangle, selectPixelMask, selectRegion } from './selection';
 import { SmudgePath } from './smudge';
 import { splinePoints } from './curves';
 import { hitResizeHandle, motorOn, resizeHandle, setRingRadius } from './spiro';
+import { beginText } from './text-tool';
+import { paintFrame } from './paint';
+import { activeLayer, renderActive } from './layers';
+import { rgbToHex } from './color';
 
 interface Ptr {
   id: number;
@@ -27,7 +31,8 @@ interface Ptr {
   t: number;
   still: number;
   gen: number;
-  mode: 'draw' | 'spray' | 'shape' | 'lasso' | 'grad' | 'pin' | 'ring' | 'crank' | 'stamp' | 'filter' | 'smudge' | 'ignore' | 'bucket' | 'selectionMove' | 'resize';
+  mode: 'draw' | 'spray' | 'shape' | 'lasso' | 'grad' | 'pin' | 'ring' | 'crank' | 'stamp' | 'filter' | 'smudge' | 'ignore' | 'bucket' | 'selectionMove' | 'selectionResize' | 'resize';
+  secondary: boolean;
   smudgePath?: SmudgePath;
   lasso: { x: number; y: number }[];
   ringDx: number;
@@ -39,6 +44,14 @@ interface Ptr {
 
 const ptrs = new Map<number, Ptr>();
 let groupSaved = false;
+let usingSecondary = false;
+function withSecondary(enabled: boolean, action: () => void): void {
+  const ink = state.ink, live = state.liveArmed, gradient = state.gradientDrag;
+  usingSecondary = enabled;
+  const override = enabled && state.tool !== 'picker';
+  if (override) { state.ink = state.secondaryInk; state.liveArmed = false; state.gradientDrag = false; }
+  try { action(); } finally { if (override) { state.ink = ink; state.liveArmed = live; state.gradientDrag = gradient; } usingSecondary = false; }
+}
 
 export function initInput(): void {
   setShapePainter((x0, y0, x1, y1, width) => segment(x0, y0, x1, y1, width, 0));
@@ -51,6 +64,7 @@ export function initInput(): void {
   document.addEventListener('visibilitychange', () => { if (document.hidden) cancelPointers(); });
   view.addEventListener('pointerleave', () => { state.cursor = null; });
   view.addEventListener('contextmenu', (event) => event.preventDefault());
+  bus.addEventListener('settle-input', cancelPointers);
 }
 
 function cancelPointer(id: number): void {
@@ -60,6 +74,7 @@ function cancelPointer(id: number): void {
   setPreview(null);
   state.cursor = null;
   if (ptr.mode === 'selectionMove') cancelSelection();
+  if (ptr.mode === 'selectionResize') { endSelectionResize(); cancelSelection(); }
   if (ptr.mode === 'pin') setPinDrag(null);
   if (!ptrs.size) {
     groupSaved = false;
@@ -94,11 +109,24 @@ export function tapCanvas(x: number, y: number): void {
 }
 
 function onDown(event: PointerEvent): void {
+  withSecondary(event.button === 2, () => handleDown(event));
+}
+function handleDown(event: PointerEvent): void {
   unlockAudio();
-  if (isBusy() || state.busy || event.button !== 0) return;
+  if (isBusy() || state.busy || (event.button !== 0 && event.button !== 2)) return;
+  if (event.button === 2 && !['draw', 'spray', 'shapes', 'bucket', 'picker'].includes(state.tool)) return;
   if (ptrs.size && (state.tool === 'sponge' || state.tool === 'scissors')) return;
   view.setPointerCapture(event.pointerId);
   const pos = eventPos(event);
+  if (state.tool === 'picker') {
+    paintFrame(performance.now());
+    if (pos.x < 0 || pos.y < 0 || pos.x >= view.width || pos.y >= view.height) return;
+    const [r, g, b, a] = viewCtx.getImageData(Math.floor(pos.x), Math.floor(pos.y), 1, 1).data;
+    if (a) emit('pick-colour', { colour: rgbToHex(r, g, b), secondary: event.button === 2 });
+    return;
+  }
+  if (state.tool === 'text') { beginText(pos.x, pos.y); return; }
+  if (!activeLayer().visible) { activeLayer().visible = true; emit('layers'); }
   if (chooseSource(pos.x,pos.y)) return;
   const pin = hitPin(pos.x, pos.y);
   if (pin) {
@@ -113,11 +141,18 @@ function onDown(event: PointerEvent): void {
   }
 
   if (state.tool === 'scissors') {
+    const handle = hitSelectionHandle(pos.x, pos.y);
+    if (handle !== null) { beginSelectionResize(handle); ptrs.set(event.pointerId, blank(event.pointerId, pos, 'selectionResize')); return; }
     if (hitSelection(pos.x, pos.y)) {
       ptrs.set(event.pointerId, blank(event.pointerId, pos, 'selectionMove'));
       return;
     }
     commitSelection();
+    if (state.selectionMode === 'wand') {
+      renderActive(viewCtx, performance.now());
+      const sector = activeSector(), mask = floodMask(viewCtx.getImageData(0, 0, view.width, view.height).data, Math.floor(pos.x), Math.floor(pos.y), sector ? (x, y) => insideSector(x, y, sector) : undefined);
+      if (mask) selectPixelMask(mask); return;
+    }
   }
   if (state.tool === 'spiro') {
     if (motorOn()) return;
@@ -145,7 +180,7 @@ function onDown(event: PointerEvent): void {
     return;
   }
 
-  if (state.tool === 'shapes' && (state.shape === 'poly' || state.shape === 'spline')) {
+  if (state.tool === 'shapes' && (state.shape === 'poly' || state.shape === 'spline' || state.shape === 'polygon')) {
     addPolyPoint(pos.x, pos.y, event.detail);
     return;
   }
@@ -178,7 +213,7 @@ function onDown(event: PointerEvent): void {
   else if (state.tool === 'eraser' && state.eraserMode !== 'scrub') ptr.mode = 'filter';
 
   if (!groupSaved && ptr.mode !== 'lasso') {
-    if (ptr.mode === 'smudge' || ptr.mode === 'filter' || (activeSector() && state.tool === 'eraser')) beginBake();
+    if (ptr.mode === 'smudge' || ptr.mode === 'filter' || ((activeSector() || state.opacity < 1) && state.tool === 'eraser')) beginBake();
     else pushHistory();
     groupSaved = true;
   }
@@ -197,6 +232,9 @@ function onDown(event: PointerEvent): void {
 }
 
 function onMove(event: PointerEvent): void {
+  withSecondary(ptrs.get(event.pointerId)?.secondary ?? false, () => handleMove(event));
+}
+function handleMove(event: PointerEvent): void {
   state.cursor = eventPos(event);
   view.style.cursor = 'crosshair';
   const ptr = ptrs.get(event.pointerId);
@@ -204,7 +242,7 @@ function onMove(event: PointerEvent): void {
     if (state.tool === 'spiro') hoverHole(eventPos(event).x, eventPos(event).y);
     return;
   }
-  const pos = eventPos(event);
+  const pos = constrainedPosition(event, ptr);
   const now = performance.now();
   const dt = Math.max(8, now - ptr.t);
   const dist = Math.hypot(pos.x - ptr.x, pos.y - ptr.y);
@@ -215,13 +253,14 @@ function onMove(event: PointerEvent): void {
 
   if (ptr.mode === 'bucket' && insideSector(pos.x,pos.y)) { floodAt(pos.x,pos.y,null); ptr.mode='ignore'; }
   else if (ptr.mode === 'selectionMove') moveSelection(pos.x - ptr.x, pos.y - ptr.y);
+  else if (ptr.mode === 'selectionResize') dragSelectionResize(pos.x, pos.y, event.shiftKey);
   else if (ptr.mode === 'resize') setRingRadius(Math.hypot(pos.x - state.spiro.cx, pos.y - state.spiro.cy) * ptr.ringDx);
   else if (ptr.mode === 'pin') movePin(pos.x, pos.y);
   else if (ptr.mode === 'ring') {
     state.spiro.cx = pos.x - ptr.ringDx;
     state.spiro.cy = pos.y - ptr.ringDy;
   } else if (ptr.mode === 'crank') crankMove(pos.x, pos.y);
-  else if (ptr.mode === 'shape') setPreview({ kind: 'shape', shape: state.shape === 'poly' || state.shape === 'spline' ? 'line' : state.shape, x0: ptr.sx, y0: ptr.sy, x1: pos.x, y1: pos.y });
+  else if (ptr.mode === 'shape') setPreview({ kind: 'shape', shape: state.shape, ink: usingSecondary ? state.secondaryInk : undefined, x0: ptr.sx, y0: ptr.sy, x1: pos.x, y1: pos.y });
   else if (ptr.mode === 'lasso') {
     if (state.selectionMode === 'rect') ptr.lasso = rectangle(ptr.sx, ptr.sy, pos.x, pos.y);
     else if (dist >= 2) ptr.lasso.push(pos);
@@ -264,20 +303,23 @@ function onMove(event: PointerEvent): void {
 }
 
 function onUp(event: PointerEvent): void {
+  withSecondary(ptrs.get(event.pointerId)?.secondary ?? false, () => handleUp(event));
+}
+function handleUp(event: PointerEvent): void {
   if (event.type === 'pointercancel') { cancelPointer(event.pointerId); return; }
   const ptr = ptrs.get(event.pointerId);
   ptrs.delete(event.pointerId);
   if (!ptr) return;
-  const pos = eventPos(event);
+  const pos = constrainedPosition(event, ptr);
   if (event.pointerType === 'touch') state.cursor = null;
   if (ptr.mode === 'smudge') ptr.smudgePath?.move(pos.x, pos.y, true);
   if (ptr.mode === 'selectionMove') moveSelection(pos.x - ptr.x, pos.y - ptr.y);
+  if (ptr.mode === 'selectionResize') { dragSelectionResize(pos.x, pos.y, event.shiftKey); endSelectionResize(); }
   if (ptr.mode === 'pin') setPinDrag(null);
-  if (ptr.mode === 'shape' && state.shape !== 'poly' && state.shape !== 'spline') {
+  if (ptr.mode === 'shape') {
     setPreview(null);
     useGeneration(ptr.gen);
-    const kind = state.shape === 'line' || state.shape === 'rect' || state.shape === 'circle' ? state.shape : 'line';
-    drawShape(kind, ptr.sx, ptr.sy, pos.x, pos.y, viewCtx, true);
+    drawShape(state.shape, ptr.sx, ptr.sy, pos.x, pos.y, viewCtx, true);
   }
   if (ptr.mode === 'lasso') {
     setPreview(null);
@@ -321,6 +363,7 @@ function addPolyPoint(x: number, y: number, detail: number): void {
 }
 
 export function finishPath(close = false): void {
+  close ||= state.shape === 'polygon';
   if (state.poly.length > 1) {
     pushHistory();
     useGeneration(beginStrokeGeneration());
@@ -339,7 +382,7 @@ function applyFilter(x: number, y: number): void {
 
 function widthFor(_ptr: Ptr, _dx: number, _dy: number, _speed: number): number {
   if (state.tool === 'draw' && state.applicator === 'callig') return currentWidth() * 1.12;
-  if (state.tool === 'eraser') return Math.max(18, currentWidth() * 1.4);
+  if (state.tool === 'eraser') return currentWidth() <= 4 ? currentWidth() : Math.max(18, currentWidth() * 1.4);
   if (state.tool === 'draw' && state.applicator === 'marker') {
     return currentWidth();
   }
@@ -391,6 +434,7 @@ function blank(id: number, pos: { x: number; y: number }, mode: Ptr['mode']): Pt
     t: performance.now(),
     still: 0,
     gen: 0,
+    secondary: usingSecondary,
     mode,
     lasso: [],
     ringDx: 0,
@@ -403,9 +447,19 @@ function blank(id: number, pos: { x: number; y: number }, mode: Ptr['mode']): Pt
 
 export function tickSpray(): void {
   for (const ptr of sprayPointers()) {
-    useGeneration(ptr.gen);
-    sprayCloud(ptr.x, ptr.y, ptr.still);
+    withSecondary(ptr.secondary, () => { useGeneration(ptr.gen); sprayCloud(ptr.x, ptr.y, ptr.still); });
   }
+}
+
+function constrainedPosition(event: PointerEvent, ptr: Ptr): { x: number; y: number } {
+  const p = eventPos(event);
+  if (!event.shiftKey || (ptr.mode !== 'shape' && !(ptr.mode === 'lasso' && state.selectionMode === 'rect'))) return p;
+  const dx = p.x - ptr.sx, dy = p.y - ptr.sy;
+  if (state.shape === 'line' && ptr.mode === 'shape') {
+    const angle = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) * Math.PI / 4, length = Math.hypot(dx, dy);
+    return { x: ptr.sx + Math.cos(angle) * length, y: ptr.sy + Math.sin(angle) * length };
+  }
+  const side = Math.max(Math.abs(dx), Math.abs(dy)); return { x: ptr.sx + Math.sign(dx || 1) * side, y: ptr.sy + Math.sign(dy || 1) * side };
 }
 
 function chooseSource(x: number, y: number): boolean {

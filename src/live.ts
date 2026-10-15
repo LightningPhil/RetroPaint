@@ -147,9 +147,13 @@ export function subtractMask(mask: HTMLCanvasElement): void {
 }
 
 export function renderLive(ctx: CanvasRenderingContext2D, now: number): void {
-  for (const fill of fills) renderFill(ctx, fill, now);
-  for (const stroke of strokes) renderStroke(ctx, stroke, now);
-  renderSparkleList(ctx, sparkles, now);
+  renderLiveSnapshot(ctx, { fills, strokes, sparkles }, now);
+}
+
+export function renderLiveSnapshot(ctx: CanvasRenderingContext2D, snap: LiveSnapshot, now: number): void {
+  for (const fill of snap.fills) renderFill(ctx, fill, now);
+  for (const stroke of snap.strokes) renderStroke(ctx, stroke, now);
+  renderSparkleList(ctx, snap.sparkles, now);
 }
 
 function renderFill(ctx: CanvasRenderingContext2D, fill: LiveFill, now: number): void {

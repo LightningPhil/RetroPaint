@@ -2,7 +2,7 @@ import { play, playThrottled } from './audio';
 import { beginStrokeGeneration, segment } from './draw';
 import { pushHistory } from './history';
 import { state } from './state';
-import { baseCtx } from './canvas';
+import { baseCtx, H, W } from './canvas';
 import { bakeStaticStrokes } from './live';
 import type { GearDef, StatorShape } from './types';
 
@@ -180,9 +180,9 @@ export function assignGear(id: string): boolean {
 }
 
 export function resetKit(): void {
-  state.spiro.R = 200;
-  state.spiro.cx = 480;
-  state.spiro.cy = 320;
+  state.spiro.R = Math.max(8, Math.min(200, W / 3, H / 3));
+  state.spiro.cx = W / 2;
+  state.spiro.cy = H / 2;
   state.spiro.outerTeeth = 96;
   state.spiro.innerTeeth = 36;
   state.spiro.gearId = 'red';

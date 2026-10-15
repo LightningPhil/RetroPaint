@@ -21,6 +21,7 @@ import {
 import { activeInkId, captureStrokeSpec, glitterPattern, patternFor, previewColor, sampleInk, specKey } from './materials';
 import { currentAlpha, state, strokeApplicator } from './state';
 import type { LiveSpec } from './types';
+import { activeLayer } from './layers';
 
 let generation = 0;
 let traveled = 0;
@@ -125,7 +126,10 @@ function strokeRaw(x0: number, y0: number, x1: number, y1: number, width: number
 
   if (scrub) {
     baseCtx.save(); clipLane(baseCtx,lane);
-    paintStroke(baseCtx, x0, y0, x1, y1, width * 1.15, '#ffffff', 1, 'marker', false, 0, true);
+    const paper = activeLayer().paper;
+    baseCtx.globalCompositeOperation = paper ? 'source-over' : 'destination-out'; baseCtx.globalAlpha = currentAlpha();
+    baseCtx.strokeStyle = paper ?? '#000000'; baseCtx.lineWidth = width * 1.15; baseCtx.lineCap = 'round';
+    baseCtx.beginPath(); baseCtx.moveTo(x0, y0); baseCtx.lineTo(x1 === x0 && y1 === y0 ? x1 + 0.01 : x1, y1); baseCtx.stroke();
     baseCtx.restore();
     punchDisc((x0 + x1) / 2, (y0 + y1) / 2, width * 0.65);
     return;

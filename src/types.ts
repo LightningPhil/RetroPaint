@@ -13,7 +13,9 @@ export type ToolId =
   | 'scissors'
   | 'eraser'
   | 'stamp'
-  | 'spiro';
+  | 'spiro'
+  | 'text'
+  | 'picker';
 
 export type Applicator =
   | 'marker'
@@ -23,10 +25,15 @@ export type Applicator =
   | 'watercolor'
   | 'mist'
   | 'splatter'
-  | 'confetti';
+  | 'confetti'
+  | 'pencil'
+  | 'brush'
+  | 'oil'
+  | 'crayon'
+  | 'natural';
 
 export type SymmetryMode = 'off' | 'v' | 'h' | '4' | '6' | '8' | '10' | '12';
-export type ShapeKind = 'line' | 'rect' | 'circle' | 'poly' | 'spline';
+export type ShapeKind = 'line' | 'rect' | 'circle' | 'poly' | 'spline' | 'ellipse' | 'roundRect' | 'triangle' | 'rightTriangle' | 'diamond' | 'pentagon' | 'hexagon' | 'star4' | 'star5' | 'star6' | 'heart' | 'lightning' | 'arrowRight' | 'arrowLeft' | 'arrowUp' | 'arrowDown' | 'callout' | 'ovalCallout' | 'cloud' | 'polygon';
 export type EraserMode = 'scrub' | 'blackhole' | 'pixelate' | 'invert' | 'emboss';
 export type StatorShape = 'circle' | 'oval' | 'square' | 'cross';
 export type Drive = 'manual' | 'auto';

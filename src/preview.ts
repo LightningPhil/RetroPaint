@@ -1,6 +1,7 @@
+import type { ShapeKind } from './types';
 export type Preview =
   | null
-  | { kind: 'shape'; shape: 'line' | 'rect' | 'circle'; x0: number; y0: number; x1: number; y1: number }
+  | { kind: 'shape'; shape: ShapeKind; ink?: string; x0: number; y0: number; x1: number; y1: number }
   | { kind: 'lasso'; points: { x: number; y: number }[] }
   | { kind: 'rubber'; x0: number; y0: number; x1: number; y1: number };
 

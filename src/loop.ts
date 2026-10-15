@@ -5,6 +5,7 @@ import { renderOverlay } from './overlay';
 import { paintFrame } from './paint';
 import { tickMotor } from './spiro';
 import { updateBelt } from './ui';
+import { updateLayerThumbnails } from './layer-ui';
 
 export function startLoop(): void {
   let last = performance.now();
@@ -21,6 +22,7 @@ export function startLoop(): void {
     paintFrame(now);
     renderOverlay();
     updateBelt(now);
+    updateLayerThumbnails(now);
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);

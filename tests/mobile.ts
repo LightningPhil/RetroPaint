@@ -1,4 +1,12 @@
 import markup from '../index.html?raw';
+const testSize = new URLSearchParams(location.search).get('frame');
+if (testSize && window.top === window.self) {
+  const [width, height] = testSize.split('x').map(Number);
+  const iframe = document.createElement('iframe'); iframe.title = `RetroPaint ${width} × ${height} preview`;
+  iframe.width = String(width); iframe.height = String(height); iframe.style.cssText = 'border:0;display:block;margin:20px auto;background:white';
+  iframe.src = new URLSearchParams(location.search).has('preview') ? '../index.html' : './mobile.html';
+  document.body.style.cssText = 'margin:0;background:#dceee5'; document.body.append(iframe);
+} else {
 const parsed = new DOMParser().parseFromString(markup, 'text/html');
 parsed.querySelectorAll('script').forEach(script => script.remove());
 document.body.replaceChildren(...Array.from(parsed.body.childNodes));
@@ -6,6 +14,8 @@ await import('../src/main');
 const { base, baseCtx, view, eventPos } = await import('../src/canvas');
 const { state } = await import('../src/state');
 const { bakeStaticStrokes } = await import('../src/live');
+const { activeLayer, layers, resetLayers } = await import('../src/layers');
+const { undo, redo } = await import('../src/history');
 const results: string[] = [];
 const frame = () => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 function assert(value: unknown, message: string): asserts value { if (!value) throw new Error(message); }
@@ -21,7 +31,7 @@ async function run(name: string, fn: () => void | Promise<void>) {
   catch (error) { results.push('FAIL '+name+': '+String(error)); }
 }
 await frame();
-await run('Toolbar and all ten tools fit without overlap', () => {
+await run('Toolbar and all twelve tools fit without overlap', () => {
   fits(el('#topBar'), 'Toolbar'); fits(el('#toolBin'),'Tools'); fits(el('#stage'),'Paper');
   const buttons = [...document.querySelectorAll<HTMLElement>('#topBar>*')];
   for (const [i,a] of buttons.entries()) for (const b of buttons.slice(i+1)) {
@@ -90,6 +100,28 @@ await run('All palette tabs fit and opening them does not move paper', async () 
   assert(JSON.stringify(before)===JSON.stringify(el('#view').getBoundingClientRect().toJSON()),'Palette moved paper');
   click('#paletteToggle');
 });
+await run('Text, colour picker and every toolbox panel fit the viewport', async () => {
+  for (const tool of ['text', 'picker']) {
+    click(`[data-tool="${tool}"]`); await frame(); fits(el('.drawer.open'), tool); click('.drawer.open .drawer-close');
+  }
+  click('#studioBtn');
+  for (const tab of ['file', 'image', 'layers', 'view']) {
+    click(`[data-studio="${tab}"]`); await frame(); fits(el('#studioDrawer'), tab + ' toolbox');
+    for (const field of el('#studioDrawer').querySelectorAll<HTMLElement>('button,input,select')) if (field.getClientRects().length) {
+      const bounds = field.getBoundingClientRect();
+      if (bounds.top < 0 || bounds.bottom > innerHeight) { field.scrollIntoView({ block: 'nearest' }); await frame(); }
+      fits(field, field.textContent || field.id);
+    }
+  }
+  click('.drawer.open .drawer-close');
+});
+await run('Colour wheel and exact colour controls remain usable on small screens', async () => {
+  click('#paletteToggle'); click('[data-target="tray-solids"]'); click('#colourWheelBtn'); await frame();
+  fits(el('#colourWheelDialog'), 'Colour dialog');
+  for (const field of el('#colourWheelDialog').querySelectorAll<HTMLElement>('input,button')) fits(field, field.id || field.textContent!);
+  const hex = el('#wheelHex') as HTMLInputElement; hex.value = '#123456'; hex.dispatchEvent(new Event('input', { bubbles: true }));
+  click('.wheel-use'); assert(state.ink === '#123456', 'Exact colour did not apply'); click('#paletteToggle');
+});
 await run('Zoom and pan preserve artwork and keep drawing coordinates accurate', async () => {
   click('[data-tool="draw"]'); click('.drawer.open .drawer-close');
   state.ink='#E53935'; state.liveArmed=false;
@@ -115,8 +147,63 @@ await run('Zoom and pan preserve artwork and keep drawing coordinates accurate',
     assert(base.toDataURL()===painted,'Fitting changed artwork');
   } finally { view.setPointerCapture=capture; }
 });
+await run('Layers are easy to add, choose, hide and rename without covering the paper afterwards', async () => {
+  resetLayers(960, 640);
+  const paper = activeLayer(), original = paper.canvas.toDataURL();
+  click('#layersToggle'); await frame(); fits(el('#layersPanel'), 'Layer stack'); fits(el('#addLayer'), 'New layer');
+  click('#addLayer'); await frame();
+  assert(layers.length === 2 && activeLayer().paper === null, 'New sheet is not transparent');
+  assert(el('#layersPanel').hidden, 'Stack did not close to allow painting');
+  assert(paper.canvas.toDataURL() === original, 'Adding a layer changed the picture below');
+  const ink = activeLayer().id;
+  click('#layersToggle'); click('#addLayer'); await frame();
+  assert(activeLayer().name === 'Layer 2', 'New layers do not have friendly names');
+  click('#layersToggle'); click(`[data-layer-id="${ink}"] .layer-pick`); await frame();
+  assert(activeLayer().id === ink && el('#layersPanel').hidden, 'Choosing a sheet did not return to drawing');
+  click('#layersToggle');
+  assert(el(`[data-layer-id="${ink}"] .layer-state`).textContent === 'Painting here', 'Selected layer is unclear');
+  click(`[data-layer-id="${ink}"] .layer-eye`);
+  assert(!activeLayer().visible && el(`[data-layer-id="${ink}"] .layer-state`).textContent === 'Hidden', 'Eye did not hide the layer');
+  undo(); assert(activeLayer().visible, 'Undo did not restore visibility');
+  click('#layerOptions > summary'); await frame(); fits(el('#layersPanel'), 'Layer options');
+  for (const control of el('#layerOptions').querySelectorAll<HTMLElement>('input,button')) fits(control, control.id);
+  assert(el('#layersPanel').scrollHeight <= el('#layersPanel').clientHeight + 1, 'Layer options require scrolling');
+  const name = el('#layerName') as HTMLInputElement;
+  name.focus(); name.value = 'My doodles'; name.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true }));
+  assert(activeLayer().name === 'My doodles' && el('#activeLayerName').textContent === 'My doodles', 'Rename did not update the stack');
+  const opacity = el('#layerOpacity') as HTMLInputElement; opacity.focus();
+  for (const value of ['0.8','0.45']) { opacity.value = value; opacity.dispatchEvent(new Event('input', { bubbles: true })); }
+  opacity.dispatchEvent(new Event('change', { bubbles: true }));
+  assert(activeLayer().opacity === 0.45, 'Opacity did not preview');
+  opacity.dispatchEvent(new KeyboardEvent('keydown', { key:'z', ctrlKey:true, bubbles:true }));
+  assert(Number(activeLayer().opacity) === 1 && opacity.value === '1', 'Undo did not restore the entire opacity gesture while slider was focused');
+  redo(); assert(activeLayer().opacity === 0.45, 'Redo did not restore opacity'); opacity.blur();
+  click('#deleteLayer'); assert(layers.length === 2, 'Remove did not remove the sheet');
+  undo(); assert(Number(layers.length) === 3 && activeLayer().id === ink && activeLayer().name === 'My doodles' && activeLayer().opacity === 0.45, 'Undo lost removed sheet settings');
+  click('#layerOptions > summary'); await frame();
+});
+await run('Layer drag handles and keyboard moves reorder sheets and support Undo', async () => {
+  const panel = el('#layersPanel'), before = layers.map(layer => layer.id).join(','), active = activeLayer().id;
+  const grip = el(`[data-layer-id="${active}"] .layer-grip`), first = el('#layerList .layer-row');
+  const capture = panel.setPointerCapture; panel.setPointerCapture = () => {};
+  try {
+    const from = grip.getBoundingClientRect(), to = first.getBoundingClientRect();
+    grip.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true, pointerId:14, button:0, clientX:from.x+10, clientY:from.y+20 }));
+    panel.dispatchEvent(new PointerEvent('pointermove', { pointerId:14, clientX:to.x+20, clientY:to.y+4 }));
+    panel.dispatchEvent(new PointerEvent('pointerup', { pointerId:14, clientX:to.x+20, clientY:to.y+4 }));
+    assert(layers.at(-1)!.id === active, 'Dragging did not move sheet to the top');
+    undo(); assert(layers.map(layer => layer.id).join(',') === before, 'Undo did not restore order');
+    const keyboardGrip = el(`[data-layer-id="${active}"] .layer-grip`); keyboardGrip.focus();
+    keyboardGrip.dispatchEvent(new KeyboardEvent('keydown', { key:'ArrowDown', altKey:true, bubbles:true }));
+    assert(layers[0].id === active, 'Keyboard move did not lower sheet');
+    assert(document.activeElement === keyboardGrip, 'Reordering lost keyboard focus');
+    undo(); assert(layers.map(layer => layer.id).join(',') === before, 'Undo did not restore keyboard move');
+  } finally { panel.setPointerCapture = capture; }
+  click('#closeLayers'); resetLayers(960, 640);
+});
 const report=document.createElement('pre'); report.id='mobileResults';
 report.style.cssText='position:fixed;inset:10px;z-index:100;background:white;color:#263047;overflow:auto;padding:16px;white-space:pre-wrap';
 report.textContent=`${innerWidth} × ${innerHeight}\n`+results.join('\n');
 document.body.append(report);
 document.title=results.some(r=>r.startsWith('FAIL'))?'FAIL — Mobile checks':'PASS — Mobile checks';
+}

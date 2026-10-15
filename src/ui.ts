@@ -9,7 +9,7 @@ import { isHex, mixHex, neonColor } from './color';
 import { exportPng } from './export';
 import { cancelPending, getPending } from './fill';
 import { startSqueegee } from './effects';
-import { undo } from './history';
+import { canRedo, redo, undo } from './history';
 import { GRADIENTS, glitterThumb, patternFor, thumbFor } from './materials';
 import { activeInkId } from './materials';
 import { assignGear, GEARS, hitStator, OUTER_CHOICES, resetKit, setInnerTeeth, setOuterTeeth, startMotor } from './spiro';
@@ -18,8 +18,13 @@ import { STAMP_BANKS } from './stamps';
 import { icon, labelIcon } from './icons';
 import { finishPath } from './input';
 import { setRingRadius } from './spiro';
-import { cancelSelection, commitSelection, copySelection, cutSelection, deleteSelection, hasClipboard, hasSelection, pasteSelection, refreshTransparency } from './selection';
+import { cancelSelection, commitSelection, copySelection, cutSelection, deleteSelection, flipSelection, hasClipboard, hasSelection, invertSelection, pasteSelection, refreshTransparency, rotateSelection, selectAll } from './selection';
 import type { Applicator, EraserMode, ShapeKind, StatorShape, SymmetryMode, ToolId } from './types';
+import { H, W } from './canvas';
+import { bindEditor, editable, message, pasteExternal, refreshImageFields, requestOpen, settle, updateLayersUi } from './editor';
+import { bindText, cancelText, hasText, placeText } from './text-tool';
+import { printImage } from './export';
+import { motorOn } from './spiro';
 
 const SOLIDS = ['#E53935', '#FDD835', '#1E88E5', '#43A047', '#1A1A1A', '#EF476F', '#06D6A0', '#118AB2', '#FFD166', '#9D4EDD', '#FF9F1C', '#FFFFFF'];
 
@@ -96,6 +101,9 @@ function bindDrawerSettings(): void {
 }
 
 export function initUi(): void {
+  foldExtraChoices('#penDrawer', '[data-applicator]', 5, 'Classic brushes');
+  foldExtraChoices('#shapesDrawer', '[data-shape]', 5, 'More shapes');
+  foldSelectionEdits();
   buildSolids();
   buildTextures();
   buildGradients();
@@ -108,6 +116,9 @@ export function initUi(): void {
   bindExport();
   bindSelection();
   decorateControls();
+  bindEditor();
+  bindText();
+  bindPaintExtras();
   bindDrawerSettings();
   bindMobilePalette();
   bindLayout();
@@ -115,6 +126,28 @@ export function initUi(): void {
   sync();
   document.addEventListener('pointerdown', () => unlockAudio());
   document.addEventListener('keydown', onKey);
+}
+
+function foldExtraChoices(drawerId: string, selector: string, keep: number, label: string): void {
+  const drawer = document.querySelector<HTMLElement>(drawerId)!, buttons = [...drawer.querySelectorAll<HTMLElement>(selector)];
+  const details = document.createElement('details'); details.className = 'extra-choices';
+  const summary = document.createElement('summary'); summary.textContent = label;
+  const row = document.createElement('div'); row.className = 'row'; buttons.slice(keep).forEach(button => row.append(button));
+  details.append(summary, row); drawer.querySelector('.row')!.after(details);
+  if (drawer.id === 'shapesDrawer') {
+    summary.textContent = 'More shapes & fill';
+    const styles = drawer.querySelector('.compact-fields'); if (styles) summary.after(styles);
+  }
+  details.addEventListener('toggle', layoutStage);
+}
+function foldSelectionEdits(): void {
+  const drawer = document.getElementById('selectionDrawer')!, actions = drawer.querySelector('.selection-actions')!;
+  const details = document.createElement('details'); details.className = 'extra-choices';
+  const summary = document.createElement('summary'); summary.textContent = 'More edits & transforms';
+  const row = document.createElement('div'); row.className = 'row selection-actions';
+  for (const id of ['selectAll', 'invertSelection', 'deleteSelection']) row.append(document.getElementById(id)!);
+  const transforms = drawer.querySelector('.selection-transforms')!, hint = transforms.nextElementSibling!;
+  details.append(summary, row, transforms, hint); actions.after(details); details.addEventListener('toggle', layoutStage);
 }
 
 let beltSlots: HTMLButtonElement[] | null = null;
@@ -373,8 +406,8 @@ function canvasToClientInverse(clientX: number, clientY: number): { x: number; y
   const rect = stage.getBoundingClientRect();
   if (clientX < rect.left || clientY < rect.top || clientX > rect.right || clientY > rect.bottom) return null;
   return {
-    x: ((clientX - rect.left) * 960) / rect.width,
-    y: ((clientY - rect.top) * 640) / rect.height,
+    x: ((clientX - rect.left) * W) / rect.width,
+    y: ((clientY - rect.top) * H) / rect.height,
   };
 }
 
@@ -394,6 +427,7 @@ function bindTools(): void {
   document.querySelectorAll<HTMLButtonElement>('[data-applicator]').forEach((btn) => {
     btn.addEventListener('click', () => {
       state.applicator = btn.dataset.applicator as Applicator;
+      if (state.applicator === 'pencil') { state.brushWidth = 1; (document.getElementById('brushSize') as HTMLInputElement).value = '1'; }
       if (state.applicator === 'mist' || state.applicator === 'splatter' || state.applicator === 'confetti') {
         state.sprayApplicator = state.applicator;
         state.tool = 'spray';
@@ -470,11 +504,10 @@ function bindTools(): void {
   });
   document.getElementById('undoBtn')!.addEventListener('click', doUndo);
   bindClearConfirmation(document.getElementById('clearBtn') as HTMLButtonElement, () => {
-    if (state.busy) return;
-    commitSelection();
-    state.poly = [];
+    if (!editable()) return;
+    settle();
     startSqueegee();
-  }, undefined, () => !state.busy);
+  }, undefined, () => !state.busy && !motorOn());
 }
 
 function bindSliders(): void {
@@ -569,7 +602,8 @@ function bindConveyor(): void {
 function bindExport(): void {
   document.getElementById('saveBtn')!.addEventListener('click', () => {
     play('clunk');
-    commitSelection();
+    if (!editable()) return;
+    settle();
     exportPng();
   });
 }
@@ -584,7 +618,46 @@ function bindLayout(): void {
   }
   window.addEventListener('resize', layoutStage);
   window.visualViewport?.addEventListener('resize', layoutStage);
+  document.addEventListener('canvas-size', layoutStage);
+  bus.addEventListener('layer-panel', layoutStage);
   layoutStage();
+}
+
+function bindPaintExtras(): void {
+  const studio = document.getElementById('studioBtn')!;
+  studio.addEventListener('click', () => { openDrawer = openDrawer === 'studioDrawer' ? null : 'studioDrawer'; refreshImageFields(); updateLayersUi(); sync(); });
+  document.querySelectorAll<HTMLButtonElement>('[data-studio]').forEach(button => button.addEventListener('click', () => {
+    document.querySelectorAll<HTMLButtonElement>('[data-studio]').forEach(tab => { tab.classList.toggle('active', tab === button); tab.setAttribute('aria-selected', String(tab === button)); });
+    document.querySelectorAll<HTMLElement>('[data-studio-panel]').forEach(panel => { panel.hidden = panel.dataset.studioPanel !== button.dataset.studio; });
+    refreshImageFields(); updateLayersUi(); layoutStage();
+  }));
+  for (const [id, key] of [['shapeOutline', 'shapeOutline'], ['shapeFill', 'shapeFill']] as const) {
+    (document.getElementById(id) as HTMLSelectElement).addEventListener('change', event => { state[key] = (event.target as HTMLSelectElement).value as never; });
+  }
+  (document.getElementById('secondaryColour') as HTMLInputElement).addEventListener('input', event => { state.secondaryInk = (event.target as HTMLInputElement).value; });
+  document.getElementById('swapColours')!.addEventListener('click', () => {
+    const primary = isHex(state.ink) ? state.ink : state.neonTint;
+    chooseInk(state.secondaryInk); state.secondaryInk = primary; (document.getElementById('secondaryColour') as HTMLInputElement).value = primary;
+  });
+  bus.addEventListener('pick-colour', event => {
+    const detail = (event as CustomEvent<{ colour: string; secondary: boolean }>).detail;
+    if (detail.secondary) { state.secondaryInk = detail.colour; (document.getElementById('secondaryColour') as HTMLInputElement).value = detail.colour; }
+    else { chooseInk(detail.colour); selectTool('draw'); }
+    message(`${detail.secondary ? 'Second colour' : 'Ink'}: ${detail.colour.toUpperCase()}`);
+  });
+  bus.addEventListener('layers', () => { updateLayersUi(); layoutStage(); });
+  bus.addEventListener('selection', refreshImageFields);
+  bus.addEventListener('history', () => { (document.getElementById('redoBtn') as HTMLButtonElement).disabled = !canRedo(); });
+  (document.getElementById('redoBtn') as HTMLButtonElement).disabled = !canRedo();
+  bus.addEventListener('tool-request', () => { openDrawer = null; sync(); });
+  bus.addEventListener('close-options', () => { openDrawer = null; sync(); });
+  bus.addEventListener('text-anchor', () => { openDrawer = 'textDrawer'; sync(); (document.getElementById('textContent') as HTMLTextAreaElement).focus(); });
+}
+export function chooseInk(hex: string): void {
+  const wheel = document.getElementById('colourWheelBtn')!;
+  const swatch = [...document.querySelectorAll<HTMLElement>('.color-btn')].find(button => button.dataset.ink?.toLowerCase() === hex.toLowerCase());
+  if (!swatch) { wheel.dataset.ink = hex; wheel.style.background = hex; }
+  selectInk(hex, swatch ?? wheel);
 }
 
 function layoutStage(): void {
@@ -595,9 +668,13 @@ function layoutStage(): void {
   const rect = slot.getBoundingClientRect();
   const uiScale = Number(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')) || 1;
   const pad = phoneLayout.matches ? 0 : 12 * uiScale;
-  const availW = Math.max(80, rect.width - pad * 2);
+  const layerPanel = document.getElementById('layersPanel');
+  const layerSpace = !phoneLayout.matches && layerPanel && !layerPanel.hidden && rect.width >= 700 ? layerPanel.offsetWidth + 16 : 0;
+  slot.classList.toggle('layer-space', layerSpace > 0);
+  const drawingWidth = rect.width - layerSpace;
+  const availW = Math.max(80, drawingWidth - pad * 2);
   const availH = Math.max(80, rect.height - pad * 2);
-  const aspect = 960 / 640;
+  const aspect = W / H;
   let width = availW;
   let height = width / aspect;
   if (height > availH) {
@@ -608,7 +685,7 @@ function layoutStage(): void {
   stage.style.height = `${Math.floor(height)}px`;
   const compact = phoneLayout.matches;
   const landscape = compact && window.innerWidth > window.innerHeight;
-  stage.style.left = `${Math.floor(landscape ? rect.width - width : (rect.width - width) / 2)}px`;
+  stage.style.left = `${Math.floor(landscape ? drawingWidth - width : (drawingWidth - width) / 2)}px`;
   const paperTop = compact ? rect.height - height : (rect.height - height) / 2;
   stage.style.top = `${Math.floor(paperTop)}px`;
   const tool = bin.getBoundingClientRect();
@@ -645,13 +722,14 @@ function layoutStage(): void {
 
 function bindSelection(): void {
   document.querySelectorAll<HTMLButtonElement>('[data-select]').forEach(btn => btn.addEventListener('click', () => {
-    state.selectionMode = btn.dataset.select as 'rect' | 'lasso';
+    state.selectionMode = btn.dataset.select as 'rect' | 'lasso' | 'wand';
     commitSelection(); openDrawer = null; sync();
   }));
   const transparent = document.getElementById('transparentSelection') as HTMLInputElement;
   transparent.addEventListener('change', () => { state.transparentSelection = transparent.checked; refreshTransparency(); });
   const actions: Record<string, () => void> = {
-    copySelection, cutSelection, pasteSelection, doneSelection: commitSelection, cancelSelection,
+    copySelection, cutSelection, pasteSelection: () => { void pasteExternal(); }, doneSelection: commitSelection, cancelSelection,
+    selectAll, invertSelection, deleteSelection, selectionFlipH: () => flipSelection(true), selectionFlipV: () => flipSelection(false), selectionRotate: () => rotateSelection(90),
   };
   for (const [id, action] of Object.entries(actions)) document.getElementById(id)!.addEventListener('click', () => {
     action(); play('clunk'); sync();
@@ -664,7 +742,8 @@ function updateSelectionButtons(): void {
   for (const id of ['copySelection', 'cutSelection', 'doneSelection', 'cancelSelection']) {
     (document.getElementById(id) as HTMLButtonElement).disabled = !hasSelection();
   }
-  (document.getElementById('pasteSelection') as HTMLButtonElement).disabled = !hasClipboard();
+  (document.getElementById('pasteSelection') as HTMLButtonElement).disabled = false;
+  for (const id of ['invertSelection', 'deleteSelection', 'selectionFlipH', 'selectionFlipV', 'selectionRotate', 'cropSelection']) (document.getElementById(id) as HTMLButtonElement).disabled = !hasSelection();
   document.getElementById('selectionQuick')?.classList.toggle('visible', state.tool === 'scissors' && (hasSelection() || hasClipboard()));
   document.querySelectorAll<HTMLButtonElement>('[data-selection-action]').forEach(btn => {
     btn.disabled = btn.dataset.selectionAction === 'paste' ? !hasClipboard() : !hasSelection();
@@ -742,9 +821,14 @@ function markInkSelection(selected: HTMLElement | null): void {
   });
 }
 
-function selectTool(tool: ToolId): void {
+export function selectTool(tool: ToolId): void {
+  if (!editable()) return;
   play(tool === 'spray' ? 'rattle' : 'clunk');
-  if (state.tool !== tool) { commitSelection(); state.poly = []; }
+  if (state.tool !== tool) {
+    bus.dispatchEvent(new Event('settle-input'));
+    if (state.tool === 'text' && hasText()) placeText();
+    commitSelection(); state.poly = [];
+  }
   state.tool = tool;
   if (tool === 'draw' || tool === 'shapes' || tool === 'spiro') state.applicator = state.brushApplicator;
   if (tool === 'spray') state.applicator = state.sprayApplicator;
@@ -757,15 +841,16 @@ function toggleSymmetry(): void {
   sync();
 }
 function drawerFor(tool: ToolId): string | null {
-  return ({ draw: 'penDrawer', spray: 'sprayDrawer', shapes: 'shapesDrawer', eraser: 'eraserDrawer', stamp: 'stampDrawer', spiro: 'spiroDrawer', scissors: 'selectionDrawer', sponge: null, bucket: null })[tool];
+  return ({ draw: 'penDrawer', spray: 'sprayDrawer', shapes: 'shapesDrawer', eraser: 'eraserDrawer', stamp: 'stampDrawer', spiro: 'spiroDrawer', scissors: 'selectionDrawer', sponge: null, bucket: null, text: 'textDrawer', picker: 'pickerDrawer' })[tool];
 }
 
 function sync(): void {
+  document.getElementById('studioBtn')!.setAttribute('aria-expanded', String(openDrawer === 'studioDrawer'));
   const size = document.getElementById('brushSize') as HTMLInputElement;
   const stamp = state.tool === 'stamp';
-  size.min = stamp ? '0.4' : '4'; size.max = stamp ? '2.6' : '48'; size.step = stamp ? '0.1' : '1';
+  size.min = stamp ? '0.4' : '1'; size.max = stamp ? '2.6' : '96'; size.step = stamp ? '0.1' : '1';
   size.value = String(stamp ? state.stampScale : state.brushWidth);
-  size.disabled = state.tool === 'scissors' || state.tool === 'bucket';
+  size.disabled = ['scissors', 'bucket', 'text', 'picker'].includes(state.tool);
   (document.getElementById('opacity') as HTMLInputElement).disabled = state.tool === 'scissors';
   document.querySelectorAll<HTMLButtonElement>('#toolBin .tool-btn').forEach((btn) => {
     const tool = btn.dataset.tool as ToolId | undefined;
@@ -840,9 +925,11 @@ function markChoices(selector: string, value: string): void {
 }
 
 function doUndo(): void {
-  if (state.busy) return;
+  if (state.busy || motorOn()) return;
+  if (state.tool === 'text' && hasText()) { cancelText(); return; }
   if (hasSelection()) { cancelSelection(); return; }
   if (state.poly.length) { state.poly.pop(); return; }
+  bus.dispatchEvent(new Event('settle-input'));
   play('clunk');
   const btn = document.getElementById('undoBtn')!;
   btn.classList.add('winding');
@@ -856,20 +943,28 @@ function doUndo(): void {
 
 function onKey(event: KeyboardEvent): void {
   if (document.querySelector('dialog[open]')) return;
-  if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+  if (event.target instanceof HTMLInputElement && !['range', 'checkbox', 'color'].includes(event.target.type) || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement || (event.target instanceof HTMLElement && event.target.isContentEditable)) return;
   const key = event.key.toLowerCase();
   if (event.ctrlKey || event.metaKey) {
-    if (key === 'z') { event.preventDefault(); doUndo(); }
+    if (key === 'z') { event.preventDefault(); if (event.shiftKey && editable()) { cancelSelection(); redo(); } else doUndo(); }
+    else if (key === 'y') { event.preventDefault(); if (editable()) { cancelSelection(); redo(); } }
+    else if (key === 'a') { event.preventDefault(); selectTool('scissors'); selectAll(); }
+    else if (key === 's') { event.preventDefault(); settle(); exportPng(); }
+    else if (key === 'o') { event.preventDefault(); requestOpen(); }
+    else if (key === 'p') { event.preventDefault(); settle(); printImage(); }
     else if (key === 'c' && hasSelection()) { event.preventDefault(); copySelection(); }
     else if (key === 'x' && hasSelection()) { event.preventDefault(); cutSelection(); }
-    else if (key === 'v' && hasClipboard()) { event.preventDefault(); selectTool('scissors'); pasteSelection(); }
     return;
   }
-  if (key === 'escape') { state.choosingSlice=false; cancelSelection(); state.poly = []; cancelPending(); openDrawer = null; sync(); }
+  if (key === 'escape') { state.choosingSlice=false; cancelSelection(); cancelText(); state.poly = []; cancelPending(); openDrawer = null; sync(); }
   if (key === 'enter' && !(event.target instanceof HTMLButtonElement)) { commitSelection(); finishPath(); }
   if (key === 'delete' || key === 'backspace') {
     if (hasSelection()) { event.preventDefault(); deleteSelection(); }
     else if (state.poly.length) { event.preventDefault(); state.poly.pop(); }
+  }
+  if (!event.altKey && key.length === 1) {
+    const shortcuts: Record<string, ToolId> = { b: 'draw', e: 'eraser', f: 'bucket', i: 'picker', t: 'text', r: 'scissors' };
+    if (shortcuts[key]) { selectTool(shortcuts[key]); openDrawer = drawerFor(shortcuts[key]); sync(); }
   }
 }
 
@@ -896,7 +991,7 @@ function colourName(color: string): string {
   return ['Red', 'Yellow', 'Blue', 'Green', 'Black', 'Pink', 'Mint', 'Teal', 'Gold', 'Purple', 'Orange', 'White'][SOLIDS.indexOf(color)] ?? color;
 }
 function updatePathControls(): void {
-  document.getElementById('finishQuick')!.hidden = state.tool !== 'shapes' || !['poly', 'spline'].includes(state.shape);
+  document.getElementById('finishQuick')!.hidden = state.tool !== 'shapes' || !['poly', 'spline', 'polygon'].includes(state.shape);
 }
 function decorateControls(): void {
   for (const attribute of ['applicator', 'shape', 'eraser', 'sym', 'drive', 'stator', 'select']) {
