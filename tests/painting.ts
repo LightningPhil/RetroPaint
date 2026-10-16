@@ -20,7 +20,7 @@ import { pushHistory, undo } from '../src/history';
 import { cancelSelection, commitSelection, copySelection, cutSelection, hasSelection, hitSelection, moveSelection, pasteSelection, rectangle, refreshTransparency, selectRegion, renderSelection } from '../src/selection';
 import { drawShape, floodAt, floodMask, setShapePainter, getPending, cancelPending } from '../src/fill';
 import { drawBetween, penPosition, setRingRadius } from '../src/spiro';
-import { activeLayer, addLayer, drawLayerThumbnail, layers, moveLayer, renderLayers, resetLayers, switchLayer, mergeLayerDown, transformLayers } from '../src/layers';
+import { activeLayer, addLayer, drawLayerThumbnail, layers, moveLayer, renderFullPicture, renderLayers, resetLayers, switchLayer, mergeLayerDown, transformLayers } from '../src/layers';
 import { redo } from '../src/history';
 import { flipSelection, invertSelection, resizeSelection, rotateSelection, selectPixelMask, selectionBounds } from '../src/selection';
 import { resizePicture, rotatePicture, flipPicture, cropPicture, removeEdgeBackground, decodeImage, importImage } from '../src/editor';
@@ -33,6 +33,8 @@ import { bus } from '../src/bus';
 import { addDrip, tickDrips } from '../src/effects';
 import { autoPhoto, autoWhiteBalance, curveTable, defaultPhotoSettings, histogram, neutralBalance, processPhoto } from '../src/photo-engine';
 import { applyPhoto, beginPhoto, cancelPhoto, comparePhoto, photoSession, refreshPhoto } from '../src/photo-session';
+import { documentCrop, outputFrame } from '../src/document-frame';
+import { choosePhotoLook, newPhotoRecipe, photoManualChange } from '../src/photo-recipe';
 
 initCanvas(); initMaterials();
 setShapePainter((x0,y0,x1,y1,w) => segment(x0,y0,x1,y1,w,0));
@@ -874,17 +876,20 @@ check('Vignette follows the crop, grain is deterministic, and lens corrections p
   const flipped=defaultPhotoSettings();flipped.flipX=true;source.data.set([255,0,0,255],0);assert(processPhoto(source,flipped).data[(39)*4]===255,'Flip did not mirror pixels');
   const hist=histogram(new ImageData(new Uint8ClampedArray([0,0,0,255,255,255,255,255,255,0,0,0]),3,1));assert(hist.count===2&&hist.clipped[0]===.5&&hist.clipped[1]===.5,'Histogram counted transparent pixels');
 });
-await asyncCheck('Photo preview and Cancel leave source and live ink intact; full-size Apply and crop restore in one Undo',async()=>{
+await asyncCheck('Photo preview, saved adjustments and crop preserve every source pixel and live ink; Undo restores the recipe and frame',async()=>{
   resetLayers(48,32);const paper=activeLayer().id;addLayer();baseCtx.fillStyle='#557799';baseCtx.fillRect(0,0,W,H);
   const mask=blankMask();mask.getContext('2d')!.fillRect(2,2,5,5);addFill(mask,{kind:'conveyor',colors:['#ff0000','#0000ff'],speed:3,mode:'ooze',along:false,texture:null},1,null);
   const original=image(),live=snapshotLive().fills.length,layer=activeLayer().id;
   beginPhoto().settings.brightness=25;await refreshPhoto();assert(image()===original&&snapshotLive().fills.length===live,'Preview changed stored artwork');
   comparePhoto(true);cancelPhoto();assert(image()===original&&snapshotLive().fills.length===live&&!photoSession,'Cancel changed the source');
   const session=beginPhoto();session.settings.brightness=25;session.settings.crop={x:.25,y:.25,width:.5,height:.5};await applyPhoto();
-  assert(Number(W)===24&&Number(H)===16&&layers.length===2&&snapshotLive().fills.length===0,'Apply did not crop all sheets or capture live frame');
-  assert(layers.find(l=>l.id===paper)!.canvas.width===24&&pixel(10,10)!=='85,119,153,255','Full-size edit did not apply');
-  undo();assert(W===48&&H===32&&activeLayer().id===layer&&image()===original&&snapshotLive().fills.length===live,'Undo did not restore pixels, size and live ink together');
-  redo();assert(Number(W)===24&&Number(H)===16,'Redo did not restore photo edit');
+  assert(W===48&&H===32&&outputFrame(W,H).width===24&&outputFrame(W,H).height===16&&snapshotLive().fills.length===live,'Crop removed original dimensions or live ink');
+  assert(layers.find(l=>l.id===paper)!.canvas.width===48&&image()===original&&activeLayer().photo?.settings.brightness===25,'Saving adjustments changed original pixels');
+  assert((await renderFullPicture(0)).toDataURL()!==(await renderFullPicture(1000)).toDataURL(),'Saving photo adjustments froze animated ink');
+  const exported=await decodeImage(await imageBlob('png'));assert(exported.width===24&&exported.height===16&&exported.getContext('2d')!.getImageData(10,10,1,1).data[0]>85,'Export did not apply the recipe and frame');
+  const reopened=beginPhoto();assert(reopened.settings.brightness===25&&reopened.settings.crop.width===.5,'Reopening lost settings');cancelPhoto();
+  undo();assert(outputFrame(W,H).width===48&&activeLayer().id===layer&&image()===original&&snapshotLive().fills.length===live&&!activeLayer().photo,'Undo did not restore recipe and frame together');
+  redo();assert(outputFrame(W,H).width===24&&activeLayer().photo?.settings.brightness===25,'Redo did not restore photo edit');
 });
 await asyncCheck('PNG, JPEG, WebP, BMP and GIF exports decode at the actual picture dimensions', async () => {
   resetLayers(32, 24, null); baseCtx.fillStyle = '#ff0000'; baseCtx.fillRect(5, 5, 12, 10);
@@ -899,10 +904,33 @@ await asyncCheck('Imported JPEG photo edits render at full resolution, export co
   gradient.addColorStop(0,'#336688');gradient.addColorStop(.5,'#bb9977');gradient.addColorStop(1,'#88aabb');ctx.fillStyle=gradient;ctx.fillRect(0,0,1600,1000);ctx.fillStyle='#eecc66';ctx.fillRect(400,250,300,200);
   const jpeg=await new Promise<Blob>(resolve=>fixture.toBlob(blob=>resolve(blob!),'image/jpeg',.9));await importImage(jpeg);const original=image();
   const first=beginPhoto();first.settings.pop=35;first.settings.sharpness=40;first.settings.noise=20;first.settings.vignette=-15;await applyPhoto();
-  assert(W===1600&&H===1000&&image()!==original,'Full-size photo edit failed');
-  const exported=await decodeImage(await imageBlob('png'));assert(exported.width===1600&&exported.height===1000&&exported.toDataURL()===image(),'Photo export differs from applied pixels');
+  assert(W===1600&&H===1000&&image()===original&&activeLayer().photo?.settings.pop===35,'Full-size edit changed the source');
+  const expected=document.createElement('canvas');expected.width=W;expected.height=H;expected.getContext('2d')!.putImageData(processPhoto(baseCtx.getImageData(0,0,W,H),first.settings),0,0);
+  const exported=await decodeImage(await imageBlob('png'));assert(exported.width===1600&&exported.height===1000&&exported.toDataURL()===expected.toDataURL()&&exported.toDataURL()!==original,'Photo export differs from the full-resolution recipe');
   undo();assert(image()===original,'Undo lost the imported JPEG');
   beginPhoto().settings.distortion=30;const pending=applyPhoto();cancelPhoto();assert(!await pending&&image()===original,'Cancel during processing changed pixels');
+});
+check('Normal restores the exact pre-look settings, presets do not accumulate, and manual edits are Custom',()=>{
+  const recipe=newPhotoRecipe();recipe.settings.brightness=17;recipe.settings.temperature=-12;recipe.settings.curves.red=[{x:0,y:0},{x:.5,y:.6},{x:1,y:1}];photoManualChange(recipe);
+  assert(recipe.look==='custom');const before=JSON.stringify(recipe.settings);
+  choosePhotoLook(recipe,'warm');assert(recipe.look==='warm'&&recipe.settings.grain===12);
+  choosePhotoLook(recipe,'mono');assert(recipe.settings.temperature===-12&&recipe.settings.grain===0&&recipe.settings.saturation===-100,'Looks accumulated');
+  recipe.settings.brightness=30;photoManualChange(recipe);assert(recipe.look==='custom');choosePhotoLook(recipe,'normal');
+  assert(JSON.stringify(recipe.settings)===before&&recipe.look==='normal','Normal lost the pre-look baseline');
+});
+await asyncCheck('Photo reset restores originals and uncropped margins after more edits than Undo retains; project files preserve editable recipes',async()=>{
+  resetLayers(40,30,null);baseCtx.fillStyle='#345678';baseCtx.fillRect(0,0,W,H);baseCtx.fillStyle='#ff0000';baseCtx.fillRect(0,0,5,5);const original=image();
+  const edit=beginPhoto();Object.assign(edit.settings,{exposure:.3,brightness:5,contrast:12,highlights:-20,shadows:15,whites:7,blacks:-8,temperature:18,tint:-4,saturation:8,vibrance:12,hue:5,sharpness:30,radius:1.5,threshold:3,texture:12,clarity:8,pop:5,dehaze:7,noise:10,colourNoise:10,vignette:-20,midpoint:40,feather:60,roundness:30,grain:5,distortion:10,aberration:8,vertical:5,horizontal:-3,angle:3,zoom:110,flipX:true,crop:{x:.25,y:.2,width:.5,height:.6}});
+  edit.settings.curves.blue=[{x:0,y:0},{x:.5,y:.6},{x:1,y:1}];edit.settings.mixer[2].saturation=-15;photoManualChange(edit);choosePhotoLook(edit,'warm');await applyPhoto();
+  const saved=projectData();resetLayers(10,10);await loadProjectData(saved);
+  assert(image()===original&&documentCrop().width===.5&&activeLayer().photo?.look==='warm','Project did not retain originals, frame and look');
+  const reopened=beginPhoto();assert(reopened.settings.angle===3&&reopened.settings.curves.blue.length===3&&reopened.normal.temperature===18,'Project lost editable controls or Normal baseline');cancelPhoto();
+  const bad=JSON.parse(saved);bad.layers[0].photo.settings.curves.red=[{x:0,y:0},{x:0,y:1}];const beforeBad=projectData();let rejected=false;try{await loadProjectData(JSON.stringify(bad));}catch{rejected=true;}assert(rejected&&projectData()===beforeBad,'Invalid photo data changed the document');
+  for(let i=0;i<22;i++){const s=beginPhoto();s.settings.brightness=i+1;await applyPhoto();assert(image()===original,'Repeated edits modified source pixels');}
+  const reset=beginPhoto();Object.assign(reset,newPhotoRecipe());await applyPhoto();
+  assert(image()===original&&outputFrame(W,H).width===40&&outputFrame(W,H).height===30,'Reset failed without relying on Undo');
+  assert((await decodeImage(await imageBlob('png'))).toDataURL()===original,'Reset export did not recover original margins');
+  const legacy=JSON.parse(saved);legacy.version=1;delete legacy.crop;for(const l of legacy.layers)delete l.photo;await loadProjectData(JSON.stringify(legacy));assert(image()===original&&outputFrame(W,H).width===40,'Legacy projects no longer load');
 });
 await asyncCheck('TIFF round-trips RGBA pixels through the local encoder and decoder', async () => {
   const before = baseCtx.getImageData(0, 0, W, H), decoded = decodeTiff(await encodeTiff(before).arrayBuffer());

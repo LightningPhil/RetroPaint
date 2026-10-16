@@ -7,6 +7,8 @@ import { tickMotor } from './spiro';
 import { updateBelt } from './ui';
 import { updateLayerThumbnails } from './layer-ui';
 import { photoEditing } from './photo-preview';
+import { invalidatePhotoRenders } from './photo-render';
+import { drips, isBusy } from './effects';
 
 export function startLoop(): void {
   let last = performance.now();
@@ -14,6 +16,7 @@ export function startLoop(): void {
     const dt = Math.min(50, now - last);
     last = now;
     if (!clearConfirmationOpen() && !photoEditing) {
+      if(drips.length||isBusy())invalidatePhotoRenders();
       tickSqueegee(dt);
       tickHole(dt);
       tickDrips(dt);

@@ -188,4 +188,5 @@ export function initLayersUi(callbacks: LayerActions): void {
   bus.addEventListener('layers', () => { if (drag && !layers.some(layer => layer.id === drag!.id)) clearDrag(); });
   bus.addEventListener('history', () => { opacityGesture = null; });
   bus.addEventListener('photo-panel', event => { if ((event as CustomEvent<boolean>).detail) showLayers(false); });
+  bus.addEventListener('restore-layers',event=>showLayers((event as CustomEvent<boolean>).detail));
 }

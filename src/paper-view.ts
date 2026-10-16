@@ -1,6 +1,7 @@
-import { view, W } from './canvas';
+import { view } from './canvas';
 import { icon } from './icons';
 import { state } from './state';
+import { displayFrame } from './document-frame';
 
 export function initPaperView(compact: MediaQueryList): void {
   const slot = document.getElementById('canvasSlot')!, stage = document.getElementById('stage')!;
@@ -21,8 +22,9 @@ export function initPaperView(compact: MediaQueryList): void {
     y = scaledHeight > slot.clientHeight ? Math.max(slot.clientHeight - scaledHeight - top, Math.min(-top, y)) : Math.min(0, slot.clientHeight - scaledHeight - top);
     stage.style.transform = `translate(${x}px,${y}px) scale(${zoom})`;
     controls.style.top = `${Math.max(4, top + y - 56)}px`;
-    state.paperScale = stage.clientWidth * zoom / W;
-    readout.value = `${view.width} × ${view.height} · ${Math.round(state.paperScale * 100)}%`;
+    const frame=displayFrame(view.width,view.height);
+    state.paperScale = stage.clientWidth * zoom / frame.width;
+    readout.value = `${frame.width} × ${frame.height} · ${Math.round(state.paperScale * 100)}%`;
     smaller.disabled = zoom <= 0.125; larger.disabled = zoom >= 32;
     pan.classList.toggle('active', moving); pan.setAttribute('aria-pressed', String(moving)); slot.classList.toggle('moving-paper', moving || space);
     view.style.imageRendering = state.paperScale >= 3 ? 'pixelated' : 'auto';
@@ -33,7 +35,7 @@ export function initPaperView(compact: MediaQueryList): void {
   const reset = () => { zoom = 1; x = y = 0; moving = false; draw(); };
   fit.addEventListener('click', reset);
   document.getElementById('viewZoomOut')!.addEventListener('click', () => smaller.click()); document.getElementById('viewZoomIn')!.addEventListener('click', () => larger.click());
-  document.getElementById('viewFit')!.addEventListener('click', reset); document.getElementById('viewActual')!.addEventListener('click', () => scale(W / Math.max(1, stage.clientWidth)));
+  document.getElementById('viewFit')!.addEventListener('click', reset); document.getElementById('viewActual')!.addEventListener('click', () => scale(displayFrame(view.width,view.height).width / Math.max(1, stage.clientWidth)));
   slot.addEventListener('wheel', event => { if (!event.ctrlKey && !event.metaKey) return; event.preventDefault(); scale(zoom * (event.deltaY < 0 ? 1.2 : 1 / 1.2)); }, { passive: false });
   const canMove = () => moving || space;
   view.addEventListener('pointerdown', event => {
@@ -56,5 +58,6 @@ export function initPaperView(compact: MediaQueryList): void {
   window.addEventListener('blur', () => { space = false; stop(); draw(); });
   document.getElementById('toolBin')!.addEventListener('click', () => { moving = false; stop(); draw(); });
   compact.addEventListener('change', () => { stop(); reset(); }); document.addEventListener('canvas-size', reset);
+  document.addEventListener('document-frame',reset);
   const observer = new ResizeObserver(draw); observer.observe(slot); observer.observe(stage); draw();
 }

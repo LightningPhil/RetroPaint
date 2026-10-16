@@ -97,6 +97,7 @@ export async function importImage(file: Blob, insert = false): Promise<void> {
     if (file instanceof File) (document.getElementById('fileName') as HTMLInputElement).value = file.name.replace(/\.[^.]+$/, '');
   }
   emit('close-options'); message(insert ? 'Image inserted. Drag it, resize it, then Place.' : 'Image opened. Undo brings back the previous picture.');
+  if(!insert)emit('image-opened');
 }
 export async function pasteExternal(): Promise<void> {
   if (!editable()) return;
@@ -176,8 +177,9 @@ export function bindEditor(): void {
   for (const [id, key] of [['pixelGrid', 'pixelGrid'], ['rulers', 'rulers']] as const) field(id).addEventListener('change', () => { state[key] = field<HTMLInputElement>(id).checked; });
   bindAction('fullScreen', async () => { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); });
   field<HTMLInputElement>('imageInput').addEventListener('change', event => {
-    const input = event.target as HTMLInputElement, file = input.files?.[0]; input.value = ''; if (file) void importImage(file, inserting).catch(error => message(error.message));
+    const input = event.target as HTMLInputElement, file = input.files?.[0]; input.value = ''; if (file) void importImage(file, inserting).catch(error => {emit('image-open-cancelled');message(error.message);});else emit('image-open-cancelled');
   });
+  field('imageInput').addEventListener('cancel',()=>emit('image-open-cancelled'));
   field<HTMLInputElement>('projectInput').addEventListener('change', event => {
     const input = event.target as HTMLInputElement, file = input.files?.[0]; input.value = ''; if (file) void openProjectFile(file).then(() => emit('close-options')).catch(error => message(error.message));
   });

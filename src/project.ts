@@ -6,20 +6,22 @@ import { decodeImage, dimensions, editable, message, settle } from './editor';
 import { pushHistory } from './history';
 import { artwork } from './artwork';
 import type { Applicator, LiveSpec } from './types';
+import { documentCrop, setDocumentCrop } from './document-frame';
+import { readPhotoCrop, readPhotoRecipe } from './photo-recipe';
 
 const canvasFromImage = (image: ImageData) => { const canvas = document.createElement('canvas'); canvas.width = image.width; canvas.height = image.height; canvas.getContext('2d')!.putImageData(image, 0, 0); return canvas; };
 export function projectData(): string {
   const saved = captureLayers().map(layer => {
     const canvas = canvasFromImage(layer.image), rainbow = layer.live.strokes.filter(stroke => stroke.rainbow);
     if (rainbow.length) renderLiveSnapshot(canvas.getContext('2d')!, { strokes: rainbow, fills: [], sparkles: [] }, performance.now());
-    return { id: layer.id, name: layer.name, visible: layer.visible, opacity: layer.opacity, paper: layer.paper,
+    return { id: layer.id, name: layer.name, visible: layer.visible, opacity: layer.opacity, paper: layer.paper, photo:layer.photo,
       image: canvas.toDataURL(), live: {
         strokes: layer.live.strokes.filter(stroke => !stroke.rainbow),
         fills: layer.live.fills.map(fill => ({ ...fill, mask: fill.mask.toDataURL() })), sparkles: layer.live.sparkles,
       },
     };
   });
-  return JSON.stringify({ format: 'RetroPaint', version: 1, width: W, height: H, active: activeLayerId, layers: saved });
+  return JSON.stringify({ format: 'RetroPaint', version: 2, width: W, height: H, crop:documentCrop(), active: activeLayerId, layers: saved });
 }
 export function saveProjectFile(name = 'retropaint'): void {
   download(new Blob([projectData()], { type: 'application/json' }), `${name.replace(/[<>:"/\\|?*]/g, '-') || 'retropaint'}.retropaint`);
@@ -60,19 +62,20 @@ async function live(value: unknown, width: number, height: number): Promise<Live
 }
 export async function loadProjectData(source: string): Promise<void> {
   const project = record(JSON.parse(source));
-  if (project.format !== 'RetroPaint' || project.version !== 1) throw new Error('Choose a RetroPaint project file.');
+  if (project.format !== 'RetroPaint' || ![1,2].includes(project.version as number)) throw new Error('Choose a RetroPaint project file.');
   const width = number(project.width, 1, 4096), height = number(project.height, 1, 4096); dimensions(width, height);
   if (!Number.isInteger(width) || !Number.isInteger(height)) throw new Error('Invalid project dimensions.');
   const data = array(project.layers, 16); if (!data.length) throw new Error('This project has no layers.');
   if (width * height * data.length > 64_000_000) throw new Error('This project has too many pixels across its layers.');
+  const crop=project.crop===undefined?{x:0,y:0,width:1,height:1}:readPhotoCrop(project.crop);
   const snapshots: LayerSnapshot[] = await Promise.all(data.map(async value => {
     const layer = record(value), canvas = await image(layer.image, width, height);
     return { id: number(layer.id, 1), name: String(layer.name ?? 'Layer').slice(0, 60), visible: Boolean(layer.visible), opacity: number(layer.opacity, 0, 1), paper: typeof layer.paper === 'string' && /^#[\da-f]{6}$/i.test(layer.paper) ? layer.paper : null,
-      image: canvas.getContext('2d')!.getImageData(0, 0, width, height), live: await live(layer.live, width, height) };
+      image: canvas.getContext('2d')!.getImageData(0, 0, width, height), live: await live(layer.live, width, height),photo:readPhotoRecipe(layer.photo) };
   }));
   if (new Set(snapshots.map(layer => layer.id)).size !== snapshots.length) throw new Error('Project layer IDs must be unique.');
   if (!editable()) return;
-  settle(); pushHistory(); restoreLayers(snapshots, number(project.active, 1), width, height); artwork.markWork(); message('Project opened with layers and live ink.');
+  settle(); pushHistory(); restoreLayers(snapshots, number(project.active, 1), width, height); setDocumentCrop(crop);artwork.markWork(); message('Project opened with layers, editable photo adjustments and live ink.');
 }
 export async function openProjectFile(file: File): Promise<void> {
   if (file.size > 100_000_000) throw new Error('This project is too large to open.');

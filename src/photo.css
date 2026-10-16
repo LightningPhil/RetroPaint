@@ -9,9 +9,9 @@
 .photo-heading strong { font-size:19px; margin-right:auto; }
 .photo-heading button,#photoGroupReset { border:0; background:#e8e5ed; border-radius:8px; min-height:30px; min-width:30px; padding:3px 6px; font-size:11px; font-weight:700; cursor:pointer; }
 #photoClose { border-radius:50%; }
-.photo-info { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:24px; }
+.photo-info { display:grid; grid-template-columns:minmax(0,1fr) 112px 60px; align-items:center; gap:6px; min-height:30px; }
 #photoTarget { font-size:10px; font-weight:700; max-width:145px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-#photoHistogram { position:static; width:110px; height:24px; border-bottom:1px solid #c6bfcd; }
+#photoHistogram { position:static; width:60px; height:24px; border-bottom:1px solid #c6bfcd; }
 #photoMini { display:none; }
 #photoTabs { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; }
 #photoTabs button { min-height:30px; padding:3px; border:1.5px solid #c6bfcd; border-radius:8px; font-size:11px; font-weight:700; background:#f1eaf8; cursor:pointer; }
@@ -62,8 +62,9 @@
   #photoTabs { grid-template-columns:repeat(2,minmax(0,1fr)); }
   #photoMini { display:block; height:60px; background:repeating-conic-gradient(#e7e3da 0% 25%,#fff 0% 50%) 0 0 / 8px 8px; border:1px solid #d2cbd9; border-radius:8px; }
   #photoMiniCanvas { position:static; display:block; width:100%; height:100%; object-fit:contain; }
-  .photo-info { flex-direction:column; align-items:flex-start; gap:2px; }
+  .photo-info { grid-template-columns:minmax(0,1fr) 45px;gap:3px; }
+  #photoTarget { grid-column:1 / -1; }
   #photoTarget { max-width:150px; }
-  #photoHistogram { width:150px; height:20px; }
+  #photoHistogram { width:45px; height:24px; }
   .photo-crop-fields { grid-template-columns:repeat(4,minmax(0,1fr)); }
 }

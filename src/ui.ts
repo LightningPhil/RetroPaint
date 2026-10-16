@@ -20,7 +20,8 @@ import { finishPath } from './input';
 import { setRingRadius } from './spiro';
 import { cancelSelection, commitSelection, copySelection, cutSelection, deleteSelection, flipSelection, hasClipboard, hasSelection, invertSelection, pasteSelection, refreshTransparency, rotateSelection, selectAll } from './selection';
 import type { Applicator, EraserMode, ShapeKind, StatorShape, SymmetryMode, ToolId } from './types';
-import { H, W } from './canvas';
+import { H, W, view, ui } from './canvas';
+import { displayFrame } from './document-frame';
 import { bindEditor, editable, message, pasteExternal, refreshImageFields, requestOpen, settle, updateLayersUi } from './editor';
 import { bindText, cancelText, hasText, placeText } from './text-tool';
 import { printImage } from './export';
@@ -619,6 +620,7 @@ function bindLayout(): void {
   window.addEventListener('resize', layoutStage);
   window.visualViewport?.addEventListener('resize', layoutStage);
   document.addEventListener('canvas-size', layoutStage);
+  document.addEventListener('document-frame', layoutStage);
   bus.addEventListener('layer-panel', layoutStage);
   bus.addEventListener('photo-panel', layoutStage);
   layoutStage();
@@ -677,15 +679,19 @@ function layoutStage(): void {
   const drawingWidth = rect.width - layerSpace;
   const availW = Math.max(80, drawingWidth - pad * 2);
   const availH = Math.max(80, rect.height - pad * 2);
-  const aspect = W / H;
+  const frame=displayFrame(W,H),aspect=frame.width/frame.height;
+  for(const canvas of [view,ui]){
+    canvas.style.left=`${-frame.x/frame.width*100}%`;canvas.style.top=`${-frame.y/frame.height*100}%`;
+    canvas.style.width=`${W/frame.width*100}%`;canvas.style.height=`${H/frame.height*100}%`;
+  }
   let width = availW;
   let height = width / aspect;
   if (height > availH) {
     height = availH;
     width = height * aspect;
   }
-  stage.style.width = `${Math.floor(width)}px`;
-  stage.style.height = `${Math.floor(height)}px`;
+  stage.style.width = `${Math.max(1,Math.floor(width))}px`;
+  stage.style.height = `${Math.max(1,Math.floor(height))}px`;
   const compact = phoneLayout.matches;
   const landscape = compact && window.innerWidth > window.innerHeight;
   stage.style.left = `${Math.floor(landscape ? drawingWidth - width : (drawingWidth - width) / 2)}px`;

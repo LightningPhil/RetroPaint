@@ -1,5 +1,6 @@
 export let W = 960;
 export let H = 640;
+import { resetDocumentCrop } from './document-frame';
 
 export const view = document.createElement('canvas');
 export const ui = document.createElement('canvas');
@@ -22,6 +23,7 @@ export function useBase(canvas: HTMLCanvasElement): void {
 
 export function setCanvasSize(width: number, height: number): void {
   W = width; H = height;
+  resetDocumentCrop();
   for (const canvas of [view, ui, scratch]) { canvas.width = W; canvas.height = H; }
   document.dispatchEvent(new Event('canvas-size'));
 }

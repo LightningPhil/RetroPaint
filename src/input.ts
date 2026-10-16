@@ -19,6 +19,7 @@ import { beginText } from './text-tool';
 import { paintFrame } from './paint';
 import { activeLayer, renderActive } from './layers';
 import { rgbToHex } from './color';
+import { invalidatePhotoCanvas } from './photo-render';
 
 interface Ptr {
   id: number;
@@ -55,10 +56,10 @@ function withSecondary(enabled: boolean, action: () => void): void {
 
 export function initInput(): void {
   setShapePainter((x0, y0, x1, y1, width) => segment(x0, y0, x1, y1, width, 0));
-  view.addEventListener('pointerdown', onDown);
-  view.addEventListener('pointermove', onMove);
-  view.addEventListener('pointerup', onUp);
-  view.addEventListener('pointercancel', onUp);
+  view.addEventListener('pointerdown', event=>{onDown(event);invalidatePhotoCanvas(baseCtx.canvas);});
+  view.addEventListener('pointermove', event=>{onMove(event);if(ptrs.size)invalidatePhotoCanvas(baseCtx.canvas);});
+  view.addEventListener('pointerup', event=>{onUp(event);invalidatePhotoCanvas(baseCtx.canvas);});
+  view.addEventListener('pointercancel', event=>{onUp(event);invalidatePhotoCanvas(baseCtx.canvas);});
   view.addEventListener('lostpointercapture', event => cancelPointer(event.pointerId));
   window.addEventListener('blur', cancelPointers);
   document.addEventListener('visibilitychange', () => { if (document.hidden) cancelPointers(); });

@@ -5,6 +5,8 @@ import { autoPhoto, autoWhiteBalance, cropPixels, curveTable, defaultPhotoSettin
 import { setPhotoGuides } from './photo-guides';
 import { applyPhoto, beginPhoto, cancelPhoto, comparePhoto, photoSession, refreshPhoto } from './photo-session';
 import { icon } from './icons';
+import { expandPhotoFrame } from './document-frame';
+import { choosePhotoLook, newPhotoRecipe, photoManualChange, PHOTO_LOOKS, type PhotoRecipe } from './photo-recipe';
 
 interface Actions { editable:()=>boolean; settle:()=>void; message:(text:string)=>void; open:()=>void }
 type Category='light'|'colour'|'curves'|'detail'|'effects'|'geometry';
@@ -33,13 +35,15 @@ const colours=['Red','Orange','Yellow','Green','Aqua','Blue','Purple','Magenta']
 const field=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
 let actions:Actions,category:Category='light',group='light-basic',channel:CurveChannel='rgb',point=0,mixColour=0,cropRatio=0,picking=false,horizon=false,curvePointer:number|null=null;
 let cropDrag:{id:number;kind:string;start:{x:number;y:number};box:CropBox}|null=null;
+let restoreLayers=false,pendingImport=false,importDraft:PhotoRecipe|null=null;
 const clamp=(v:number,min=0,max=1)=>Math.max(min,Math.min(max,v));
-function changed():void{ picking=false;horizon=false;syncGuides();syncValues();void refreshPhoto(); }
+function changed(manual=true):void{ if(manual&&photoSession)photoManualChange(photoSession);picking=false;horizon=false;syncGuides();syncValues();void refreshPhoto(); }
 function sliderMarkup(s:Slider,key:string=s.key,value?:number):string{
   return `<label class="photo-slider"><span>${s.label}<output data-photo-output="${key}">${value??0}${s.unit||''}</output></span><input type="range" data-photo-value="${key}" aria-label="${s.label}" min="${s.min}" max="${s.max}" step="${s.step??1}" value="${value??0}"></label>`;
 }
 function syncValues():void{
   const session=photoSession;if(!session)return;
+  field<HTMLSelectElement>('photoLook').value=session.look;
   for(const input of field('photoControls').querySelectorAll<HTMLInputElement>('[data-photo-value]')){
     const key=input.dataset.photoValue!,mix=key.startsWith('mix-'),value=mix?session.settings.mixer[mixColour][key.slice(4) as 'hue'|'saturation'|'luminance']:session.settings[key as NumberKey];
     input.value=String(value);const spec=groups.flatMap(g=>g.sliders).find(s=>s.key===key);
@@ -53,16 +57,18 @@ function syncValues():void{
 }
 function syncGuides():void{
   const session=photoSession;if(!session){setPhotoGuides(null);return;}
+  expandPhotoFrame(category==='geometry');
   const c=session.settings.crop,show=category==='geometry'||c.x>0||c.y>0||c.width<1||c.height<1;
   setPhotoGuides(show?c:null);view.classList.toggle('photo-picking',picking||horizon);
 }
 function updateStatus():void{
   const s=photoSession;if(!s)return;
   field('photoTarget').textContent=`Editing ${s.name}`;
-  field('photoStatus').textContent=s.applying?'Applying at full resolution…':picking?'Tap a neutral grey or white patch on the paper.':horizon?'Drag along a line that should be level.':s.compare?'Before · original pixels':s.rendered!==s.revision?'Preparing preview…':'Fast preview · Apply keeps full resolution';
+  field('photoStatus').textContent=s.applying?'Saving editable adjustments…':picking?'Tap a neutral patch on the paper or preview.':horizon?'Drag along a line that should be level.':s.compare?'Before · original pixels':s.rendered!==s.revision?'Updating preview…':'Original kept · reopen to change any adjustment';
   field('photoStatus').setAttribute('aria-busy',String(s.applying||s.rendered!==s.revision));
   field('photoCompare').setAttribute('aria-pressed',String(s.compare));field('photoCompare').textContent=s.compare?'After':'Before';
   for(const id of ['photoApply','photoReset','photoCompare','photoOpen'])field<HTMLButtonElement>(id).disabled=s.applying;
+  field<HTMLSelectElement>('photoLook').disabled=s.applying;
   field('photoControls').inert=s.applying;field('photoTabs').inert=s.applying;field('photoGroupRow').inert=s.applying;
   const src=s.compare?s.source:s.preview,mini=field<HTMLCanvasElement>('photoMiniCanvas'),ctx=mini.getContext('2d')!;
   ctx.clearRect(0,0,mini.width,mini.height);const scale=Math.min(mini.width/src.width,mini.height/src.height),w=src.width*scale,h=src.height*scale,x=(mini.width-w)/2,y=(mini.height-h)/2;
@@ -81,7 +87,7 @@ function updateStatus():void{
 function buildControls():void{
   const session=photoSession;if(!session)return;const selected=groups.find(g=>g.id===group)!,container=field('photoControls');
   container.innerHTML=selected.sliders.map(s=>sliderMarkup(s,s.key,session.settings[s.key])).join('');
-  if(group==='light-basic')container.insertAdjacentHTML('beforeend','<div class="photo-action-row"><button class="choice" id="photoAuto">✨ Auto light</button><select id="photoLook" aria-label="Photo look"><option value="">Try a look…</option value="natural">Natural</option><option value="punch">Punchy</option><option value="mono">Black & white</option><option value="warm">Warm film</option><option value="cool">Cool</option></select></div>');
+  if(group==='light-basic')container.insertAdjacentHTML('beforeend','<div class="photo-action-row"><button class="choice" id="photoAuto">✨ Auto light</button></div>');
   if(group==='colour-balance')container.insertAdjacentHTML('beforeend','<div class="photo-action-row"><button class="choice" id="photoAutoBalance">Auto WB</button><button class="choice" id="photoNeutral">💉 Pick neutral</button></div><p class="photo-hint">Temperature and tint are relative to your image. Pick a grey patch for a neutral starting point.</p>');
   if(group==='colour-mixer')container.innerHTML=`<select id="photoMixColour" aria-label="Colour range">${colours.map((c,i)=>`<option value="${i}" ${i===mixColour?'selected':''}>${c}</option>`).join('')}</select>`+['hue','saturation','luminance'].map((k,i)=>sliderMarkup(slider('hue',['Hue','Saturation','Luminance'][i],i? -100:-60,i?100:60),`mix-${k}`,session.settings.mixer[mixColour][k as 'hue'])).join('');
   if(group==='curves'){
@@ -98,10 +104,6 @@ function buildControls():void{
     input.addEventListener('dblclick',()=>{const key=input.dataset.photoValue!;if(key.startsWith('mix-'))Object.assign(session.settings.mixer[mixColour],{[key.slice(4)]:0});else Object.assign(session.settings,{[key]:defaultPhotoSettings()[key as NumberKey]});changed();});
   }
   field('photoAuto')?.addEventListener('click',()=>{Object.assign(session.settings,autoPhoto(session.small));changed();});
-  field<HTMLSelectElement>('photoLook')?.addEventListener('change',event=>{
-    const value=(event.target as HTMLSelectElement).value,looks:Record<string,Partial<PhotoSettings>>={natural:{contrast:8,vibrance:15,clarity:8},punch:{contrast:15,pop:35,vibrance:20},mono:{saturation:-100,contrast:12},warm:{temperature:24,tint:5,grain:12},cool:{temperature:-25,tint:0}};
-    if(looks[value]){Object.assign(session.settings,looks[value]);changed();}
-  });
   field('photoAutoBalance')?.addEventListener('click',()=>{session.settings.balance=autoWhiteBalance(session.small);session.settings.temperature=session.settings.tint=0;changed();});
   field('photoNeutral')?.addEventListener('click',()=>{picking=!picking;horizon=false;syncGuides();updateStatus();});
   field('photoHorizon')?.addEventListener('click',()=>{horizon=!horizon;picking=false;syncGuides();updateStatus();});
@@ -232,32 +234,37 @@ function lockDrawing(locked:boolean):void{for(const id of ['toolBin','bottomTray
 export function initPhotoUi(callbacks:Actions):void{
   actions=callbacks;
   const panel=document.createElement('aside');panel.id='photoPanel';panel.hidden=true;panel.setAttribute('aria-labelledby','photoTitle');
-  panel.innerHTML=`<header class="photo-heading"><strong id="photoTitle">📸 Photo lab</strong><button type="button" id="photoOpen" title="Open a photo" aria-label="Open a photo">Open</button><button type="button" id="photoClose" aria-label="Cancel photo edits">✕</button></header><div class="photo-content"><div class="photo-choices"><div class="photo-info"><span id="photoTarget"></span><canvas id="photoHistogram" width="256" height="48" role="img" aria-label="RGB histogram"></canvas></div><div id="photoMini"><canvas id="photoMiniCanvas" width="400" height="180" aria-label="Photo preview"></canvas></div><nav id="photoTabs" aria-label="Photo adjustments">${([['light','☀️','Light'],['colour','🎨','Colour'],['curves','〰','Curves'],['detail','✨','Detail'],['effects','◉','Effects'],['geometry','▧','Geometry']] as const).map(([id,glyph,label])=>`<button type="button" data-photo-category="${id}" aria-pressed="false">${glyph} ${label}</button>`).join('')}</nav></div><div class="photo-adjustments"><div id="photoGroupRow"><select id="photoGroup" aria-label="Adjustment group"></select><button type="button" id="photoGroupReset" aria-label="Reset this adjustment group" title="Reset this group">↺</button></div><div id="photoControls"></div></div></div><output id="photoStatus" aria-live="polite"></output><footer class="photo-footer"><button type="button" class="choice" id="photoCompare" aria-pressed="false">Before</button><button type="button" class="choice" id="photoReset">Reset</button><button type="button" class="choice" id="photoCancel">Cancel</button><button type="button" class="choice" id="photoApply">Apply</button></footer>`;
+  panel.innerHTML=`<header class="photo-heading"><strong id="photoTitle">📸 Photo lab</strong><button type="button" id="photoOpen" title="Open a photo" aria-label="Open a photo">Open photo</button><button type="button" id="photoClose" aria-label="Cancel photo edits">✕</button></header><div class="photo-content"><div class="photo-choices"><div class="photo-info"><span id="photoTarget"></span><select id="photoLook" aria-label="Photo look" title="Try a look"><option value="normal">Normal</option><option value="custom" disabled>Custom</option>${Object.entries(PHOTO_LOOKS).map(([value,look])=>`<option value="${value}">${look.label}</option>`).join('')}</select><canvas id="photoHistogram" width="256" height="48" role="img" aria-label="RGB histogram"></canvas></div><div id="photoMini"><canvas id="photoMiniCanvas" width="400" height="180" aria-label="Photo preview"></canvas></div><nav id="photoTabs" aria-label="Photo adjustments">${([['light','☀️','Light'],['colour','🎨','Colour'],['curves','〰','Curves'],['detail','✨','Detail'],['effects','◉','Effects'],['geometry','▧','Geometry']] as const).map(([id,glyph,label])=>`<button type="button" data-photo-category="${id}" aria-pressed="false">${glyph} ${label}</button>`).join('')}</nav></div><div class="photo-adjustments"><div id="photoGroupRow"><select id="photoGroup" aria-label="Adjustment group"></select><button type="button" id="photoGroupReset" aria-label="Reset this adjustment group" title="Reset this group">↺</button></div><div id="photoControls"></div></div></div><output id="photoStatus" aria-live="polite"></output><footer class="photo-footer"><button type="button" class="choice" id="photoCompare" aria-pressed="false">Before</button><button type="button" class="choice" id="photoReset">Reset</button><button type="button" class="choice" id="photoCancel">Cancel</button><button type="button" class="choice" id="photoApply">Done</button></footer>`;
   field('canvasSlot').append(panel);
   const toggle=document.createElement('button');toggle.type='button';toggle.id='photoToggle';toggle.className='choice';toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-controls','photoPanel');toggle.title='Photo lab (P)';toggle.innerHTML=icon('photo')+'<span>Photo lab</span>';field('canvasSlot').append(toggle);
   const open=()=>{
     if(photoSession){cancelPhoto();return;}if(!actions.editable())return;
     if(!activeLayer().visible||activeLayer().opacity===0){actions.message('Show this layer and raise its opacity before opening Photo lab.');return;}
-    actions.settle();beginPhoto();picking=horizon=false;cropRatio=0;point=0;panel.hidden=false;toggle.setAttribute('aria-expanded','true');lockDrawing(true);emit('close-options');emit('photo-panel',true);selectCategory('light');
+    actions.settle();restoreLayers=!field('layersPanel').hidden;beginPhoto();picking=horizon=false;cropRatio=0;point=0;panel.hidden=false;toggle.setAttribute('aria-expanded','true');lockDrawing(true);emit('close-options');emit('photo-panel',true);
+    const previousGroup=group;selectCategory(category);if(groups.some(g=>g.id===previousGroup&&g.category===category)){group=previousGroup;field<HTMLSelectElement>('photoGroup').value=group;buildControls();}
+    field<HTMLSelectElement>('photoLook').focus({preventScroll:true});
   };
   toggle.addEventListener('click',open);
   const moreButton=document.createElement('button');moreButton.type='button';moreButton.className='choice';moreButton.id='openPhotoLab';moreButton.textContent='📸 Photo lab';moreButton.addEventListener('click',open);document.querySelector('[data-studio-panel="image"]')!.prepend(moreButton);
   for(const id of ['photoClose','photoCancel'])field(id).addEventListener('click',()=>cancelPhoto());
-  field('photoApply').addEventListener('click',()=>{void applyPhoto().then(applied=>{if(applied)actions.message('Photo adjustments applied. Undo restores the original layer and live ink.');}).catch(error=>actions.message(error instanceof Error?error.message:String(error)));});
+  field('photoApply').addEventListener('click',()=>{void applyPhoto().then(applied=>{if(applied)actions.message('Photo adjustments saved. Your original is kept; reopen Photo lab to change them.');}).catch(error=>actions.message(error instanceof Error?error.message:String(error)));});
   field('photoCompare').addEventListener('click',()=>{if(photoSession)comparePhoto(!photoSession.compare);});
-  field('photoOpen').addEventListener('click',()=>{cancelPhoto();actions.open();});
-  field('photoReset').addEventListener('click',()=>{if(photoSession){photoSession.settings=defaultPhotoSettings();point=0;cropRatio=0;buildControls();changed();}});
+  field('photoOpen').addEventListener('click',()=>{if(photoSession)importDraft=structuredClone({settings:photoSession.settings,normal:photoSession.normal,look:photoSession.look,lookActive:photoSession.lookActive});pendingImport=true;cancelPhoto();actions.open();});
+  field('photoReset').addEventListener('click',()=>{if(photoSession){Object.assign(photoSession,newPhotoRecipe());point=0;cropRatio=0;buildControls();changed(false);}});
+  field<HTMLSelectElement>('photoLook').addEventListener('change',event=>{if(photoSession){choosePhotoLook(photoSession,(event.target as HTMLSelectElement).value);changed(false);}});
   field('photoGroupReset').addEventListener('click',resetGroup);
   for(const button of panel.querySelectorAll<HTMLButtonElement>('[data-photo-category]'))button.addEventListener('click',()=>selectCategory(button.dataset.photoCategory as Category));
   field<HTMLSelectElement>('photoGroup').addEventListener('change',event=>{group=(event.target as HTMLSelectElement).value;picking=horizon=false;buildControls();});
   bus.addEventListener('photo-update',updateStatus);bus.addEventListener('photo-error',event=>{actions.message((event as CustomEvent<string>).detail);field('photoStatus').textContent='Preview failed. Cancel and try again.';});
-  bus.addEventListener('photo-end',()=>{panel.hidden=true;field('photoControls').replaceChildren();toggle.setAttribute('aria-expanded','false');picking=horizon=false;cropDrag=null;curvePointer=null;setPhotoGuides(null);view.classList.remove('photo-picking');lockDrawing(false);emit('photo-panel',false);toggle.focus({preventScroll:true});});
+  bus.addEventListener('photo-end',()=>{panel.hidden=true;field('photoControls').replaceChildren();toggle.setAttribute('aria-expanded','false');picking=horizon=false;cropDrag=null;curvePointer=null;setPhotoGuides(null);view.classList.remove('photo-picking');lockDrawing(false);emit('restore-layers',restoreLayers);emit('photo-panel',false);toggle.focus({preventScroll:true});});
+  bus.addEventListener('image-opened',()=>{if(pendingImport){pendingImport=false;importDraft=null;category='light';group='light-basic';open();}});
+  bus.addEventListener('image-open-cancelled',()=>{if(pendingImport){pendingImport=false;const draft=importDraft;importDraft=null;open();if(photoSession&&draft){Object.assign(photoSession,draft);buildControls();changed(false);}}});
   bus.addEventListener('photo-undo',event=>{if(photoSession){event.preventDefault();cancelPhoto();}});
   document.addEventListener('keydown',event=>{
     const target=event.target,typing=target instanceof HTMLInputElement&&target.type!=='range'||target instanceof HTMLTextAreaElement||target instanceof HTMLSelectElement;
     if(photoSession){
       if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();cancelPhoto();toggle.focus();return;}
-      if((event.ctrlKey||event.metaKey)&&!typing){event.preventDefault();event.stopImmediatePropagation();if(event.key.toLowerCase()==='z')cancelPhoto();else actions.message('Apply or cancel your Photo lab preview first.');}
+      if((event.ctrlKey||event.metaKey)&&!typing){event.preventDefault();event.stopImmediatePropagation();if(event.key.toLowerCase()==='z')cancelPhoto();else actions.message('Choose Done or Cancel in Photo lab first.');}
       if(!typing&&!event.ctrlKey&&!event.metaKey&&['b','e','f','i','t','r','l','p'].includes(event.key.toLowerCase()))event.stopImmediatePropagation();
     }else if(!typing&&!document.querySelector('dialog[open]')&&event.key.toLowerCase()==='p'&&!event.ctrlKey&&!event.metaKey&&!event.altKey){event.preventDefault();open();}
   },true);

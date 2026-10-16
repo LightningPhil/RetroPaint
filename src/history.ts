@@ -3,6 +3,8 @@ import { H, W } from './canvas';
 import { restoreLive, type LiveSnapshot } from './live';
 import { activeLayerId, captureLayers, restoreLayers, type LayerSnapshot } from './layers';
 import { emit } from './bus';
+import { documentCrop, setDocumentCrop } from './document-frame';
+import type { CropBox } from './photo-engine';
 
 export interface Hist {
   image: ImageData;
@@ -12,6 +14,7 @@ export interface Hist {
   active: number;
   width: number;
   height: number;
+  crop:CropBox;
 }
 
 const stack: Hist[] = [];
@@ -23,12 +26,13 @@ export function captureHistory(): Hist {
     startedAt: artwork.snapshot(),
     image: layers.find(layer => layer.id === activeLayerId)!.image,
     live: layers.find(layer => layer.id === activeLayerId)!.live,
-    layers, active: activeLayerId, width: W, height: H,
+    layers, active: activeLayerId, width: W, height: H, crop:documentCrop(),
   };
 }
 
 export function restoreHistory(item: Hist): void {
   restoreLayers(item.layers, item.active, item.width, item.height);
+  setDocumentCrop(item.crop);
   restoreLive(item.live);
   artwork.restore(item.startedAt);
 }

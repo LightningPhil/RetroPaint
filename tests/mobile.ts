@@ -220,6 +220,7 @@ await run('Every Photo lab category fits, including crop, curves and lens contro
 });
 await run('Photo sliders preview reversibly, curve points are editable and crop can be dragged',async()=>{
   const photoCanvas=activeLayer().canvas,photoCtx=photoCanvas.getContext('2d')!;photoCtx.fillStyle='#778899';photoCtx.fillRect(0,0,960,640);const before=photoCanvas.toDataURL();click('#photoToggle');
+  click('[data-photo-category="light"]');
   const brightness=el('[data-photo-value="brightness"]') as HTMLInputElement;brightness.value='30';brightness.dispatchEvent(new Event('input',{bubbles:true}));await photoModule.refreshPhoto();
   assert(photoCanvas.toDataURL()===before,'Preview painted into the source');click('#photoCompare');assert(photoModule.photoSession?.compare,'Before comparison did not engage');click('#photoCompare');
   click('[data-photo-category="curves"]');await frame();
@@ -241,6 +242,32 @@ await run('Photo sliders preview reversibly, curve points are editable and crop 
   }
   click('#photoReset');assert(photoModule.photoSession!.settings.brightness===0&&photoModule.photoSession!.settings.curves.rgb.length===2&&photoModule.photoSession!.settings.crop.width===1,'Reset did not clear every category');
   click('#photoCancel');assert(photoCanvas.toDataURL()===before,'Cancel changed the image');
+});
+await run('Look selection is persistent, Normal restores the pre-look image and manual changes show Custom across tabs',async()=>{
+  click('#photoToggle');click('[data-photo-category="light"]');
+  const set=(key:string,value:string)=>{const input=el(`[data-photo-value="${key}"]`) as HTMLInputElement;input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));};
+  const look=el('#photoLook') as HTMLSelectElement,choose=(value:string)=>{look.value=value;look.dispatchEvent(new Event('change',{bubbles:true}));};
+  set('brightness','17');assert(look.value==='custom','Manual adjustment is not Custom');
+  choose('warm');choose('mono');assert(photoModule.photoSession!.settings.temperature===0&&photoModule.photoSession!.settings.grain===0,'Looks accumulated');
+  click('[data-photo-category="colour"]');assert(look.value==='mono'&&el('#photoLook')===look,'Navigation lost the selected look');
+  const tint=el('[data-photo-value="tint"]') as HTMLInputElement;tint.value='12';tint.dispatchEvent(new Event('input',{bubbles:true}));assert(look.value==='custom','Colour tweak did not mark Custom');
+  choose('normal');assert(photoModule.photoSession!.settings.brightness===17&&photoModule.photoSession!.settings.tint===0&&photoModule.photoSession!.settings.saturation===0,'Normal did not restore the pre-look settings');
+  await photoModule.applyPhoto();click('#photoToggle');assert(photoModule.photoSession!.settings.brightness===17&&look===el('#photoLook'),'Reopening lost saved controls');click('#photoCancel');
+});
+await run('Launching restores panel context and file-picker cancellation keeps the draft; a new photo opens directly in Photo lab',async()=>{
+  click('#photoToggle');click('[data-photo-category="detail"]');const pop=el('[data-photo-value="pop"]') as HTMLInputElement;pop.value='20';pop.dispatchEvent(new Event('input',{bubbles:true}));
+  const input=el('#imageInput') as HTMLInputElement,originalClick=input.click;input.click=()=>{};
+  try{
+    click('#photoOpen');input.dispatchEvent(new Event('cancel'));assert(photoModule.photoSession?.settings.pop===20&&!el('#photoPanel').hidden,'Cancelling a file picker lost the draft');
+    click('#photoOpen');const fixture=document.createElement('canvas');fixture.width=32;fixture.height=24;fixture.getContext('2d')!.fillRect(0,0,32,24);const blob=await new Promise<Blob>(resolve=>fixture.toBlob(value=>resolve(value!)));
+    await (await import('../src/editor')).importImage(blob);assert(photoModule.photoSession?.settings.pop===0&&!el('#photoPanel').hidden,'Imported photo did not reopen the lab with fresh settings');
+  }finally{input.click=originalClick;click('#photoCancel');resetLayers(960,640);}
+});
+await run('Photo crop keeps source dimensions and preserves accurate drawing coordinates in the visible frame',async()=>{
+  const framing=await import('../src/document-frame');click('#photoToggle');photoModule.photoSession!.settings.crop={x:.25,y:.25,width:.5,height:.5};await photoModule.applyPhoto();await frame();
+  const stage=el('#stage').getBoundingClientRect(),point=eventPos({clientX:stage.x+stage.width/2,clientY:stage.y+stage.height/2});
+  assert(Math.abs(point.x-480)<3&&Math.abs(point.y-320)<3,'Crop shifted canvas coordinates');assert(activeLayer().canvas.width===960&&framing.outputFrame(960,640).width===480,'Crop removed source margins');
+  click('#photoToggle');click('#photoReset');await photoModule.applyPhoto();await frame();assert(framing.outputFrame(960,640).width===960,'Reset did not restore the full frame');
 });
 const report=document.createElement('pre'); report.id='mobileResults';
 report.style.cssText='position:fixed;inset:10px;z-index:100;background:white;color:#263047;overflow:auto;padding:16px;white-space:pre-wrap';
