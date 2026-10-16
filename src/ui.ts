@@ -620,6 +620,7 @@ function bindLayout(): void {
   window.visualViewport?.addEventListener('resize', layoutStage);
   document.addEventListener('canvas-size', layoutStage);
   bus.addEventListener('layer-panel', layoutStage);
+  bus.addEventListener('photo-panel', layoutStage);
   layoutStage();
 }
 
@@ -668,9 +669,11 @@ function layoutStage(): void {
   const rect = slot.getBoundingClientRect();
   const uiScale = Number(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')) || 1;
   const pad = phoneLayout.matches ? 0 : 12 * uiScale;
-  const layerPanel = document.getElementById('layersPanel');
-  const layerSpace = !phoneLayout.matches && layerPanel && !layerPanel.hidden && rect.width >= 700 ? layerPanel.offsetWidth + 16 : 0;
+  const photoPanel = document.getElementById('photoPanel');
+  const layerPanel = photoPanel && !photoPanel.hidden ? photoPanel : document.getElementById('layersPanel');
+  const layerSpace = window.innerWidth > 1000 && window.innerHeight > 550 && layerPanel && !layerPanel.hidden && rect.width >= 700 ? layerPanel.offsetWidth + 16 : 0;
   slot.classList.toggle('layer-space', layerSpace > 0);
+  slot.style.setProperty('--dock-space', `${layerSpace + 4}px`);
   const drawingWidth = rect.width - layerSpace;
   const availW = Math.max(80, drawingWidth - pad * 2);
   const availH = Math.max(80, rect.height - pad * 2);
@@ -926,6 +929,7 @@ function markChoices(selector: string, value: string): void {
 
 function doUndo(): void {
   if (state.busy || motorOn()) return;
+  if (!bus.dispatchEvent(new Event('photo-undo', { cancelable:true }))) return;
   if (state.tool === 'text' && hasText()) { cancelText(); return; }
   if (hasSelection()) { cancelSelection(); return; }
   if (state.poly.length) { state.poly.pop(); return; }

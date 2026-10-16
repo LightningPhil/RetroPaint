@@ -1,6 +1,7 @@
 import { shapePoints } from './shapes';
 import type { ShapeKind } from './types';
 const paths: Record<string, string> = {
+  photo: '<rect x="2" y="5" width="20" height="16" rx="3" fill="#bce6ed"/><path d="m8 5 2-3h4l2 3"/><circle cx="12" cy="13" r="5" fill="#fffdf7"/><circle cx="12" cy="13" r="2" fill="#d9b5f6"/>',
   layers: '<path fill="#d9b5f6" d="m12 2 10 6-10 6L2 8z"/><path d="m2 12 10 6 10-6M2 16l10 6 10-6"/>',
   eye: '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle fill="#93dfbd" cx="12" cy="12" r="3"/>',
   eyeOff: '<path d="M3 8c2-2 5-3 9-3 7 0 11 7 11 7a19 19 0 0 1-5 5M1 12s4 7 11 7c2 0 3 0 5-1M3 3l18 18"/>',

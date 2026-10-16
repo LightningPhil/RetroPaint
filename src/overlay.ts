@@ -8,6 +8,8 @@ import { drawRig } from './spiro';
 import { state } from './state';
 import { renderSelection } from './selection';
 import { splinePoints } from './curves';
+import { photoEditing } from './photo-preview';
+import { drawPhotoGuides } from './photo-guides';
 
 export function renderOverlay(): void {
   uiCtx.setTransform(1, 0, 0, 1, 0, 0);
@@ -16,6 +18,7 @@ export function renderOverlay(): void {
   uiCtx.shadowBlur = 0;
   uiCtx.setLineDash([]);
   drawViewGuides();
+  if (photoEditing) { drawPhotoGuides(uiCtx); return; }
 
   if (state.symmetry !== 'off') drawGuides(uiCtx);
   if (state.tool === 'spiro') drawRig(uiCtx);

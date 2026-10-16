@@ -45,7 +45,7 @@
 #mergeLayer { grid-column:1 / -1; }
 .layer-options-body .selection-toggle { font-size:11px; }
 .layer-options-body .hint { font-size:10px; }
-#canvasSlot.layer-space #paperControls,#canvasSlot.layer-space #zoomReadout { right:280px; }
+#canvasSlot.layer-space #paperControls,#canvasSlot.layer-space #zoomReadout { right:var(--dock-space,280px); }
 @media(max-width:1000px), (max-height:550px) {
   #layersPanel { position:fixed; top:auto; bottom:max(64px,calc(env(safe-area-inset-bottom) + 64px)); right:max(8px,env(safe-area-inset-right)); width:min(340px,calc(100% - 16px)); max-height:min(440px,calc(100dvh - 90px)); z-index:30; gap:8px; }
   #layersPanel.layer-options-open { bottom:max(8px,env(safe-area-inset-bottom)); max-height:calc(100dvh - 16px); }

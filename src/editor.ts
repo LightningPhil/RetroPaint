@@ -15,6 +15,8 @@ import { decodeTiff } from './image-codecs';
 import { openProjectFile, saveProjectFile } from './project';
 import { finishPath } from './input';
 import { initLayersUi, refreshLayersUi } from './layer-ui';
+import { photoEditing } from './photo-preview';
+import { initPhotoUi } from './photo-ui';
 
 let statusTimer = 0, inserting = false;
 export function message(text: string): void {
@@ -28,6 +30,7 @@ export function settle(): void {
   commitSelection(); lockPending(); if (state.poly.length > 1) finishPath(); else state.poly = [];
 }
 export function editable(): boolean {
+  if (photoEditing) { message('Apply or cancel your Photo lab preview first.'); return false; }
   if (state.busy || isBusy() || motorOn()) { message('Let the current effect finish first.'); return false; }
   return true;
 }
@@ -137,6 +140,7 @@ export function updateLayersUi(): void {
 }
 export function bindEditor(): void {
   initLayersUi({ editable, settle, message });
+  initPhotoUi({ editable, settle, message, open:requestOpen });
   bindAction('newPicture', () => { settle(); pushHistory(); resetLayers(); artwork.reset(); message('Fresh paper! Undo brings your previous picture back.'); });
   bindAction('openPicture', () => requestOpen()); bindAction('insertPicture', () => requestOpen(true)); bindAction('pasteExternal', pasteExternal);
   bindAction('redoBtn', () => { emit('settle-input'); cancelSelection(); redo(); });
@@ -180,6 +184,7 @@ export function bindEditor(): void {
   view.addEventListener('dragover', event => { if (event.dataTransfer?.types.includes('Files')) event.preventDefault(); });
   view.addEventListener('drop', event => { event.preventDefault(); const file = event.dataTransfer?.files[0]; if (file) void importImage(file, true).catch(error => message(error.message)); });
   document.addEventListener('paste', event => {
+    if (photoEditing) return;
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || document.querySelector('dialog[open]')) return;
     const file = [...(event.clipboardData?.files ?? [])].find(file => file.type.startsWith('image/'));
     if (file) { event.preventDefault(); void importImage(file, true).catch(error => message(error.message)); }

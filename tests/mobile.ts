@@ -16,6 +16,7 @@ const { state } = await import('../src/state');
 const { bakeStaticStrokes } = await import('../src/live');
 const { activeLayer, layers, resetLayers } = await import('../src/layers');
 const { undo, redo } = await import('../src/history');
+const photoModule = await import('../src/photo-session');
 const results: string[] = [];
 const frame = () => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 function assert(value: unknown, message: string): asserts value { if (!value) throw new Error(message); }
@@ -200,6 +201,46 @@ await run('Layer drag handles and keyboard moves reorder sheets and support Undo
     undo(); assert(layers.map(layer => layer.id).join(',') === before, 'Undo did not restore keyboard move');
   } finally { panel.setPointerCapture = capture; }
   click('#closeLayers'); resetLayers(960, 640);
+});
+await run('Every Photo lab category fits, including crop, curves and lens controls, without scrolling', async()=>{
+  resetLayers(960,640);click('#photoToggle');await frame();
+  fits(el('#photoPanel'),'Photo lab');
+  for(const category of ['light','colour','curves','detail','effects','geometry']){
+    click(`[data-photo-category="${category}"]`);
+    const select=el('#photoGroup') as HTMLSelectElement;
+    for(const option of [...select.options]){
+      select.value=option.value;select.dispatchEvent(new Event('change',{bubbles:true}));await frame();
+      const panel=el('#photoPanel');fits(panel,option.text);
+      assert(panel.scrollHeight<=panel.clientHeight+1,option.text+' requires scrolling');
+      for(const control of panel.querySelectorAll<HTMLElement>('button,input,select,canvas'))if(control.getClientRects().length)fits(control,control.getAttribute('aria-label')||control.id||control.textContent!);
+    }
+  }
+  assert(el('#toolBin').inert,'Drawing tools can mutate a pending photo preview');click('#photoCancel');
+  assert(!el('#toolBin').inert&&!photoModule.photoSession,'Cancel did not release drawing tools');
+});
+await run('Photo sliders preview reversibly, curve points are editable and crop can be dragged',async()=>{
+  const photoCanvas=activeLayer().canvas,photoCtx=photoCanvas.getContext('2d')!;photoCtx.fillStyle='#778899';photoCtx.fillRect(0,0,960,640);const before=photoCanvas.toDataURL();click('#photoToggle');
+  const brightness=el('[data-photo-value="brightness"]') as HTMLInputElement;brightness.value='30';brightness.dispatchEvent(new Event('input',{bubbles:true}));await photoModule.refreshPhoto();
+  assert(photoCanvas.toDataURL()===before,'Preview painted into the source');click('#photoCompare');assert(photoModule.photoSession?.compare,'Before comparison did not engage');click('#photoCompare');
+  click('[data-photo-category="curves"]');await frame();
+  const curve=el('#photoCurve') as HTMLCanvasElement,capture=curve.setPointerCapture;curve.setPointerCapture=()=>{};
+  try{const r=curve.getBoundingClientRect();curve.dispatchEvent(new PointerEvent('pointerdown',{pointerId:19,button:0,clientX:r.x+r.width*.5,clientY:r.y+r.height*.3}));curve.dispatchEvent(new PointerEvent('pointerup',{pointerId:19}));assert(photoModule.photoSession!.settings.curves.rgb.length===3,'Tap did not add a curve point');
+    const output=el('#curve-y') as HTMLInputElement;output.value='190';output.dispatchEvent(new Event('change',{bubbles:true}));assert(Math.round(photoModule.photoSession!.settings.curves.rgb[1].y*255)===190,'Exact curve output did not update');
+  }finally{curve.setPointerCapture=capture;}
+  click('[data-photo-category="geometry"]');await frame();
+  const viewCapture=view.setPointerCapture;view.setPointerCapture=()=>{};
+  try{const r=view.getBoundingClientRect(),send=(type:string,x:number,y:number)=>view.dispatchEvent(new PointerEvent(type,{pointerId:20,button:0,clientX:r.x+r.width*x,clientY:r.y+r.height*y}));
+    send('pointerdown',.2,.2);send('pointermove',.8,.8);send('pointerup',.8,.8);assert(Math.abs(photoModule.photoSession!.settings.crop.width-.6)<.01,'Dragging did not set the crop');
+  }finally{view.setPointerCapture=viewCapture;}
+  const mini=el('#photoMiniCanvas') as HTMLCanvasElement;
+  if(mini.getClientRects().length){
+    click('#photoCropReset');const miniCapture=mini.setPointerCapture;mini.setPointerCapture=()=>{};
+    try{const r=mini.getBoundingClientRect(),scale=Math.min(r.width/960,r.height/640),left=r.x+(r.width-960*scale)/2,top=r.y+(r.height-640*scale)/2,send=(type:string,x:number,y:number)=>mini.dispatchEvent(new PointerEvent(type,{pointerId:21,button:0,clientX:left+960*scale*x,clientY:top+640*scale*y}));
+      send('pointerdown',.25,.25);send('pointermove',.75,.75);send('pointerup',.75,.75);assert(Math.abs(photoModule.photoSession!.settings.crop.width-.5)<.01,'Phone preview crop did not follow the image coordinates');
+    }finally{mini.setPointerCapture=miniCapture;}
+  }
+  click('#photoReset');assert(photoModule.photoSession!.settings.brightness===0&&photoModule.photoSession!.settings.curves.rgb.length===2&&photoModule.photoSession!.settings.crop.width===1,'Reset did not clear every category');
+  click('#photoCancel');assert(photoCanvas.toDataURL()===before,'Cancel changed the image');
 });
 const report=document.createElement('pre'); report.id='mobileResults';
 report.style.cssText='position:fixed;inset:10px;z-index:100;background:white;color:#263047;overflow:auto;padding:16px;white-space:pre-wrap';

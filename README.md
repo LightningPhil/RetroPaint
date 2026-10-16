@@ -51,8 +51,21 @@ The **More** button opens four drawers within the existing layout:
 
 Images are limited to 4096 × 4096 pixels, 16 layers and 64 million pixels across layers. GIF uses a 256-colour palette and binary transparency. TIFF import supports uncompressed 8-bit RGB/RGBA or greyscale. Projects and images stay in the browser; no server or account is required. Microsoft Paint's service/device-dependent generative AI features are not included.
 
+## Photo lab
+
+Open **Photo lab** beside Layers (or press **P**), then choose a category and adjustment group. The controls edit the selected layer. **Before** compares with the captured original, **Reset** clears every adjustment, and **↺** resets the current group. Double-click a slider to restore its default. **Cancel** leaves the original pixels and live ink intact; **Apply** processes the full-size image as a single undoable edit. While previewing, drawing tools are paused. Phone layouts include an interactive small preview for cropping, neutral sampling and horizon alignment.
+
+- **Light:** exposure in stops, brightness, contrast, highlights, shadows, whites, blacks, automatic tone adjustment and quick looks.
+- **Colour:** relative temperature and tint, automatic white balance, neutral-point sampling, saturation, vibrance, hue and an eight-range HSL mixer.
+- **Curves:** smooth RGB, red, green and blue curves. Tap to add points, drag to move them, or enter exact input/output values. Arrow keys adjust the selected point and Delete removes interior points. Curve presets include a gentle S, faded blacks and lifted shadows.
+- **Detail:** sharpening amount/radius/threshold, texture, clarity, Pop, dehaze, luminance noise reduction and colour noise reduction. Pop is RetroPaint's blend of local contrast, vibrance and dehaze, not Adobe's proprietary processing.
+- **Effects:** dark or light vignette with midpoint, feather and roundness; deterministic film grain.
+- **Geometry:** free or fixed-ratio crop with exact pixel fields and draggable corners, a thirds grid, horizon straightening, flips, scale, perspective, barrel/pincushion distortion and red/blue fringe alignment. Lens corrections are manual rather than camera-profile based. Alignment and lens controls affect the selected sheet; crop trims **all** sheets to keep their positions aligned.
+
+The RGB histogram reports shadow/highlight clipping. Previews use a reduced working image for responsiveness; Apply uses the full backing image in a worker. Applying captures live ink on the selected layer at the frame shown when Photo lab opened. Undo restores that layer's animated ink and any cropped image dimensions. Other layers retain their pixels and live ink, apart from a shared crop. These controls work on decoded RGB/RGBA images, rather than camera RAW sensor data.
+
 Keyboard: Ctrl/Cmd+Z undoes; Y or Shift+Z redoes; A selects all; C/X/V copy, cut and paste; O opens an image; S saves a PNG; P prints. Delete removes a selection; Escape cancels; Enter places a floating selection or finishes a path. B/E/F/I/T/R choose brush, eraser, bucket, picker, text and selection. Selecting a new tool places a floating selection.
 
 ## Rendering checks
 
-With the dev server running, open `/tests/painting.html` for browser canvas regression checks and a visual sample sheet. These also cover layers, redo, transforms, text, image codecs and project round-trips. `/tests/mobile.html?frame=390x844` (or `320x568`, `844x390`) checks phone layouts in a frame of the specified size. Add `&preview` for an interactive app preview at that size. Existing test pages remain excluded from the production build; no runner or CI workflow is added.
+With the dev server running, open `/tests/painting.html` for browser canvas regression checks and a visual sample sheet. These also cover layers, redo, transforms, text, image codecs, project round-trips and Photo lab's tonal controls, curves, white balance, detail, lens mapping, preview cancellation, full-size apply and crop/undo. `/tests/mobile.html?frame=390x844` (or `320x568`, `844x390`) checks phone layouts and all photo adjustment groups in a frame of the specified size. Add `&preview` for an interactive app preview at that size. Existing test pages remain excluded from the production build; no runner or CI workflow is added.

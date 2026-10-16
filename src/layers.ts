@@ -2,6 +2,7 @@ import { base, cloneCanvas, H, resetPaint, setCanvasSize, useBase, W } from './c
 import { emit } from './bus';
 import { clearLive, fills, renderLive, renderLiveSnapshot, restoreLive, snapshotLive, sparkles, strokes, type LiveSnapshot } from './live';
 import { state } from './state';
+import { photoPreview } from './photo-preview';
 
 export interface Layer {
   id: number;
@@ -127,9 +128,12 @@ export function renderLayers(ctx: CanvasRenderingContext2D, now: number, activeO
   resetPaint(ctx); ctx.clearRect(0, 0, W, H);
   for (const layer of layers) {
     if (!layer.visible) continue;
-    resetPaint(buffer); buffer.clearRect(0, 0, W, H); buffer.drawImage(layer.canvas, 0, 0);
-    if (layer.id === activeLayerId) { renderLive(buffer, now); activeOverlay?.(buffer); }
-    else renderLiveSnapshot(buffer, layer.live, now);
+    const preview=photoPreview(layer.id);
+    resetPaint(buffer); buffer.clearRect(0, 0, W, H); buffer.drawImage(preview??layer.canvas, 0, 0, W, H);
+    if (!preview) {
+      if (layer.id === activeLayerId) { renderLive(buffer, now); activeOverlay?.(buffer); }
+      else renderLiveSnapshot(buffer, layer.live, now);
+    }
     ctx.globalAlpha = layer.opacity; ctx.drawImage(composite, 0, 0);
   }
   resetPaint(ctx);

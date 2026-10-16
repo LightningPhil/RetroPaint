@@ -6,13 +6,14 @@ import { paintFrame } from './paint';
 import { tickMotor } from './spiro';
 import { updateBelt } from './ui';
 import { updateLayerThumbnails } from './layer-ui';
+import { photoEditing } from './photo-preview';
 
 export function startLoop(): void {
   let last = performance.now();
   const frame = (now: number) => {
     const dt = Math.min(50, now - last);
     last = now;
-    if (!clearConfirmationOpen()) {
+    if (!clearConfirmationOpen() && !photoEditing) {
       tickSqueegee(dt);
       tickHole(dt);
       tickDrips(dt);

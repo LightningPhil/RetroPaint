@@ -23,7 +23,7 @@ import { drawBetween, penPosition, setRingRadius } from '../src/spiro';
 import { activeLayer, addLayer, drawLayerThumbnail, layers, moveLayer, renderLayers, resetLayers, switchLayer, mergeLayerDown, transformLayers } from '../src/layers';
 import { redo } from '../src/history';
 import { flipSelection, invertSelection, resizeSelection, rotateSelection, selectPixelMask, selectionBounds } from '../src/selection';
-import { resizePicture, rotatePicture, flipPicture, cropPicture, removeEdgeBackground, decodeImage } from '../src/editor';
+import { resizePicture, rotatePicture, flipPicture, cropPicture, removeEdgeBackground, decodeImage, importImage } from '../src/editor';
 import { addFill, blankMask } from '../src/live';
 import { makeTextBitmap } from '../src/text-tool';
 import { imageBlob } from '../src/export';
@@ -31,6 +31,8 @@ import { encodeTiff, decodeTiff } from '../src/image-codecs';
 import { loadProjectData, projectData } from '../src/project';
 import { bus } from '../src/bus';
 import { addDrip, tickDrips } from '../src/effects';
+import { autoPhoto, autoWhiteBalance, curveTable, defaultPhotoSettings, histogram, neutralBalance, processPhoto } from '../src/photo-engine';
+import { applyPhoto, beginPhoto, cancelPhoto, comparePhoto, photoSession, refreshPhoto } from '../src/photo-session';
 
 initCanvas(); initMaterials();
 setShapePainter((x0,y0,x1,y1,w) => segment(x0,y0,x1,y1,w,0));
@@ -830,6 +832,60 @@ async function asyncCheck(name: string, action: () => Promise<void>): Promise<vo
   let error: unknown; try { await action(); } catch (caught) { error = caught; }
   check(name, () => { if (error) throw error; });
 }
+check('Neutral photo adjustments preserve every pixel and alpha; exposure and saturation behave independently', () => {
+  const source=new ImageData(new Uint8ClampedArray([90,120,160,255,180,90,70,128,10,20,30,0]),3,1),settings=defaultPhotoSettings();
+  const neutral=processPhoto(source,settings);assert(neutral.data.every((v,i)=>v===source.data[i]),'Neutral edit changed pixels');
+  settings.exposure=1;const exposed=processPhoto(source,settings);assert(exposed.data[0]>source.data[0]&&exposed.data[2]>source.data[2]&&exposed.data[7]===128,'Exposure changed alpha or failed to brighten');
+  settings.exposure=0;settings.saturation=-100;const mono=processPhoto(source,settings);assert(mono.data[0]===mono.data[1]&&mono.data[1]===mono.data[2]&&mono.data[7]===128,'Monochrome changed transparency or retained colour');
+});
+check('Photo shadows and highlights target their own tonal ranges',()=>{
+  const source=new ImageData(new Uint8ClampedArray([40,40,40,255,210,210,210,255]),2,1),s=defaultPhotoSettings();
+  s.shadows=50;const shadow=processPhoto(source,s);assert(shadow.data[0]-40>shadow.data[4]-210,'Shadow control affects highlights more than shadows');
+  s.shadows=0;s.highlights=-50;const highlight=processPhoto(source,s);assert(210-highlight.data[4]>40-highlight.data[0],'Highlight control affects shadows more than highlights');
+});
+check('RGB curves and individual channels are editable without cross-channel leakage',()=>{
+  const source=new ImageData(new Uint8ClampedArray([100,100,100,160]),1,1),s=defaultPhotoSettings();
+  s.curves.red=[{x:0,y:0},{x:.4,y:.7},{x:1,y:1}];const out=processPhoto(source,s);
+  assert(out.data[0]>160&&out.data[1]===100&&out.data[2]===100&&out.data[3]===160,'Red curve changed another channel');
+  const table=curveTable([{x:0,y:0},{x:.25,y:.2},{x:.7,y:.8},{x:1,y:1}]);assert(table.every((v,i)=>v>=0&&v<=1&&(!i||v>=table[i-1])),'Smooth curve introduced a reversal');
+});
+check('White balance neutralises a sampled cast and auto balance ignores clear pixels',()=>{
+  const source=new ImageData(new Uint8ClampedArray([160,130,100,255,250,0,0,0]),2,1),s=defaultPhotoSettings();
+  s.balance=neutralBalance([160,130,100]);const out=processPhoto(source,s);assert(Math.max(...out.data.slice(0,3))-Math.min(...out.data.slice(0,3))<=1,'Sample did not become neutral');
+  const auto=autoWhiteBalance(source);assert(auto[0]<1&&auto[2]>1,'Auto WB followed transparent colour');
+  assert(Object.values(autoPhoto(new ImageData(2,2))).every(Number.isFinite),'Auto light fails on empty images');
+});
+check('Vibrance protects vivid colour while the colour mixer can target a single hue',()=>{
+  const source=new ImageData(new Uint8ClampedArray([255,0,0,255,130,150,180,255,0,0,255,255]),3,1),s=defaultPhotoSettings();s.vibrance=70;
+  const vibrant=processPhoto(source,s);assert(vibrant.data[0]===255&&vibrant.data[1]===0&&vibrant.data[2]===0,'Vibrance damaged a fully vivid red');assert(vibrant.data[4]!==130||vibrant.data[6]!==180,'Vibrance failed to enrich muted colour');
+  s.vibrance=0;s.mixer[0].saturation=-100;const mixed=processPhoto(source,s);assert(mixed.data[0]===mixed.data[1]&&mixed.data[1]===mixed.data[2]&&mixed.data[10]===255,'Red mixer changed unrelated blue');
+});
+check('Photo sharpening, Pop and noise reduction alter detail while preserving alpha and strong edges',()=>{
+  const source=new ImageData(40,20);for(let y=0;y<20;y++)for(let x=0;x<40;x++){const i=(y*40+x)*4,v=(x<20?70:180)+((x+y)%2?8:-8);source.data.set([v,v,v,x===0?0:200],i);}
+  const s=defaultPhotoSettings();s.sharpness=100;const sharp=processPhoto(source,s);assert(sharp.data[(10*40+19)*4]<source.data[(10*40+19)*4],'Sharpening did not enhance an edge');assert(sharp.data.every((v,i)=>i%4!==3||v===source.data[i]),'Sharpening changed alpha');
+  s.sharpness=0;s.noise=80;const smooth=processPhoto(source,s);assert(Math.abs(smooth.data[(10*40+9)*4]-smooth.data[(10*40+10)*4])<16,'Noise reduction did not smooth speckles');assert(smooth.data[(10*40+21)*4]-smooth.data[(10*40+18)*4]>90,'Denoise blurred a strong edge');
+  s.noise=0;s.pop=60;const pop=processPhoto(source,s);assert(pop.data.some((v,i)=>i%4!==3&&v!==source.data[i]),'Pop did not change local contrast');
+});
+check('Vignette follows the crop, grain is deterministic, and lens corrections preserve clear margins',()=>{
+  const source=new ImageData(40,20);for(let i=0;i<source.data.length;i+=4)source.data.set([150,150,150,255],i);
+  const s=defaultPhotoSettings();s.vignette=-75;const vignette=processPhoto(source,s);assert(vignette.data[0]<vignette.data[(10*40+20)*4],'Vignette did not darken corners');
+  s.vignette=0;s.grain=30;const grain=processPhoto(source,s),sameGrain=processPhoto(source,s);assert(grain.data.every((v,i)=>v===sameGrain.data[i]),'Grain changes between renders');
+  s.grain=0;s.distortion=100;const lens=processPhoto(source,s);assert(lens.data[3]===0&&lens.data[(10*40+20)*4+3]===255,'Lens correction failed to map edges');
+  const flipped=defaultPhotoSettings();flipped.flipX=true;source.data.set([255,0,0,255],0);assert(processPhoto(source,flipped).data[(39)*4]===255,'Flip did not mirror pixels');
+  const hist=histogram(new ImageData(new Uint8ClampedArray([0,0,0,255,255,255,255,255,255,0,0,0]),3,1));assert(hist.count===2&&hist.clipped[0]===.5&&hist.clipped[1]===.5,'Histogram counted transparent pixels');
+});
+await asyncCheck('Photo preview and Cancel leave source and live ink intact; full-size Apply and crop restore in one Undo',async()=>{
+  resetLayers(48,32);const paper=activeLayer().id;addLayer();baseCtx.fillStyle='#557799';baseCtx.fillRect(0,0,W,H);
+  const mask=blankMask();mask.getContext('2d')!.fillRect(2,2,5,5);addFill(mask,{kind:'conveyor',colors:['#ff0000','#0000ff'],speed:3,mode:'ooze',along:false,texture:null},1,null);
+  const original=image(),live=snapshotLive().fills.length,layer=activeLayer().id;
+  beginPhoto().settings.brightness=25;await refreshPhoto();assert(image()===original&&snapshotLive().fills.length===live,'Preview changed stored artwork');
+  comparePhoto(true);cancelPhoto();assert(image()===original&&snapshotLive().fills.length===live&&!photoSession,'Cancel changed the source');
+  const session=beginPhoto();session.settings.brightness=25;session.settings.crop={x:.25,y:.25,width:.5,height:.5};await applyPhoto();
+  assert(Number(W)===24&&Number(H)===16&&layers.length===2&&snapshotLive().fills.length===0,'Apply did not crop all sheets or capture live frame');
+  assert(layers.find(l=>l.id===paper)!.canvas.width===24&&pixel(10,10)!=='85,119,153,255','Full-size edit did not apply');
+  undo();assert(W===48&&H===32&&activeLayer().id===layer&&image()===original&&snapshotLive().fills.length===live,'Undo did not restore pixels, size and live ink together');
+  redo();assert(Number(W)===24&&Number(H)===16,'Redo did not restore photo edit');
+});
 await asyncCheck('PNG, JPEG, WebP, BMP and GIF exports decode at the actual picture dimensions', async () => {
   resetLayers(32, 24, null); baseCtx.fillStyle = '#ff0000'; baseCtx.fillRect(5, 5, 12, 10);
   for (const format of ['png', 'jpeg', 'webp', 'bmp', 'gif']) {
@@ -837,6 +893,16 @@ await asyncCheck('PNG, JPEG, WebP, BMP and GIF exports decode at the actual pict
     const p = decoded.getContext('2d')!.getImageData(10, 10, 1, 1).data; assert(p[0] > 220 && p[1] < 25 && p[2] < 25, format + ' colours changed');
     if (format === 'png' || format === 'gif' || format === 'webp') assert(decoded.getContext('2d')!.getImageData(0, 0, 1, 1).data[3] === 0, format + ' lost transparency');
   }
+});
+await asyncCheck('Imported JPEG photo edits render at full resolution, export correctly and cancel safely during processing',async()=>{
+  const fixture=document.createElement('canvas');fixture.width=1600;fixture.height=1000;const ctx=fixture.getContext('2d')!,gradient=ctx.createLinearGradient(0,0,1600,1000);
+  gradient.addColorStop(0,'#336688');gradient.addColorStop(.5,'#bb9977');gradient.addColorStop(1,'#88aabb');ctx.fillStyle=gradient;ctx.fillRect(0,0,1600,1000);ctx.fillStyle='#eecc66';ctx.fillRect(400,250,300,200);
+  const jpeg=await new Promise<Blob>(resolve=>fixture.toBlob(blob=>resolve(blob!),'image/jpeg',.9));await importImage(jpeg);const original=image();
+  const first=beginPhoto();first.settings.pop=35;first.settings.sharpness=40;first.settings.noise=20;first.settings.vignette=-15;await applyPhoto();
+  assert(W===1600&&H===1000&&image()!==original,'Full-size photo edit failed');
+  const exported=await decodeImage(await imageBlob('png'));assert(exported.width===1600&&exported.height===1000&&exported.toDataURL()===image(),'Photo export differs from applied pixels');
+  undo();assert(image()===original,'Undo lost the imported JPEG');
+  beginPhoto().settings.distortion=30;const pending=applyPhoto();cancelPhoto();assert(!await pending&&image()===original,'Cancel during processing changed pixels');
 });
 await asyncCheck('TIFF round-trips RGBA pixels through the local encoder and decoder', async () => {
   const before = baseCtx.getImageData(0, 0, W, H), decoded = decodeTiff(await encodeTiff(before).arrayBuffer());
