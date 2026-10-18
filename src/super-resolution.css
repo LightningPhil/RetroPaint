@@ -1,0 +1,55 @@
+#superResolutionDialog { width:min(680px,calc(100% - 20px)); max-height:calc(100dvh - 20px); padding:16px; margin:auto; border:3px solid var(--ink); border-radius:20px; background:var(--paper); color:var(--ink); box-shadow:6px 7px 0 #26304735; overflow:hidden; }
+#superResolutionDialog::backdrop { background:#26304770; }
+.enhance-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.enhance-heading strong { display:flex; align-items:center; gap:6px; font-size:20px; }
+.enhance-heading button { min-width:44px; min-height:44px; padding:4px; }
+.enhance-intro { margin:10px 0; font-size:13px; line-height:1.4; }
+.enhance-scales { display:flex; gap:10px; }
+.enhance-scales .choice { flex:1; min-height:50px; font-size:20px; }
+.enhance-scales small { display:block; font-size:10px; margin-top:2px; }
+.enhance-scales [aria-pressed=true],.enhance-compare [aria-pressed=true] { background:#ffd16f; }
+#enhanceDimensions { display:block; font-size:12px; font-weight:800; margin:8px 0 4px; }
+.enhance-settings .hint { font-size:11px; line-height:1.4; margin:4px 0 8px; }
+.enhance-preview-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,2fr); gap:10px; }
+.enhance-overview { display:flex; flex-direction:column; align-items:stretch; gap:5px; min-width:0; }
+#enhanceArea { display:block; width:100%; height:140px; object-fit:contain; border:2px solid #d8d5cf; border-radius:10px; background:repeating-conic-gradient(#e7e3da 0% 25%,#fff 0% 50%) 0 0 / 12px 12px; cursor:crosshair; touch-action:none; }
+.enhance-overview label { display:flex; align-items:center; justify-content:center; gap:5px; font-size:11px; }
+.enhance-overview select { min-width:0; min-height:30px; border:1px solid #98909f; border-radius:7px; background:white; font:inherit; }
+.enhance-overview > span { font-size:10px; line-height:1.3; text-align:center; }
+.enhance-view { position:relative; height:220px; padding-bottom:42px; background:repeating-conic-gradient(#e7e3da 0% 25%,#fff 0% 50%) 0 0 / 12px 12px; border:2px solid #d8d5cf; border-radius:12px; overflow:hidden; }
+#enhancePreview { display:block; width:100%; height:100%; object-fit:contain; }
+.enhance-compare { position:absolute; bottom:4px; left:0; right:0; display:flex; justify-content:center; gap:6px; }
+.enhance-compare button { min-height:36px; padding:4px 12px; font-size:12px; }
+#enhanceProgress { width:100%; height:8px; accent-color:#7952b8; margin:8px 0 4px; }
+#enhanceStatus { display:block; min-height:32px; font-size:12px; line-height:1.35; }
+.enhance-actions { display:grid; grid-template-columns:1fr 1.4fr; gap:7px; margin-top:8px; }
+.enhance-actions button { min-height:44px; padding:6px; font-size:12px; }
+#enhanceFull { background:#bce6ed; }
+#enhanceSave { grid-column:1 / -1; background:#93dfbd; }
+@media(min-width:1001px) and (min-height:700px) {
+  .enhance-view { height:min(360px,calc(100dvh - 440px)); }
+}
+@media(max-width:600px) {
+  #superResolutionDialog { padding:10px; }
+  .enhance-heading strong { font-size:17px; }
+  .enhance-intro { font-size:12px; margin:5px 0 8px; }
+  .enhance-preview-grid { grid-template-columns:minmax(0,1fr) minmax(0,1.6fr); gap:6px; }
+  .enhance-view { height:min(210px,29dvh); }
+  #enhanceArea { height:min(110px,15dvh); }
+  .enhance-overview > span { font-size:9px; }
+  .enhance-compare { gap:3px; }.enhance-compare button { min-width:0; padding:4px 5px; font-size:10px; }
+  .enhance-scales .choice { min-height:44px; }
+}
+@media(max-height:550px) and (orientation:landscape) {
+  #superResolutionDialog { width:min(740px,calc(100% - 20px)); display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); column-gap:14px; padding:10px; }
+  #superResolutionDialog:not([open]) { display:none; }
+  .enhance-heading,.enhance-intro { grid-column:1 / -1; }
+  .enhance-preview-grid { grid-column:1; grid-row:3 / 6; height:216px; }
+  .enhance-view { height:216px; }
+  #enhanceArea { height:130px; }
+  .enhance-settings,.enhance-feedback,.enhance-actions { grid-column:2; }
+  .enhance-settings { grid-row:3; }
+  .enhance-feedback { grid-row:4; }
+  .enhance-actions { grid-row:5; }
+  .enhance-intro { margin:2px 0 8px; }
+}

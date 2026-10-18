@@ -22,6 +22,7 @@ import { activeInkId, captureStrokeSpec, glitterPattern, patternFor, previewColo
 import { currentAlpha, state, strokeApplicator } from './state';
 import type { LiveSpec } from './types';
 import { activeLayer } from './layers';
+import { objectCapture } from './object-scene';
 
 let generation = 0;
 let traveled = 0;
@@ -127,7 +128,7 @@ function strokeRaw(x0: number, y0: number, x1: number, y1: number, width: number
   if (scrub) {
     baseCtx.save(); clipLane(baseCtx,lane);
     const paper = activeLayer().paper;
-    baseCtx.globalCompositeOperation = paper ? 'source-over' : 'destination-out'; baseCtx.globalAlpha = currentAlpha();
+    baseCtx.globalCompositeOperation = paper || objectCapture ? 'source-over' : 'destination-out'; baseCtx.globalAlpha = currentAlpha();
     baseCtx.strokeStyle = paper ?? '#000000'; baseCtx.lineWidth = width * 1.15; baseCtx.lineCap = 'round';
     baseCtx.beginPath(); baseCtx.moveTo(x0, y0); baseCtx.lineTo(x1 === x0 && y1 === y0 ? x1 + 0.01 : x1, y1); baseCtx.stroke();
     baseCtx.restore();
@@ -138,6 +139,7 @@ function strokeRaw(x0: number, y0: number, x1: number, y1: number, width: number
   if (lane === 0 && state.tool === 'draw' && state.applicator === 'marker' && dist > 1.5) {
     playThrottled('squeak', 280, 0.84 + Math.min(0.5, speed * 0.2));
   }
+  if(lane===0&&state.tool==='draw'&&state.applicator!=='marker'&&dist>1.5){const dry=['pencil','natural','biro','crayon'].includes(state.applicator);playThrottled(dry?'pencil':'swish',dry?110:170,.8+Math.min(.6,speed*.15));}
 
   if (spec === 'sparkle') {
     sprinkle(x0, y0, x1, y1, width);

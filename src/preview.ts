@@ -1,4 +1,5 @@
 import type { ShapeKind } from './types';
+import { invalidatePicture } from './render-state';
 export type Preview =
   | null
   | { kind: 'shape'; shape: ShapeKind; ink?: string; x0: number; y0: number; x1: number; y1: number }
@@ -9,6 +10,7 @@ let preview: Preview = null;
 
 export function setPreview(next: Preview): void {
   preview = next;
+  invalidatePicture();
 }
 
 export function getPreview(): Preview {

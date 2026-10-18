@@ -3,6 +3,11 @@ import { pushHistory } from './history';
 import { activeLayer, activeLayerId, addLayer, canAddLayer, deleteLayer, drawLayerThumbnail, duplicateLayer, layerChanged, layers, mergeLayerDown, moveLayer, reorderLayer, switchLayer } from './layers';
 import { icon } from './icons';
 import { state } from './state';
+import { advancedEnabled } from './advanced-mode';
+import { pictureRevision } from './render-state';
+import { currentLive } from './layers';
+import { liveAnimated } from './live';
+import { objectAnimated } from './object-scene';
 
 interface LayerActions { editable: () => boolean; settle: () => void; message: (text: string) => void }
 interface Row { element: HTMLDivElement; pick: HTMLButtonElement; eye: HTMLButtonElement; grip: HTMLButtonElement; name: HTMLSpanElement; status: HTMLSpanElement; thumbnail: HTMLCanvasElement }
@@ -10,12 +15,14 @@ interface Drag { pointerId: number; id: number; startY: number; moved: boolean; 
 const compact = matchMedia('(max-width:1000px), (max-height:550px)');
 const rows = new Map<number, Row>();
 const field = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
-let actions: LayerActions | null = null, drag: Drag | null = null, opacityGesture: number | null = null, thumbnailTime = 0;
+let actions: LayerActions | null = null, drag: Drag | null = null, opacityGesture: number | null = null, thumbnailTime = 0,thumbnailRevision=-1;
 
 function showLayers(open: boolean, focus = false): void {
+  open = open && advancedEnabled();
   const panel = field('layersPanel'); panel.hidden = !open;
   field('layersToggle').setAttribute('aria-expanded', String(open));
-  if (open) { emit('close-options'); refreshLayersUi(); }
+  field('layersToggle').classList.toggle('active',open);
+  if (open) { emit('close-options'); refreshLayersUi();refreshThumbnails(performance.now(),true); }
   emit('layer-panel');
   if (focus) (open ? field('addLayer') : field('layersToggle')).focus({ preventScroll: true });
 }
@@ -26,6 +33,7 @@ function change(action: () => void, notice?: () => string): void {
 function selectLayer(id: number, keepOpen = false): void {
   if (!actions?.editable()) return;
   actions.settle(); switchLayer(id);
+  if (activeLayer().cad) emit('open-cad');
   if (compact.matches && !keepOpen) showLayers(false, true);
 }
 function makeRow(id: number): Row {
@@ -70,7 +78,7 @@ export function refreshLayersUi(): void {
     const selected = layer.id === activeLayerId;
     row.element.classList.toggle('active', selected); row.element.classList.toggle('layer-hidden', !layer.visible);
     row.name.textContent = layer.name;
-    row.status.textContent = !layer.visible ? 'Hidden' : selected ? 'Painting here' : `${Math.round(layer.opacity * 100)}% visible`;
+    row.status.textContent = !layer.visible ? 'Hidden' : layer.cad ? `3D · ${layer.cad.bodies.length} pieces · mm` : selected ? 'Painting here' : `${Math.round(layer.opacity * 100)}% visible`;
     row.pick.setAttribute('aria-pressed', String(selected)); row.pick.setAttribute('aria-label', `Paint on ${layer.name}${selected ? ', selected' : ''}${!layer.visible ? ', hidden' : ''}`);
     row.eye.innerHTML = icon(layer.visible ? 'eye' : 'eyeOff'); row.eye.setAttribute('aria-label', `${layer.visible ? 'Hide' : 'Show'} ${layer.name}`); row.eye.setAttribute('aria-pressed', String(layer.visible)); row.eye.title = `${layer.visible ? 'Hide' : 'Show'} layer`;
     row.grip.setAttribute('aria-label', `Reorder ${layer.name}`); row.grip.title = 'Drag to reorder. Alt + ↑ / ↓ also works.';
@@ -81,17 +89,18 @@ export function refreshLayersUi(): void {
   setValue('layerName', active.name); field<HTMLInputElement>('layerOpacity').value = String(active.opacity);
   field<HTMLOutputElement>('layerOpacityValue').value = `${Math.round(active.opacity * 100)}%`;
   field<HTMLInputElement>('transparentLayer').checked = active.paper === null;
-  field<HTMLButtonElement>('deleteLayer').disabled = layers.length < 2; field<HTMLButtonElement>('mergeLayer').disabled = index === 0;
+  field<HTMLButtonElement>('deleteLayer').disabled = layers.length < 2; field<HTMLButtonElement>('mergeLayer').disabled = index === 0 || Boolean(active.cad || layers[index - 1]?.cad);
   field<HTMLButtonElement>('layerDown').disabled = index === 0; field<HTMLButtonElement>('layerUp').disabled = index === layers.length - 1;
   field<HTMLButtonElement>('addLayer').disabled = field<HTMLButtonElement>('duplicateLayer').disabled = !canAddLayer();
   field('activeLayerName').textContent = active.name; field('layerCount').textContent = String(layers.length);
   field('layersToggle').setAttribute('aria-label', `Layers: ${layers.length}, painting on ${active.name}${!active.visible ? ', hidden' : ''}`);
   field('layersHint').textContent = !active.visible ? `${active.name} is hidden. Tap its eye to see your paint.` : layers.length === 1 ? 'Add a clear sheet to draw on top of your picture.' : `Painting on ${active.name}. Tap another sheet to switch.`;
-  refreshThumbnails(performance.now(), true);
+  refreshThumbnails(performance.now());
 }
 function refreshThumbnails(now: number, force = false): void {
   if (!actions || field('layersPanel').hidden || (!force && now - thumbnailTime < 250)) return;
-  thumbnailTime = now;
+  const revision=pictureRevision();if(!force&&revision===thumbnailRevision&&!layers.some(layer=>liveAnimated(layer.id===activeLayerId?currentLive():layer.live)||layer.objects?.some(objectAnimated)))return;
+  thumbnailTime = now;thumbnailRevision=revision;
   for (const layer of layers) { const row = rows.get(layer.id); if (row) drawLayerThumbnail(row.thumbnail.getContext('2d')!, layer, now); }
 }
 export function updateLayerThumbnails(now: number): void { refreshThumbnails(now); }
@@ -101,9 +110,9 @@ function clearDrag(): void {
 }
 export function initLayersUi(callbacks: LayerActions): void {
   actions = callbacks;
-  field('layersToggle').addEventListener('click', () => showLayers(field('layersPanel').hidden));
+  field('layersToggle').addEventListener('click', () => {const open=field('layersPanel').hidden;emit('close-photo');showLayers(open);});
   field('closeLayers').addEventListener('click', () => showLayers(false, true));
-  field('openLayers').addEventListener('click', () => showLayers(true, true));
+  field('openLayers').addEventListener('click', () => {emit('close-photo');showLayers(true, true);});
   field('addLayer').addEventListener('click', () => {
     if (!canAddLayer()) { actions?.message('Your layer stack is full. Combine some sheets to make room.'); return; }
     change(addLayer, () => `New clear sheet: ${activeLayer().name}. You’re ready to paint.`);
@@ -178,6 +187,7 @@ export function initLayersUi(callbacks: LayerActions): void {
   for (const type of ['pointercancel', 'lostpointercapture']) panel.addEventListener(type, clearDrag);
   window.addEventListener('blur', () => { if (drag) clearDrag(); });
   document.addEventListener('keydown', event => {
+    if(state.cad.open)return;
     if (document.querySelector('dialog[open]') || event.target instanceof HTMLInputElement && !['range', 'checkbox', 'color'].includes(event.target.type) || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement) return;
     if (event.key.toLowerCase() === 'l' && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); showLayers(panel.hidden, true); }
     if (event.key === 'Escape' && !panel.hidden) { event.preventDefault(); showLayers(false, true); }
@@ -189,4 +199,5 @@ export function initLayersUi(callbacks: LayerActions): void {
   bus.addEventListener('history', () => { opacityGesture = null; });
   bus.addEventListener('photo-panel', event => { if ((event as CustomEvent<boolean>).detail) showLayers(false); });
   bus.addEventListener('restore-layers',event=>showLayers((event as CustomEvent<boolean>).detail));
+  bus.addEventListener('advanced-mode',()=>{if(!advancedEnabled())showLayers(false);});
 }

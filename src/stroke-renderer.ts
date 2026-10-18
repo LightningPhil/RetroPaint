@@ -35,17 +35,17 @@ function grain(x: number, y: number): number {
 /** Static pigments use one coverage mask. Rainbow deposits colour locally:
  * extending a stroke must not recolour earlier paint outside the moving nib.
  * Cropped bitmaps avoid allocating and processing the whole canvas. */
-export function renderPaintPath(points: Pt[], paint: PathPaint): { canvas: HTMLCanvasElement; x: number; y: number } | null {
+export function renderPaintPath(points: Pt[], paint: PathPaint,extent={width:W,height:H}): { canvas: HTMLCanvasElement; x: number; y: number } | null {
   if (!points.length) return null;
   const width = Math.max(1, points[0].w);
   const pad = width * 2.5 + 8;
-  let left = W, top = H, right = 0, bottom = 0;
+  let left = extent.width, top = extent.height, right = 0, bottom = 0;
   for (const p of points) {
     left = Math.min(left, p.x); top = Math.min(top, p.y);
     right = Math.max(right, p.x); bottom = Math.max(bottom, p.y);
   }
   const x = Math.max(0, Math.floor(left - pad)), y = Math.max(0, Math.floor(top - pad));
-  const w = Math.min(W, Math.ceil(right + pad)) - x, h = Math.min(H, Math.ceil(bottom + pad)) - y;
+  const w = Math.min(extent.width, Math.ceil(right + pad)) - x, h = Math.min(extent.height, Math.ceil(bottom + pad)) - y;
   if (w <= 0 || h <= 0) return null;
   const local = points.map(p => ({ x: p.x - x, y: p.y - y, w: p.w }));
   const canvas = surface(w, h);
@@ -59,7 +59,7 @@ export function renderPaintPath(points: Pt[], paint: PathPaint): { canvas: HTMLC
   if (paint.kind === 'rainbow') {
     // Keep rasterisation in paper coordinates, matching the streaming layer.
     // Translating tiny segments before rasterisation can change edge coverage.
-    const stroke=new RainbowStroke(paint.applicator,width);
+    const stroke=new RainbowStroke(paint.applicator,width,extent.width,extent.height);
     for(const point of points)stroke.append(point);
     ctx.translate(-x,-y);stroke.render(ctx,1);ctx.setTransform(1,0,0,1,0,0);
     return {canvas,x,y};

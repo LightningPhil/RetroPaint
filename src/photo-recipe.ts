@@ -34,7 +34,10 @@ function readSettings(value:unknown):PhotoSettings {
   const input=object(value),settings=defaultPhotoSettings();
   const ranges:Record<string,[number,number]>={exposure:[-4,4],hue:[-180,180],sharpness:[0,150],radius:[.5,3],threshold:[0,32],noise:[0,100],colourNoise:[0,100],pop:[0,100],midpoint:[0,100],feather:[0,100],roundness:[0,100],grain:[0,100],vertical:[-75,75],horizontal:[-75,75],angle:[-45,45],zoom:[50,200]};
   for(const [key,initial] of Object.entries(settings)){
-    if(typeof initial==='number'){const [min,max]=ranges[key]||[-100,100];Object.assign(settings,{[key]:finite(input[key],min,max)});}
+    if(typeof initial==='number'){
+      if(input[key]===undefined&&['grainSize','grainRoughness'].includes(key))continue;
+      const [min,max]=key==='grainSize'?[.5,3]:key==='grainRoughness'?[0,100]:ranges[key]||[-100,100];Object.assign(settings,{[key]:finite(input[key],min,max)});
+    }
     else if(typeof initial==='boolean'){if(typeof input[key]!=='boolean')throw new Error('Invalid photo flip value.');Object.assign(settings,{[key]:input[key]});}
   }
   if(!Array.isArray(input.balance)||input.balance.length!==3)throw new Error('Invalid white balance.');settings.balance=input.balance.map(n=>finite(n,.25,4)) as [number,number,number];

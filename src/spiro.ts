@@ -1,10 +1,11 @@
-import { play, playThrottled } from './audio';
+import { play, playDrawing,playThrottled } from './audio';
 import { beginStrokeGeneration, segment } from './draw';
 import { pushHistory } from './history';
 import { state } from './state';
-import { baseCtx, H, W } from './canvas';
+import { baseCtx, H, view, W } from './canvas';
 import { bakeStaticStrokes } from './live';
 import type { GearDef, StatorShape } from './types';
+import { addVectorPath, beginObjectStroke, finishObjectStroke } from './objects';
 
 export const OUTER_CHOICES = [72, 84, 96, 105, 120];
 
@@ -26,6 +27,8 @@ interface Motor {
 
 let motor: Motor | null = null;
 let crankAngle = 0;
+let vectorPoints:{x:number;y:number}[]|null=null;
+const kitScale=()=>W/Math.max(1,view.getBoundingClientRect().width||W);
 
 export function gearById(id: string | null): GearDef | null {
   return GEARS.find((gear) => gear.id === id) ?? null;
@@ -41,12 +44,13 @@ export function resizeHandle(): { x: number; y: number } {
 
 export function hitResizeHandle(x: number, y: number): boolean {
   const p = resizeHandle();
-  return Math.hypot(x - p.x, y - p.y) < 22;
+  return Math.hypot(x - p.x, y - p.y) < 22*kitScale();
 }
 
 export function setRingRadius(radius: number): void {
   if (motor) return;
-  state.spiro.R = Math.max(60, Math.min(290, radius));
+  if(!Number.isFinite(radius)||radius<=0)return;
+  state.spiro.R = Math.max(.5, Math.min(1e7, radius));
   const input = document.getElementById('ringSize') as HTMLInputElement | null;
   if (input) input.value = String(Math.round(state.spiro.R));
 }
@@ -121,7 +125,7 @@ export function gearCenter(theta = state.spiro.theta): { x: number; y: number; r
   const gear = innerGear();
   if (!gear) return null;
   const r = gearRadius(gear.teeth);
-  const orbit = statorPoint(state.spiro.shape, state.spiro.cx, state.spiro.cy, Math.max(12, state.spiro.R - r), theta);
+  const orbit = statorPoint(state.spiro.shape, state.spiro.cx, state.spiro.cy, Math.max(.01, state.spiro.R - r), theta);
   return { x: orbit.x, y: orbit.y, r };
 }
 
@@ -140,13 +144,13 @@ export function hitStator(x: number, y: number): boolean {
     const p = statorPoint(state.spiro.shape, state.spiro.cx, state.spiro.cy, state.spiro.R, (i / 90) * Math.PI * 2);
     best = Math.min(best, Math.hypot(p.x - x, p.y - y));
   }
-  return best < 24;
+  return best < 24*kitScale();
 }
 
 export function hitWindKey(x: number, y: number): boolean {
   if (state.spiro.drive !== 'auto' || motor) return false;
   const center = gearCenter();
-  return !!center && Math.hypot(x - center.x, y - center.y) < 20;
+  return !!center && Math.hypot(x - center.x, y - center.y) < 20*kitScale();
 }
 
 export function hoverHole(x: number, y: number): void {
@@ -180,7 +184,7 @@ export function assignGear(id: string): boolean {
 }
 
 export function resetKit(): void {
-  state.spiro.R = Math.max(8, Math.min(200, W / 3, H / 3));
+  state.spiro.R = Math.max(.5, Math.min(W,H) / 3);
   state.spiro.cx = W / 2;
   state.spiro.cy = H / 2;
   state.spiro.outerTeeth = 96;
@@ -192,15 +196,17 @@ export function resetKit(): void {
 }
 
 export function drawBetween(a: number, b: number): void {
+  if(vectorPoints&&vectorPoints.length>200000)vectorPoints=vectorPoints.filter((_,i)=>i%2===0);
   // Sample the actual gear curve in canvas space, independent of mouse speed or
   // animation frame rate. No skipped sections or long chords across the curve.
-  const steps = Math.max(1, Math.ceil(Math.abs(b - a) * state.spiro.R * 2 / 1.5));
+  const steps = Math.max(1, Math.min(20000,Math.ceil(Math.abs(b - a) * (vectorPoints?Math.max(1024,state.spiro.R):state.spiro.R) * 2 / 1.5)));
   let previous = penPosition(a);
   if (!previous) return;
   for (let i = 1; i <= steps; i++) {
     const next = penPosition(a + (b - a) * i / steps);
     if (!next) return;
-    segment(previous.x, previous.y, next.x, next.y, state.brushWidth, 0);
+    if(vectorPoints){if(!vectorPoints.length)vectorPoints.push(previous);vectorPoints.push(next);}
+    else segment(previous.x, previous.y, next.x, next.y, state.brushWidth, 0);
     previous = next;
   }
 }
@@ -209,6 +215,7 @@ export function crankStart(x: number, y: number): void {
   if (!state.spiro.gearId || motor) return;
   crankAngle = Math.atan2(y - state.spiro.cy, x - state.spiro.cx);
   pushHistory();
+  if(state.drawingMode==='vector')vectorPoints=[];else beginObjectStroke('Spiro');
   beginStrokeGeneration();
 }
 
@@ -229,12 +236,13 @@ export function crankMove(x: number, y: number): void {
 export function startMotor(): void {
   const gear = innerGear();
   if (!gear || motor) {
-    play('clunk', 0.7);
+    playDrawing('clunk', 0.7);
     return;
   }
   const outer = Math.max(1, gear.teeth / gcd(outerCount(), gear.teeth));
   const cycles = outer;
   pushHistory();
+  if(state.drawingMode==='vector')vectorPoints=[];else beginObjectStroke('Spiro');
   beginStrokeGeneration();
   state.spiro.theta = 0;
   motor = {
@@ -243,7 +251,7 @@ export function startMotor(): void {
     thetaMax: Math.PI * 2 * cycles,
     lastTheta: 0,
   };
-  play('whir', 0.7);
+  playDrawing('whir', 0.7);
 }
 
 export function tickMotor(now: number): void {
@@ -258,16 +266,19 @@ export function tickMotor(now: number): void {
   if (t >= 1) {
     motor = null;
     bakeStaticStrokes(baseCtx);
-    play('motor-stop');
+    finishSpiroStroke();
+    playDrawing('motor-stop');
   }
 }
 
 export function drawRig(ctx: CanvasRenderingContext2D): void {
+  if(vectorPoints?.length){ctx.save();ctx.lineWidth=state.brushWidth;ctx.strokeStyle=state.ink.startsWith('#')?state.ink:'#7952b8';ctx.beginPath();vectorPoints.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();ctx.restore();}
   const { cx, cy, R, shape } = state.spiro;
+  const unit=kitScale();
   ctx.save();
   ctx.lineCap = 'round';
   ctx.strokeStyle = 'rgba(17, 138, 178, 0.9)';
-  ctx.lineWidth = 16;
+  ctx.lineWidth = 16*unit;
   ctx.beginPath();
   for (let i = 0; i <= 80; i++) {
     const p = statorPoint(shape, cx, cy, R, (i / 80) * Math.PI * 2);
@@ -283,10 +294,10 @@ export function drawRig(ctx: CanvasRenderingContext2D): void {
 
   const handle = resizeHandle();
   ctx.beginPath();
-  ctx.arc(handle.x, handle.y, 14, 0, Math.PI * 2);
+  ctx.arc(handle.x, handle.y, 14*unit, 0, Math.PI * 2);
   ctx.fillStyle = '#FFD166'; ctx.fill();
   ctx.strokeStyle = '#1A1A1A'; ctx.lineWidth = 2; ctx.stroke();
-  ctx.fillStyle = '#1A1A1A'; ctx.font = 'bold 19px sans-serif';
+  ctx.fillStyle = '#1A1A1A'; ctx.font = `bold ${19*unit}px sans-serif`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText('↗', handle.x, handle.y);
 
@@ -309,6 +320,12 @@ export function drawRig(ctx: CanvasRenderingContext2D): void {
     }
   }
   ctx.restore();
+}
+
+export function finishSpiroStroke():void {
+  if(motor)return;
+  if(vectorPoints){const points=vectorPoints;vectorPoints=null;const fill=state.shapeFill,outline=state.shapeOutline;state.shapeFill='none';state.shapeOutline='solid';try{addVectorPath(points,false,'Spiro');}finally{state.shapeFill=fill;state.shapeOutline=outline;}}
+  finishObjectStroke();
 }
 
 function drawGear(ctx: CanvasRenderingContext2D, gear: GearDef, x: number, y: number, r: number, rot: number, holeIndex: number): void {

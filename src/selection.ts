@@ -6,6 +6,7 @@ import { state } from './state';
 import { activeSector, clipPolygon, clipToSector, insideSector, sectorPolygon, type Sector } from './symmetry-mask';
 import { symmetryTransforms } from './symmetry';
 import { activeLayer, eraseRegion } from './layers';
+import { addRasterImage, clearObjectSelection, commitObjectSelection, copyObjects, deleteObjects, editableObjects, editObjectPixels, flipObjects, hasObjectClipboard, hasObjectSelection, moveObjects, objectSelectionBounds, pasteObjects, resizeObjects, rotateObjects, selectAllObjects, transformObjects } from './objects';
 
 type Point = { x: number; y: number };
 interface Selection {
@@ -23,8 +24,10 @@ interface Selection {
 let selected: Selection | null = null;
 let clipboard: HTMLCanvasElement | null = null;
 
-export function hasSelection(): boolean { return selected !== null; }
-export function hasClipboard(): boolean { return clipboard !== null; }
+export function hasSelection(): boolean { return selected !== null || hasObjectSelection(); }
+export function hasClipboard(): boolean { return clipboard !== null || hasObjectClipboard(); }
+export function hasFloatingSelection():boolean { return Boolean(selected?.floating); }
+export function rasterSelectionPreview():Pick<Selection,'image'|'x'|'y'|'points'|'sector'|'floating'>|null { return selected; }
 function changed(): void { emit('selection'); }
 
 export function rectangle(x0: number, y0: number, x1: number, y1: number): Point[] {
@@ -109,13 +112,15 @@ function lift(): void {
   selected.floating = true;
 }
 export function moveSelection(dx: number, dy: number): void {
+  if(hasObjectSelection()){moveObjects(dx,dy);return;}
   if (!selected || (!dx && !dy)) return;
   lift();
-  const right = W - selected.image.width, bottom = H - selected.image.height;
-  selected.x = Math.max(Math.min(0, right), Math.min(Math.max(0, right), selected.x + dx));
-  selected.y = Math.max(Math.min(0, bottom), Math.min(Math.max(0, bottom), selected.y + dy));
+  selected.x += dx;
+  selected.y += dy;
+  changed();
 }
 export function copySelection(): void {
+  if(hasObjectSelection()){copyObjects();return;}
   if (!selected) return;
   clipboard = cloneCanvas(selected.original);
   if (selected.sector) {
@@ -134,6 +139,7 @@ async function writeClipboard(image: HTMLCanvasElement): Promise<void> {
   if (blob) try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]); } catch { /* The in-app clipboard remains available. */ }
 }
 export function deleteSelection(): void {
+  if(hasObjectSelection()){deleteObjects();return;}
   if (!selected) return;
   lift();
   pushHistory(selected.before!);
@@ -142,10 +148,12 @@ export function deleteSelection(): void {
 }
 export function cutSelection(): void { copySelection(); deleteSelection(); }
 export function pasteSelection(): void {
+  if(hasObjectClipboard()){pasteObjects();return;}
   if (!clipboard) return;
   pasteImage(cloneCanvas(clipboard));
 }
 export function pasteImage(original: HTMLCanvasElement, at?: Point): void {
+  if(editableObjects()){addRasterImage(original,at);return;}
   commitSelection();
   const sector = activeSector();
   // Start inside the working slice so a pasted piece is immediately visible.
@@ -159,7 +167,8 @@ export function pasteImage(original: HTMLCanvasElement, at?: Point): void {
   bakeLive(baseCtx, performance.now());
   changed();
 }
-export function commitSelection(): void {
+export function commitSelection(clearObjects=true): void {
+  if(hasObjectSelection())commitObjectSelection(clearObjects);
   if (!selected) return;
   if (selected.floating) {
     pushHistory(selected.before!);
@@ -169,6 +178,7 @@ export function commitSelection(): void {
   changed();
 }
 export function cancelSelection(): void {
+  clearObjectSelection();
   if (!selected) return;
   if (selected.before) restoreHistory(selected.before);
   selected = null;
@@ -205,9 +215,10 @@ export function renderSelection(ctx: CanvasRenderingContext2D, border = false): 
 }
 
 export function selectionBounds(): { x: number; y: number; width: number; height: number } | null {
+  if(hasObjectSelection())return objectSelectionBounds();
   return selected ? { x: selected.x, y: selected.y, width: selected.image.width, height: selected.image.height } : null;
 }
-export function selectAll(): void { selectRegion(rectangle(0, 0, W, H)); }
+export function selectAll(): void { if(editableObjects())selectAllObjects();else selectRegion(rectangle(0, 0, W, H)); }
 export function invertSelection(): void {
   if (!selected || selected.sector) return;
   const previous = selected, mask = document.createElement('canvas'); mask.width = W; mask.height = H;
@@ -220,6 +231,7 @@ export function invertSelection(): void {
   selectPixelMask(pixels);
 }
 export function transformSelection(matrix: [number, number, number, number, number, number], width: number, height: number): void {
+  if(hasObjectSelection()){const b=objectSelectionBounds()!;transformObjects([matrix[0],matrix[1],matrix[2],matrix[3],b.x+matrix[4]-matrix[0]*b.x-matrix[2]*b.y,b.y+matrix[5]-matrix[1]*b.x-matrix[3]*b.y]);return;}
   if (!selected) return;
   if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || width > 4096 || height > 4096 || matrix.some(n => !Number.isFinite(n))) throw new Error('The transformed selection must fit within 4096 × 4096 pixels.');
   lift(); const selection = selected, original = document.createElement('canvas');
@@ -235,21 +247,25 @@ export function transformSelection(matrix: [number, number, number, number, numb
   }
 }
 export function resizeSelection(width: number, height: number): void {
+  if(hasObjectSelection()){resizeObjects(width,height);return;}
   if (!selected) return;
   transformSelection([width / selected.original.width, 0, 0, height / selected.original.height, 0, 0], width, height);
 }
 export function flipSelection(horizontal: boolean): void {
+  if(hasObjectSelection()){flipObjects(horizontal);return;}
   if (!selected) return;
   const { width, height } = selected.original;
   transformSelection(horizontal ? [-1, 0, 0, 1, width, 0] : [1, 0, 0, -1, 0, height], width, height);
 }
 export function editSelectionPixels(edit: (image: ImageData) => void): void {
+  if(hasObjectSelection()){editObjectPixels(edit);return;}
   if (!selected) return;
   lift(); selected.original = cloneCanvas(selected.original);
   const ctx = selected.original.getContext('2d')!, image = ctx.getImageData(0, 0, selected.original.width, selected.original.height);
   edit(image); ctx.putImageData(image, 0, 0); selected.image = transparent(selected.original); changed();
 }
 export function rotateSelection(degrees: number): void {
+  if(hasObjectSelection()){rotateObjects(degrees);return;}
   if (!selected) return;
   const { width: w, height: h } = selected.original, r = degrees * Math.PI / 180, c = Math.cos(r), s = Math.sin(r);
   const width = Math.max(1, Math.ceil(Math.abs(w * c) + Math.abs(h * s) - 1e-8)), height = Math.max(1, Math.ceil(Math.abs(w * s) + Math.abs(h * c) - 1e-8));

@@ -18,7 +18,7 @@ import { STAMP_BANKS } from './stamps';
 import { icon, labelIcon } from './icons';
 import { finishPath } from './input';
 import { setRingRadius } from './spiro';
-import { cancelSelection, commitSelection, copySelection, cutSelection, deleteSelection, flipSelection, hasClipboard, hasSelection, invertSelection, pasteSelection, refreshTransparency, rotateSelection, selectAll } from './selection';
+import { cancelSelection, commitSelection, copySelection, cutSelection, deleteSelection, flipSelection, hasClipboard, hasSelection, invertSelection, moveSelection,pasteSelection, refreshTransparency, rotateSelection, selectAll } from './selection';
 import type { Applicator, EraserMode, ShapeKind, StatorShape, SymmetryMode, ToolId } from './types';
 import { H, W, view, ui } from './canvas';
 import { displayFrame } from './document-frame';
@@ -26,6 +26,18 @@ import { bindEditor, editable, message, pasteExternal, refreshImageFields, reque
 import { bindText, cancelText, hasText, placeText } from './text-tool';
 import { printImage } from './export';
 import { motorOn } from './spiro';
+import { initAdvancedMode } from './advanced-mode';
+import { initSuperResolution } from './super-resolution-ui';
+import { duplicateObjects, hasObjectSelection, moveObjects } from './objects';
+import { initObjectUi } from './object-ui';
+import { decorateToolArtwork } from './tool-art';
+import { initPreferencesUi } from './preferences-ui';
+import { initShortcutsUi } from './shortcuts-ui';
+import { initWorkspaceUi } from './workspace-ui';
+import { initRecoveryUi } from './recovery-ui';
+import { updateBrushPreviews } from './brush-previews';
+import { initAccessibleTabs } from './accessible-tabs';
+import { initCadLaunch } from './cad-launch';
 
 const SOLIDS = ['#E53935', '#FDD835', '#1E88E5', '#43A047', '#1A1A1A', '#EF476F', '#06D6A0', '#118AB2', '#FFD166', '#9D4EDD', '#FF9F1C', '#FFFFFF'];
 
@@ -42,10 +54,12 @@ function closePalette(): void {
 function updateInkPreview(): void {
   const selected = document.querySelector<HTMLElement>('.color-btn.selected');
   const preview = document.getElementById('currentInk')!;
+  document.documentElement.style.setProperty('--paint-ink',isHex(state.ink)?state.ink:state.ink==='neon'?state.neonTint:state.ink==='sparkle'?state.sparkleTint:'#bb79db');
   preview.style.background = state.liveArmed
     ? `linear-gradient(135deg,${(state.conveyor.length > 1 ? state.conveyor : ['#ef476f','#ffd166','#06d6a0']).join(',')})`
     : selected?.style.background || chipBackground(activeInkId());
   preview.innerHTML = state.liveArmed || selected?.id === 'colourWheelBtn' ? '' : selected?.querySelector('.ink-sample')?.outerHTML || '';
+  updateBrushPreviews();
 }
 
 function bindMobilePalette(): void {
@@ -117,13 +131,23 @@ export function initUi(): void {
   bindExport();
   bindSelection();
   decorateControls();
+  decorateToolArtwork();
   bindEditor();
+  initAdvancedMode();
+  initSuperResolution();
   bindText();
+  initObjectUi();
   bindPaintExtras();
   bindDrawerSettings();
   bindMobilePalette();
   bindLayout();
   initPaperView(phoneLayout);
+  initPreferencesUi();
+  initShortcutsUi();
+  initWorkspaceUi();
+  initRecoveryUi();
+  initCadLaunch();
+  initAccessibleTabs();
   sync();
   document.addEventListener('pointerdown', () => unlockAudio());
   document.addEventListener('keydown', onKey);
@@ -413,7 +437,7 @@ function canvasToClientInverse(clientX: number, clientY: number): { x: number; y
 }
 
 function bindTools(): void {
-  document.querySelectorAll<HTMLButtonElement>('#toolBin .tool-btn').forEach((btn) => {
+  document.querySelectorAll<HTMLButtonElement>('#toolBin [data-tool], #symBtn').forEach((btn) => {
     btn.addEventListener('click', () => {
       if (btn.id === 'symBtn') {
         toggleSymmetry();
@@ -605,7 +629,7 @@ function bindExport(): void {
     play('clunk');
     if (!editable()) return;
     settle();
-    exportPng();
+    void exportPng().catch(error=>message(error instanceof Error?error.message:String(error)));
   });
 }
 
@@ -654,6 +678,7 @@ function bindPaintExtras(): void {
   (document.getElementById('redoBtn') as HTMLButtonElement).disabled = !canRedo();
   bus.addEventListener('tool-request', () => { openDrawer = null; sync(); });
   bus.addEventListener('close-options', () => { openDrawer = null; sync(); });
+  bus.addEventListener('open-selection-options',()=>{selectTool('scissors');openDrawer='selectionDrawer';sync();});
   bus.addEventListener('text-anchor', () => { openDrawer = 'textDrawer'; sync(); (document.getElementById('textContent') as HTMLTextAreaElement).focus(); });
 }
 export function chooseInk(hex: string): void {
@@ -807,7 +832,7 @@ function vectorLabel(id: string): string {
 }
 
 function selectInk(id: string, el: HTMLElement): void {
-  play('pop');
+  play('colour');
   state.liveArmed = false;
   state.ink = id;
   if (isHex(id)) {
@@ -836,7 +861,7 @@ export function selectTool(tool: ToolId): void {
   if (state.tool !== tool) {
     bus.dispatchEvent(new Event('settle-input'));
     if (state.tool === 'text' && hasText()) placeText();
-    commitSelection(); state.poly = [];
+    commitSelection(false); state.poly = [];
   }
   state.tool = tool;
   if (tool === 'draw' || tool === 'shapes' || tool === 'spiro') state.applicator = state.brushApplicator;
@@ -861,7 +886,7 @@ function sync(): void {
   size.value = String(stamp ? state.stampScale : state.brushWidth);
   size.disabled = ['scissors', 'bucket', 'text', 'picker'].includes(state.tool);
   (document.getElementById('opacity') as HTMLInputElement).disabled = state.tool === 'scissors';
-  document.querySelectorAll<HTMLButtonElement>('#toolBin .tool-btn').forEach((btn) => {
+  document.querySelectorAll<HTMLButtonElement>('#toolBin [data-tool], #symBtn').forEach((btn) => {
     const tool = btn.dataset.tool as ToolId | undefined;
     btn.classList.toggle('active', tool === state.tool || (btn.id === 'symBtn' && state.symmetry !== 'off'));
   });
@@ -937,10 +962,9 @@ function doUndo(): void {
   if (state.busy || motorOn()) return;
   if (!bus.dispatchEvent(new Event('photo-undo', { cancelable:true }))) return;
   if (state.tool === 'text' && hasText()) { cancelText(); return; }
-  if (hasSelection()) { cancelSelection(); return; }
+  if (hasSelection()&&!hasObjectSelection()) { cancelSelection(); return; }
   if (state.poly.length) { state.poly.pop(); return; }
   bus.dispatchEvent(new Event('settle-input'));
-  play('clunk');
   const btn = document.getElementById('undoBtn')!;
   btn.classList.add('winding');
   window.setTimeout(() => btn.classList.remove('winding'), 280);
@@ -952,28 +976,32 @@ function doUndo(): void {
 }
 
 function onKey(event: KeyboardEvent): void {
+  if(state.cad.open)return;
+  if(event.defaultPrevented)return;
   if (document.querySelector('dialog[open]')) return;
   if (event.target instanceof HTMLInputElement && !['range', 'checkbox', 'color'].includes(event.target.type) || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement || (event.target instanceof HTMLElement && event.target.isContentEditable)) return;
   const key = event.key.toLowerCase();
+  if(hasSelection()&&['arrowleft','arrowright','arrowup','arrowdown'].includes(key)&&!(event.target instanceof HTMLInputElement)){event.preventDefault();const step=event.shiftKey?10:1,dx=key==='arrowleft'?-step:key==='arrowright'?step:0,dy=key==='arrowup'?-step:key==='arrowdown'?step:0;if(hasObjectSelection())moveObjects(dx,dy);else moveSelection(dx,dy);return;}
   if (event.ctrlKey || event.metaKey) {
     if (key === 'z') { event.preventDefault(); if (event.shiftKey && editable()) { cancelSelection(); redo(); } else doUndo(); }
     else if (key === 'y') { event.preventDefault(); if (editable()) { cancelSelection(); redo(); } }
     else if (key === 'a') { event.preventDefault(); selectTool('scissors'); selectAll(); }
-    else if (key === 's') { event.preventDefault(); settle(); exportPng(); }
+    else if(key==='d'&&hasObjectSelection()){event.preventDefault();duplicateObjects();}
+    else if (key === 's') { event.preventDefault(); settle(); void exportPng().catch(error=>message(error instanceof Error?error.message:String(error))); }
     else if (key === 'o') { event.preventDefault(); requestOpen(); }
     else if (key === 'p') { event.preventDefault(); settle(); printImage(); }
     else if (key === 'c' && hasSelection()) { event.preventDefault(); copySelection(); }
     else if (key === 'x' && hasSelection()) { event.preventDefault(); cutSelection(); }
     return;
   }
-  if (key === 'escape') { state.choosingSlice=false; cancelSelection(); cancelText(); state.poly = []; cancelPending(); openDrawer = null; sync(); }
+  if (key === 'escape') { state.choosingSlice=false; if(hasObjectSelection())commitSelection();else cancelSelection(); cancelText(); state.poly = []; cancelPending(); openDrawer = null; sync(); }
   if (key === 'enter' && !(event.target instanceof HTMLButtonElement)) { commitSelection(); finishPath(); }
   if (key === 'delete' || key === 'backspace') {
     if (hasSelection()) { event.preventDefault(); deleteSelection(); }
     else if (state.poly.length) { event.preventDefault(); state.poly.pop(); }
   }
   if (!event.altKey && key.length === 1) {
-    const shortcuts: Record<string, ToolId> = { b: 'draw', e: 'eraser', f: 'bucket', i: 'picker', t: 'text', r: 'scissors' };
+    const shortcuts: Record<string, ToolId> = { b: 'draw', s:'shapes', a:'stamp', g:'spiro', e: 'eraser', f: 'bucket', i: 'picker', t: 'text', r: 'scissors' };
     if (shortcuts[key]) { selectTool(shortcuts[key]); openDrawer = drawerFor(shortcuts[key]); sync(); }
   }
 }

@@ -1,5 +1,5 @@
 import { artwork } from './artwork';
-import { emit } from './bus';
+import { bus,emit } from './bus';
 import { baseCtx, H, view, W } from './canvas';
 import { floodMask, lockPending } from './fill';
 import { pushHistory, redo } from './history';
@@ -17,6 +17,7 @@ import { finishPath } from './input';
 import { initLayersUi, refreshLayersUi } from './layer-ui';
 import { photoEditing } from './photo-preview';
 import { initPhotoUi } from './photo-ui';
+import { beginObjectPixelEdit, editObjectPixels, editableObjects, ensureObjectLayer, finishObjectStroke, hasObjectSelection, selectAllObjects } from './objects';
 
 let statusTimer = 0, inserting = false;
 export function message(text: string): void {
@@ -71,10 +72,15 @@ export function skewPicture(x: number, y: number, selection = false): void {
   else { settle(); pushHistory(); transformLayers(transformed.width, transformed.height, transformed.matrix); }
 }
 export function removeEdgeBackground(): void {
-  settle(); pushHistory(); bakeLive(baseCtx, performance.now());
+  settle();
+  if(editableObjects()){if(!hasObjectSelection())selectAllObjects();if(!beginObjectPixelEdit(true))return;}
+  else pushHistory();
+  bakeLive(baseCtx, performance.now());
   const image = baseCtx.getImageData(0, 0, W, H), mask = floodMask(image.data, 0, 0);
   if (mask) for (let p = 0; p < mask.length; p++) if (mask[p]) image.data[p * 4 + 3] = 0;
-  baseCtx.putImageData(image, 0, 0); activeLayer().paper = null; layerChanged();
+  baseCtx.putImageData(image, 0, 0); activeLayer().paper = null;finishObjectStroke();
+  if(activeLayer().objects){baseCtx.clearRect(0,0,W,H);}
+  layerChanged();
 }
 export async function decodeImage(file: Blob): Promise<HTMLCanvasElement> {
   if (/tiff/.test(file.type) || (file instanceof File && /\.tiff?$/i.test(file.name))) return decodeTiff(await file.arrayBuffer());
@@ -94,6 +100,7 @@ export async function importImage(file: Blob, insert = false): Promise<void> {
   if (insert) { pasteImage(image); state.tool = 'scissors'; emit('tool-request'); }
   else {
     pushHistory(); resetLayers(image.width, image.height, null); baseCtx.drawImage(image, 0, 0); artwork.markWork();
+    if(state.drawingMode==='vector')ensureObjectLayer();
     if (file instanceof File) (document.getElementById('fileName') as HTMLInputElement).value = file.name.replace(/\.[^.]+$/, '');
   }
   emit('close-options'); message(insert ? 'Image inserted. Drag it, resize it, then Place.' : 'Image opened. Undo brings back the previous picture.');
@@ -140,13 +147,17 @@ export function updateLayersUi(): void {
   refreshImageFields();
 }
 export function bindEditor(): void {
+  document.getElementById('view')!.tabIndex=0;document.getElementById('view')!.setAttribute('aria-label','Drawing canvas. Press R to select, B for brushes, or ? for shortcuts.');
+  const saveLabel=document.getElementById('saveBtn')!.innerHTML;
+  bus.addEventListener('file-exported',event=>message(`${(event as CustomEvent<string>).detail} is ready. Your editable picture stays here.`));
+  bus.addEventListener('export-state',event=>{const busy=(event as CustomEvent<boolean>).detail;for(const id of ['saveBtn','saveAs'])(document.getElementById(id) as HTMLButtonElement).disabled=busy;document.getElementById('saveBtn')!.setAttribute('aria-busy',String(busy));document.getElementById('saveBtn')!.innerHTML=busy?'Saving…':saveLabel;});
   initLayersUi({ editable, settle, message });
   initPhotoUi({ editable, settle, message, open:requestOpen });
   bindAction('newPicture', () => { settle(); pushHistory(); resetLayers(); artwork.reset(); message('Fresh paper! Undo brings your previous picture back.'); });
   bindAction('openPicture', () => requestOpen()); bindAction('insertPicture', () => requestOpen(true)); bindAction('pasteExternal', pasteExternal);
   bindAction('redoBtn', () => { emit('settle-input'); cancelSelection(); redo(); });
   bindAction('saveAs', async () => { settle(); await exportImage(field<HTMLSelectElement>('fileFormat').value, field<HTMLInputElement>('fileName').value); });
-  bindAction('printPicture', () => { settle(); printImage(); }); bindAction('saveProject', () => { settle(); saveProjectFile(field<HTMLInputElement>('fileName').value); });
+  bindAction('printPicture', () => { settle(); printImage(); }); bindAction('saveProject', async () => { settle(); await saveProjectFile(field<HTMLInputElement>('fileName').value); });
   bindAction('openProject', () => field<HTMLInputElement>('projectInput').click());
   bindAction('resizePicture', () => {
     const [width, height] = imageSize(); dimensions(width, height);
@@ -162,7 +173,7 @@ export function bindEditor(): void {
   bindAction('invertColours', () => {
     const invert = (image: ImageData) => { for (let i = 0; i < image.data.length; i += 4) for (let c = 0; c < 3; c++) image.data[i + c] = 255 - image.data[i + c]; };
     if (selectionTarget() && hasSelection()) editSelectionPixels(invert);
-    else { settle(); pushHistory(); bakeLive(baseCtx, performance.now()); const image = baseCtx.getImageData(0, 0, W, H); invert(image); baseCtx.putImageData(image, 0, 0); }
+    else { settle(); pushHistory();if(editableObjects()){ensureObjectLayer();selectAllObjects();editObjectPixels(invert,false);} bakeLive(baseCtx, performance.now()); const image = baseCtx.getImageData(0, 0, W, H); invert(image); baseCtx.putImageData(image, 0, 0); }
   });
   bindAction('removeBackground', removeEdgeBackground);
   for (const id of ['editSelection', 'resizeUnit']) field(id).addEventListener('change', refreshImageFields);

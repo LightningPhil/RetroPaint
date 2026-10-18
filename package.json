@@ -13,7 +13,22 @@
     "preview": "vite preview --port 8080 --strictPort"
   },
   "devDependencies": {
+    "@types/three": "0.186.0",
+    "@upscalerjs/esrgan-thick": "1.0.0",
     "typescript": "^5.6.3",
     "vite": "^6.0.6"
+  },
+  "dependencies": {
+    "@tensorflow/tfjs-backend-cpu": "4.11.0",
+    "@tensorflow/tfjs-backend-webgl": "4.11.0",
+    "@tensorflow/tfjs-core": "4.11.0",
+    "@tensorflow/tfjs-layers": "4.11.0",
+    "manifold-3d": "3.5.4",
+    "replicad": "1.1.0",
+    "replicad-opencascadejs": "1.1.0",
+    "three": "0.186.1"
+  },
+  "overrides": {
+    "sprintf-js": "1.1.3"
   }
 }

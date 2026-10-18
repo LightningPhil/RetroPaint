@@ -8,7 +8,7 @@ import { beginBake, embossAt, invertAt, isBusy, pixelateAt, smudge, startHole } 
 import { drawShape, floodAt, floodMask, getPending, hitPin, lockPending, movePin, setPinDrag, setShapePainter, strokePath } from './fill';
 import { pushHistory } from './history';
 import { setPreview } from './preview';
-import { crankMove, crankStart, hitStator, hitWindKey, hoverHole, startMotor } from './spiro';
+import { crankMove, crankStart, finishSpiroStroke, hitStator, hitWindKey, hoverHole, startMotor } from './spiro';
 import { currentWidth, state } from './state';
 import { placeStamp } from './stamps';
 import { beginSelectionResize, cancelSelection, commitSelection, dragSelectionResize, endSelectionResize, hitSelection, hitSelectionHandle, moveSelection, rectangle, selectPixelMask, selectRegion } from './selection';
@@ -20,6 +20,9 @@ import { paintFrame } from './paint';
 import { activeLayer, renderActive } from './layers';
 import { rgbToHex } from './color';
 import { invalidatePhotoCanvas } from './photo-render';
+import { addVectorPath, addVectorShape, beginObjectDrag, beginObjectPixelEdit, beginObjectStroke, captureRasterAction, dragObjects, editableObjects, endObjectDrag, finishObjectStroke, hasObjectCapture, hasObjectSelection, hitObject, objectHandle, selectObjectAt, selectObjectsIn, selectedObjects } from './objects';
+import { message } from './editor';
+import { displayFrame } from './document-frame';
 
 interface Ptr {
   id: number;
@@ -32,7 +35,7 @@ interface Ptr {
   t: number;
   still: number;
   gen: number;
-  mode: 'draw' | 'spray' | 'shape' | 'lasso' | 'grad' | 'pin' | 'ring' | 'crank' | 'stamp' | 'filter' | 'smudge' | 'ignore' | 'bucket' | 'selectionMove' | 'selectionResize' | 'resize';
+  mode: 'draw' | 'spray' | 'shape' | 'lasso' | 'grad' | 'pin' | 'ring' | 'crank' | 'stamp' | 'filter' | 'smudge' | 'ignore' | 'bucket' | 'selectionMove' | 'selectionResize' | 'resize' | 'object' | 'objectMarquee';
   secondary: boolean;
   smudgePath?: SmudgePath;
   lasso: { x: number; y: number }[];
@@ -44,6 +47,7 @@ interface Ptr {
 }
 
 const ptrs = new Map<number, Ptr>();
+export function inputActive():boolean { return ptrs.size>0; }
 let groupSaved = false;
 let usingSecondary = false;
 function withSecondary(enabled: boolean, action: () => void): void {
@@ -57,7 +61,12 @@ function withSecondary(enabled: boolean, action: () => void): void {
 export function initInput(): void {
   setShapePainter((x0, y0, x1, y1, width) => segment(x0, y0, x1, y1, width, 0));
   view.addEventListener('pointerdown', event=>{onDown(event);invalidatePhotoCanvas(baseCtx.canvas);});
-  view.addEventListener('pointermove', event=>{onMove(event);if(ptrs.size)invalidatePhotoCanvas(baseCtx.canvas);});
+  view.addEventListener('pointermove', event=>{
+    // Pen devices can deliver several accurate samples in one screen refresh.
+    const samples=ptrs.get(event.pointerId)?.mode==='draw'?event.getCoalescedEvents?.():undefined;
+    if(samples?.length)for(const sample of samples)onMove(sample);else onMove(event);
+    if(ptrs.size)invalidatePhotoCanvas(baseCtx.canvas);
+  });
   view.addEventListener('pointerup', event=>{onUp(event);invalidatePhotoCanvas(baseCtx.canvas);});
   view.addEventListener('pointercancel', event=>{onUp(event);invalidatePhotoCanvas(baseCtx.canvas);});
   view.addEventListener('lostpointercapture', event => cancelPointer(event.pointerId));
@@ -65,6 +74,14 @@ export function initInput(): void {
   document.addEventListener('visibilitychange', () => { if (document.hidden) cancelPointers(); });
   view.addEventListener('pointerleave', () => { state.cursor = null; });
   view.addEventListener('contextmenu', (event) => event.preventDefault());
+  // Retained vectors can be grabbed by their visible overhang on the desk too.
+  document.getElementById('canvasSlot')?.addEventListener('pointerdown',event=>{
+    if(state.tool!=='scissors'||event.target===view||event.button!==0||event.target instanceof Element&&event.target.closest('button,input,select,textarea,aside,#workspaceBar,#paperControls,#recoveryBanner'))return;
+    const p=eventPos(event),frame=displayFrame(view.width,view.height);
+    if(p.x>=frame.x&&p.y>=frame.y&&p.x<=frame.x+frame.width&&p.y<=frame.y+frame.height)return;
+    const piece=editableObjects()?hitObject(p.x,p.y):null,hit=editableObjects()?objectHandle(p.x,p.y)>=0||selectedObjects().some(o=>piece?.id===o.id):hitSelectionHandle(p.x,p.y)!==null||hitSelection(p.x,p.y);
+    if(hit){event.preventDefault();onDown(event);}else commitSelection();
+  });
   bus.addEventListener('settle-input', cancelPointers);
 }
 
@@ -77,10 +94,13 @@ function cancelPointer(id: number): void {
   if (ptr.mode === 'selectionMove') cancelSelection();
   if (ptr.mode === 'selectionResize') { endSelectionResize(); cancelSelection(); }
   if (ptr.mode === 'pin') setPinDrag(null);
+  if(ptr.mode==='object')endObjectDrag();
+  if(ptr.mode==='crank')finishSpiroStroke();
   if (!ptrs.size) {
     groupSaved = false;
     // Keep pigment already laid down, without inventing a final segment to (0,0).
     bakeStaticStrokes(baseCtx);
+    if(!motorOn())finishObjectStroke();
   }
 }
 
@@ -100,13 +120,15 @@ export function tapCanvas(x: number, y: number): void {
   }
   if (state.tool === 'stamp') {
     pushHistory();
-    placeStamp(x, y);
+    captureRasterAction('Stamp',()=>placeStamp(x,y));
     return;
   }
   const gen = beginStrokeGeneration();
   pushHistory();
+  beginObjectStroke();
   useGeneration(gen);
   dot(x, y, currentWidth());
+  finishObjectStroke();
 }
 
 function onDown(event: PointerEvent): void {
@@ -114,9 +136,11 @@ function onDown(event: PointerEvent): void {
 }
 function handleDown(event: PointerEvent): void {
   unlockAudio();
+  if (activeLayer().cad) { emit('open-cad'); message('This is an editable 3D layer. Use the 3D workshop, or choose a paint layer.'); return; }
   if (isBusy() || state.busy || (event.button !== 0 && event.button !== 2)) return;
   if (event.button === 2 && !['draw', 'spray', 'shapes', 'bucket', 'picker'].includes(state.tool)) return;
   if (ptrs.size && (state.tool === 'sponge' || state.tool === 'scissors')) return;
+  if(ptrs.size&&hasObjectCapture())return;
   view.setPointerCapture(event.pointerId);
   const pos = eventPos(event);
   if (state.tool === 'picker') {
@@ -142,6 +166,12 @@ function handleDown(event: PointerEvent): void {
   }
 
   if (state.tool === 'scissors') {
+    if(editableObjects()) {
+      const handle=objectHandle(pos.x,pos.y),hit=hitObject(pos.x,pos.y,event.altKey);
+      if(handle>=0){beginObjectDrag(pos.x,pos.y,handle);ptrs.set(event.pointerId,blank(event.pointerId,pos,'object'));return;}
+      if(hit){if(!hasObjectSelection()||!selectedObjects().some(o=>o.id===hit.id)||event.shiftKey||event.altKey)selectObjectAt(pos.x,pos.y,event.shiftKey,event.altKey);beginObjectDrag(pos.x,pos.y);ptrs.set(event.pointerId,blank(event.pointerId,pos,'object'));return;}
+      if(!event.shiftKey)selectObjectAt(pos.x,pos.y);ptrs.set(event.pointerId,blank(event.pointerId,pos,'objectMarquee'));return;
+    }
     const handle = hitSelectionHandle(pos.x, pos.y);
     if (handle !== null) { beginSelectionResize(handle); ptrs.set(event.pointerId, blank(event.pointerId, pos, 'selectionResize')); return; }
     if (hitSelection(pos.x, pos.y)) {
@@ -187,7 +217,11 @@ function handleDown(event: PointerEvent): void {
   }
 
   if (state.tool === 'eraser' && state.eraserMode === 'blackhole') {
-    startHole(pos.x, pos.y);
+    if(editableObjects()){
+      if(!hasObjectSelection())selectObjectAt(pos.x,pos.y);
+      if(!beginObjectPixelEdit()){message('Select one piece first, then use Black Hole.');return;}
+      startHole(pos.x,pos.y,false);if(!isBusy())finishObjectStroke();
+    } else startHole(pos.x, pos.y);
     return;
   }
 
@@ -214,10 +248,13 @@ function handleDown(event: PointerEvent): void {
   else if (state.tool === 'eraser' && state.eraserMode !== 'scrub') ptr.mode = 'filter';
 
   if (!groupSaved && ptr.mode !== 'lasso') {
-    if (ptr.mode === 'smudge' || ptr.mode === 'filter' || ((activeSector() || state.opacity < 1) && state.tool === 'eraser')) beginBake();
-    else pushHistory();
+    const pixelEdit=editableObjects()&&(ptr.mode==='smudge'||ptr.mode==='filter');
+    if(pixelEdit&&!beginObjectPixelEdit()){message('Use Select to pick one piece first, then apply this pixel effect.');return;}
+    if(!pixelEdit&&(ptr.mode === 'smudge' || ptr.mode === 'filter' || ((activeSector() || state.opacity < 1) && state.tool === 'eraser'))) beginBake();
+    else if(!pixelEdit)pushHistory();
     groupSaved = true;
   }
+  if(ptr.mode==='draw'||ptr.mode==='spray'||(ptr.mode==='shape'&&state.drawingMode==='raster')||(ptr.mode==='stamp'&&state.drawingMode==='raster'))beginObjectStroke(state.tool==='eraser'?'Eraser stroke':ptr.mode==='shape'?'Shape':ptr.mode==='stamp'?'Stamp':'Brush stroke',state.tool==='eraser'&&!activeLayer().paper?'destination-out':undefined);
 
   ptrs.set(event.pointerId, ptr);
   useGeneration(ptr.gen);
@@ -240,6 +277,7 @@ function handleMove(event: PointerEvent): void {
   view.style.cursor = 'crosshair';
   const ptr = ptrs.get(event.pointerId);
   if (!ptr) {
+    if(state.tool==='scissors'&&editableObjects()){const p=eventPos(event),handle=objectHandle(p.x,p.y);if(handle>=0)view.style.cursor=['nwse-resize','ns-resize','nesw-resize','ew-resize','nwse-resize','ns-resize','nesw-resize','ew-resize'][handle];}
     if (state.tool === 'spiro') hoverHole(eventPos(event).x, eventPos(event).y);
     return;
   }
@@ -253,6 +291,8 @@ function handleMove(event: PointerEvent): void {
   else ptr.still = 0;
 
   if (ptr.mode === 'bucket' && insideSector(pos.x,pos.y)) { floodAt(pos.x,pos.y,null); ptr.mode='ignore'; }
+  else if(ptr.mode==='object')dragObjects(pos.x,pos.y,event.shiftKey);
+  else if(ptr.mode==='objectMarquee')setPreview({kind:'lasso',points:rectangle(ptr.sx,ptr.sy,pos.x,pos.y)});
   else if (ptr.mode === 'selectionMove') moveSelection(pos.x - ptr.x, pos.y - ptr.y);
   else if (ptr.mode === 'selectionResize') dragSelectionResize(pos.x, pos.y, event.shiftKey);
   else if (ptr.mode === 'resize') setRingRadius(Math.hypot(pos.x - state.spiro.cx, pos.y - state.spiro.cy) * ptr.ringDx);
@@ -314,13 +354,17 @@ function handleUp(event: PointerEvent): void {
   const pos = constrainedPosition(event, ptr);
   if (event.pointerType === 'touch') state.cursor = null;
   if (ptr.mode === 'smudge') ptr.smudgePath?.move(pos.x, pos.y, true);
+  if(ptr.mode==='crank')finishSpiroStroke();
   if (ptr.mode === 'selectionMove') moveSelection(pos.x - ptr.x, pos.y - ptr.y);
   if (ptr.mode === 'selectionResize') { dragSelectionResize(pos.x, pos.y, event.shiftKey); endSelectionResize(); }
   if (ptr.mode === 'pin') setPinDrag(null);
+  if(ptr.mode==='object'){dragObjects(pos.x,pos.y,event.shiftKey);endObjectDrag();}
+  if(ptr.mode==='objectMarquee'){setPreview(null);selectObjectsIn({x:Math.min(ptr.sx,pos.x),y:Math.min(ptr.sy,pos.y),width:Math.abs(pos.x-ptr.sx),height:Math.abs(pos.y-ptr.sy)},event.shiftKey);}
   if (ptr.mode === 'shape') {
     setPreview(null);
     useGeneration(ptr.gen);
-    drawShape(state.shape, ptr.sx, ptr.sy, pos.x, pos.y, viewCtx, true);
+    if(state.drawingMode==='vector')addVectorShape(state.shape,ptr.sx,ptr.sy,pos.x,pos.y);
+    else drawShape(state.shape, ptr.sx, ptr.sy, pos.x, pos.y, viewCtx, true);
   }
   if (ptr.mode === 'lasso') {
     setPreview(null);
@@ -351,6 +395,7 @@ function handleUp(event: PointerEvent): void {
   if (ptrs.size === 0) {
     groupSaved = false;
     bakeStaticStrokes(baseCtx);
+    if(ptr.mode!=='crank'&&!motorOn())finishObjectStroke();
   }
 }
 
@@ -369,7 +414,8 @@ export function finishPath(close = false): void {
     pushHistory();
     useGeneration(beginStrokeGeneration());
     const points = state.shape === 'spline' ? splinePoints(state.poly, close) : state.poly;
-    strokePath(points, viewCtx, true, close && state.shape !== 'spline');
+    if(state.drawingMode==='vector')addVectorPath(points,close,'Path');
+    else captureRasterAction('Path',()=>strokePath(points, viewCtx, true, close && state.shape !== 'spline'));
     bakeStaticStrokes(baseCtx);
   }
   state.poly = [];

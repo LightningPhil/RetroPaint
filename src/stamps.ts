@@ -4,6 +4,9 @@ import { baseCtx, W, H } from './canvas';
 import { symmetryTransforms } from './symmetry';
 import { state } from './state';
 import { bakeStaticStrokes } from './live';
+import { addPaintObject, makePathObject, objectId } from './objects';
+import { shapePoints } from './shapes';
+import { multiply } from './object-scene';
 
 export const STAMP_BANKS: { id: string; label: string; items: string[] }[] = [
   { id: 'critters', label: '🐾 Animals', items: ['🐶', '🐱', '🐭', '🐰', '🦊', '🐸', '🐧', '🐢', '🐙', '🦋', '🦄', '🦁', '🐨', '🐼', '🐝', '🐬', '🦉', '🦕'] },
@@ -17,6 +20,19 @@ export const STAMP_BANKS: { id: string; label: string; items: string[] }[] = [
 ];
 
 export function placeStamp(x: number, y: number): void {
+  if(state.drawingMode==='vector'){
+    const size=82*state.stampScale,angle=state.stampSpin==='auto'?(Math.random()-.5)*28*Math.PI/180:0;
+    if(state.stampId.startsWith('vec:')){
+      const names:Record<string,Parameters<typeof shapePoints>[0]>={'vec:star':'star5','vec:heart':'heart','vec:triangle':'triangle','vec:diamond':'diamond','vec:blob':'ellipse'};
+      const fill=state.shapeFill,outline=state.shapeOutline;state.shapeFill='primary';state.shapeOutline='solid';
+      const points=shapePoints(names[state.stampId]??'ellipse',x-size/2,y-size/2,x+size/2,y+size/2).map(p=>{const dx=(p.x-x)*(state.stampFlipH?-1:1),dy=(p.y-y)*(state.stampFlipV?-1:1);return {x:x+Math.cos(angle)*dx-Math.sin(angle)*dy,y:y+Math.sin(angle)*dx+Math.cos(angle)*dy};});
+      const object=makePathObject(points,true,'Stamp');object.lineWidth=4*state.stampScale;object.stroke={color:'#1A1A1A'};state.shapeFill=fill;state.shapeOutline=outline;addPaintObject(object,false);
+    } else for(const t of symmetryTransforms()){
+      const m:[number,number,number,number,number,number]=[t.a,t.c,t.b,t.d,W/2-t.a*W/2-t.b*H/2,H/2-t.c*W/2-t.d*H/2];
+      addPaintObject({id:objectId(),name:'Stamp',kind:'stamp',emoji:state.stampId,width:size,height:size,matrix:multiply(m,[1,0,0,1,x-size/2,y-size/2]),opacity:state.opacity,angle,flipH:state.stampFlipH,flipV:state.stampFlipV},false);
+    }
+    playThrottled('thwack',42);return;
+  }
   bakeStaticStrokes(baseCtx);
   const jiggle = state.stampSpin === 'auto' ? (Math.random() - 0.5) * ((28 * Math.PI) / 180) : 0;
   for (const t of symmetryTransforms()) {
@@ -26,28 +42,36 @@ export function placeStamp(x: number, y: number): void {
     baseCtx.translate(-W / 2, -H / 2);
     const sector=activeSector();
     if (sector) clipPolygon(baseCtx,sectorPolygon(sector));
-    drawStamp(x, y, jiggle);
+    drawStamp(baseCtx,x,y,jiggle);
     baseCtx.restore();
   }
   playThrottled('thwack', 42, 0.75 + Math.random() * 0.5);
 }
 
-function drawStamp(x: number, y: number, jiggle: number): void {
-  const scale = state.stampScale;
-  baseCtx.save();
-  baseCtx.globalAlpha = state.opacity;
-  baseCtx.translate(x, y);
-  baseCtx.rotate(jiggle);
-  baseCtx.scale(state.stampFlipH ? -scale : scale, state.stampFlipV ? -scale : scale);
-  if (state.stampId.startsWith('vec:')) {
-    drawVector(baseCtx, state.stampId);
-  } else {
-    baseCtx.font = '68px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
-    baseCtx.textAlign = 'center';
-    baseCtx.textBaseline = 'middle';
-    baseCtx.fillText(state.stampId, 0, 0);
+export function drawStampPreview(ctx:CanvasRenderingContext2D,x:number,y:number):void {
+  ctx.save();ctx.globalAlpha=.4;
+  for(const t of symmetryTransforms()){
+    ctx.save();ctx.translate(W/2,H/2);ctx.transform(t.a,t.c,t.b,t.d,0,0);ctx.translate(-W/2,-H/2);
+    const sector=activeSector();if(sector)clipPolygon(ctx,sectorPolygon(sector));drawStamp(ctx,x,y,0);ctx.restore();
   }
-  baseCtx.restore();
+  ctx.restore();
+}
+function drawStamp(ctx:CanvasRenderingContext2D,x: number, y: number, jiggle: number): void {
+  const scale = state.stampScale;
+  ctx.save();
+  ctx.globalAlpha *= state.opacity;
+  ctx.translate(x, y);
+  ctx.rotate(jiggle);
+  ctx.scale(state.stampFlipH ? -scale : scale, state.stampFlipV ? -scale : scale);
+  if (state.stampId.startsWith('vec:')) {
+    drawVector(ctx, state.stampId);
+  } else {
+    ctx.font = '68px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(state.stampId, 0, 0);
+  }
+  ctx.restore();
 }
 
 function drawVector(ctx: CanvasRenderingContext2D, id: string): void {

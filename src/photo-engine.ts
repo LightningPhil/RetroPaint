@@ -2,12 +2,14 @@ export interface CurvePoint { x: number; y: number }
 export type CurveChannel = 'rgb' | 'red' | 'green' | 'blue';
 export interface ColourMix { hue: number; saturation: number; luminance: number }
 export interface CropBox { x: number; y: number; width: number; height: number }
+import { applyFilmGrain } from './film-grain';
+
 export interface PhotoSettings {
   exposure: number; brightness: number; contrast: number; highlights: number; shadows: number; whites: number; blacks: number;
   temperature: number; tint: number; balance: [number, number, number]; saturation: number; vibrance: number; hue: number;
   mixer: ColourMix[]; curves: Record<CurveChannel, CurvePoint[]>;
   sharpness: number; radius: number; threshold: number; texture: number; clarity: number; pop: number; dehaze: number; noise: number; colourNoise: number;
-  vignette: number; midpoint: number; feather: number; roundness: number; grain: number;
+  vignette: number; midpoint: number; feather: number; roundness: number; grain: number; grainSize:number; grainRoughness:number;
   distortion: number; aberration: number; vertical: number; horizontal: number; angle: number; zoom: number; flipX: boolean; flipY: boolean;
   crop: CropBox;
 }
@@ -16,7 +18,7 @@ export function defaultPhotoSettings(): PhotoSettings {
   return { exposure:0, brightness:0, contrast:0, highlights:0, shadows:0, whites:0, blacks:0, temperature:0, tint:0, balance:[1,1,1], saturation:0, vibrance:0, hue:0,
     mixer:Array.from({ length:8 }, () => ({ hue:0, saturation:0, luminance:0 })), curves:{ rgb:line(), red:line(), green:line(), blue:line() },
     sharpness:0, radius:1, threshold:0, texture:0, clarity:0, pop:0, dehaze:0, noise:0, colourNoise:0,
-    vignette:0, midpoint:50, feather:75, roundness:0, grain:0, distortion:0, aberration:0, vertical:0, horizontal:0, angle:0, zoom:100, flipX:false, flipY:false,
+    vignette:0, midpoint:50, feather:75, roundness:0, grain:0, grainSize:1.2, grainRoughness:50, distortion:0, aberration:0, vertical:0, horizontal:0, angle:0, zoom:100, flipX:false, flipY:false,
     crop:{ x:0, y:0, width:1, height:1 } };
 }
 const clamp = (v: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
@@ -179,16 +181,16 @@ export function processPhoto(source: ImageData, s: PhotoSettings): ImageData {
   detail(data,w,h,12*scale,(s.clarity+s.pop*0.6)/100*1.4,0,true);
   detail(data,w,h,2*scale,s.texture/100*0.9);
   detail(data,w,h,s.radius*scale,s.sharpness/100*1.8,s.threshold);
-  if(s.vignette||s.grain){
+  if(s.vignette){
     const crop=s.crop,cx=(crop.x+crop.width/2)*w,cy=(crop.y+crop.height/2)*h,rx=Math.max(1,crop.width*w/2),ry=Math.max(1,crop.height*h/2),round=s.roundness/100;
     for(let y=0;y<h;y++)for(let x=0;x<w;x++){
       const i=(y*w+x)*4;if(!data[i+3])continue;
       const dx=(x+0.5-cx)/(rx*(1-round)+Math.min(rx,ry)*round),dy=(y+0.5-cy)/(ry*(1-round)+Math.min(rx,ry)*round),distance=Math.sqrt(dx*dx+dy*dy)/Math.SQRT2;
       const start=s.midpoint/100*0.8,end=start+0.08+s.feather/100*(1-start),v=smooth(start,end,distance)*s.vignette/100;
-      const seed=Math.imul(x+1,374761393)^Math.imul(y+1,668265263),noise=(((Math.imul(seed^(seed>>>13),1274126177)>>>0)/4294967295)-0.5)*s.grain*0.65;
-      for(let c=0;c<3;c++)data[i+c]=(v<0?data[i+c]*(1+v*0.85):data[i+c]+(255-data[i+c])*v*0.85)+noise;
+      for(let c=0;c<3;c++)data[i+c]=v<0?data[i+c]*(1+v*0.85):data[i+c]+(255-data[i+c])*v*0.85;
     }
   }
+  applyFilmGrain(data,w,h,s.grain,s.grainSize??1.2,s.grainRoughness??50);
   return result;
 }
 export function cropPixels(crop: CropBox, width: number, height: number): { x:number; y:number; width:number; height:number } {

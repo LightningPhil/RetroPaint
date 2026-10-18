@@ -1,5 +1,4 @@
 import { activeSector, sectorPolygon, polygonPath, sliceAt } from './symmetry-mask';
-import { mirrorPoints } from './symmetry';
 import { uiCtx, W, H } from './canvas';
 import { drawShape, getPending, strokePath } from './fill';
 import { drawSqueegee } from './effects';
@@ -10,6 +9,8 @@ import { renderSelection } from './selection';
 import { splinePoints } from './curves';
 import { photoEditing } from './photo-preview';
 import { drawPhotoGuides } from './photo-guides';
+import { previewVectorShape, renderObjectSelection } from './objects';
+import { renderToolCursor } from './cursor-renderer';
 
 export function renderOverlay(): void {
   uiCtx.setTransform(1, 0, 0, 1, 0, 0);
@@ -27,7 +28,8 @@ export function renderOverlay(): void {
   if (preview?.kind === 'shape') {
     const ink = state.ink, live = state.liveArmed;
     if (preview.ink) { state.ink = preview.ink; state.liveArmed = false; }
-    drawShape(preview.shape, preview.x0, preview.y0, preview.x1, preview.y1, uiCtx, false);
+    if(state.drawingMode==='vector')previewVectorShape(uiCtx,preview.shape,preview.x0,preview.y0,preview.x1,preview.y1);
+    else drawShape(preview.shape, preview.x0, preview.y0, preview.x1, preview.y1, uiCtx, false);
     state.ink = ink; state.liveArmed = live;
   } else if (preview?.kind === 'lasso') {
     uiCtx.strokeStyle = '#1A1A1A';
@@ -65,19 +67,8 @@ export function renderOverlay(): void {
 
   drawSqueegee(uiCtx);
   renderSelection(uiCtx, true);
-  if (state.cursor && !state.choosingSlice && (state.tool === 'sponge' || state.tool === 'eraser' || state.tool === 'spray')) {
-    const radius = state.tool === 'sponge' ? Math.max(12, state.brushWidth) : state.tool === 'spray' ? state.brushWidth * 2.6 : state.brushWidth * 0.8;
-    uiCtx.save();
-    uiCtx.beginPath();
-    const cursors = state.tool === 'sponge' ? mirrorPoints(state.cursor.x, state.cursor.y) : [state.cursor];
-    for (const point of cursors) {
-      uiCtx.moveTo(point.x + radius, point.y);
-      uiCtx.arc(point.x, point.y, radius, 0, Math.PI * 2);
-    }
-    uiCtx.strokeStyle = '#ffffffaa'; uiCtx.lineWidth = 3; uiCtx.stroke();
-    uiCtx.strokeStyle = '#26304799'; uiCtx.lineWidth = 1; uiCtx.setLineDash([4, 4]); uiCtx.stroke();
-    uiCtx.restore();
-  }
+  renderObjectSelection(uiCtx);
+  renderToolCursor(uiCtx);
 
   if (state.poly.length > 0 && state.tool === 'shapes' && (state.shape === 'poly' || state.shape === 'spline' || state.shape === 'polygon')) {
     strokePath(state.shape === 'spline' ? splinePoints(state.poly) : state.poly, uiCtx, false, false);

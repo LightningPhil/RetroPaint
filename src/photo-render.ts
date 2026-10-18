@@ -4,12 +4,13 @@ import { processPhoto } from './photo-engine';
 import type { CropBox } from './photo-engine';
 import { PhotoProcessor } from './photo-processor';
 import type { PhotoRecipe } from './photo-recipe';
+import { invalidatePicture } from './render-state';
 
 interface RenderCache { canvas:HTMLCanvasElement; source:HTMLCanvasElement; stamp:string; busy:boolean; time:number }
 const cache=new WeakMap<PhotoRecipe,RenderCache>(),versions=new WeakMap<HTMLCanvasElement,number>();
 const processor=new PhotoProcessor();let epoch=0;
-export function invalidatePhotoCanvas(canvas:HTMLCanvasElement):void { versions.set(canvas,(versions.get(canvas)||0)+1); }
-export function invalidatePhotoRenders():void { epoch++; }
+export function invalidatePhotoCanvas(canvas:HTMLCanvasElement):void { versions.set(canvas,(versions.get(canvas)||0)+1);invalidatePicture(); }
+export function invalidatePhotoRenders():void { epoch++;invalidatePicture(); }
 export function seedPhotoRender(recipe:PhotoRecipe,source:HTMLCanvasElement,image:ImageData):void {
   const canvas=document.createElement('canvas');canvas.width=image.width;canvas.height=image.height;canvas.getContext('2d')!.putImageData(image,0,0);
   cache.set(recipe,{canvas,source,stamp:`${epoch}:${versions.get(source)||0}:${JSON.stringify(documentCrop())}`,busy:false,time:performance.now()});
@@ -34,7 +35,7 @@ export function renderPhotoSurface(recipe:PhotoRecipe,source:HTMLCanvasElement,c
     entry.busy=true;const pending=entry,scale=animated?Math.min(1,640/Math.max(composite.width,composite.height)):1,sample=document.createElement('canvas');
     sample.width=Math.max(1,Math.round(composite.width*scale));sample.height=Math.max(1,Math.round(composite.height*scale));sample.getContext('2d')!.drawImage(composite,0,0,sample.width,sample.height);
     void processor.process(sample.getContext('2d')!.getImageData(0,0,sample.width,sample.height),{...recipe.settings,crop:documentCrop()}).then(image=>{
-      pending.canvas.width=image.width;pending.canvas.height=image.height;pending.canvas.getContext('2d')!.putImageData(image,0,0);pending.source=source;pending.stamp=stamp;pending.time=now;
+      pending.canvas.width=image.width;pending.canvas.height=image.height;pending.canvas.getContext('2d')!.putImageData(image,0,0);pending.source=source;pending.stamp=stamp;pending.time=now;invalidatePicture();
     }).catch(()=>{pending.stamp=stamp;pending.time=now;}).finally(()=>{pending.busy=false;});
   }
   return entry.canvas;

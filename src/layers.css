@@ -1,3 +1,4 @@
+:root { --palette-width:260px; }
 #layersToggle { position:absolute; left:4px; bottom:4px; z-index:6; min-height:48px; max-width:calc(100% - 120px); padding:6px 12px; gap:9px; border-radius:14px; background:#eee2ff; }
 #layersToggle > span:first-child { display:flex; }
 .layer-toggle-label { display:flex; flex-direction:column; align-items:flex-start; line-height:1.15; min-width:0; }
@@ -5,7 +6,7 @@
 #layerCount { display:grid; place-items:center; min-width:23px; height:23px; padding:0 4px; border:1.5px solid var(--ink); border-radius:50%; background:#fffdf7; font-size:11px; }
 #layersToggle[aria-expanded=true] { background:#dac8fa; }
 #canvasSlot:has(#selectionQuick.visible) #layersToggle { bottom:76px; }
-#layersPanel { position:absolute; top:4px; right:4px; z-index:10; display:flex; flex-direction:column; gap:10px; width:260px; max-height:calc(100% - 60px); padding:12px; border:3px solid var(--ink); border-radius:18px; background:var(--paper); box-shadow:4px 5px 0 #26304730; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
+#layersPanel { position:absolute; top:4px; right:4px; z-index:10; display:flex; flex-direction:column; gap:10px; width:var(--palette-width); max-height:calc(100% - 60px); padding:12px; border:3px solid var(--ink); border-radius:18px; background:var(--paper); box-shadow:4px 5px 0 #26304730; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
 .layers-heading { display:flex; align-items:center; justify-content:space-between; flex:0 0 auto; gap:8px; }
 #layersTitle { display:flex; align-items:center; gap:8px; font-size:20px; }
 .layer-icon-button { display:grid; place-items:center; flex:0 0 auto; min-width:36px; min-height:40px; padding:4px; border:0; border-radius:9px; background:transparent; cursor:pointer; }
@@ -47,6 +48,7 @@
 .layer-options-body .hint { font-size:10px; }
 #canvasSlot.layer-space #paperControls,#canvasSlot.layer-space #zoomReadout { right:var(--dock-space,280px); }
 @media(max-width:1000px), (max-height:550px) {
+  :root { --palette-width:min(340px,calc(100vw - 16px)); }
   #layersPanel { position:fixed; top:auto; bottom:max(64px,calc(env(safe-area-inset-bottom) + 64px)); right:max(8px,env(safe-area-inset-right)); width:min(340px,calc(100% - 16px)); max-height:min(440px,calc(100dvh - 90px)); z-index:30; gap:8px; }
   #layersPanel.layer-options-open { bottom:max(8px,env(safe-area-inset-bottom)); max-height:calc(100dvh - 16px); }
   #layersPanel #layerList { max-height:230px; }

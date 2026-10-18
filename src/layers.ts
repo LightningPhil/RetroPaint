@@ -7,6 +7,8 @@ import type { PhotoRecipe } from './photo-recipe';
 import { hasPhotoAdjustments } from './photo-recipe';
 import { fullPhotoPixels, renderPhotoPixels, renderPhotoSurface } from './photo-render';
 import { documentCrop } from './document-frame';
+import { drawObjects, drawSceneObjects, multiply, objectAnimated, objectCapture, type PaintObject } from './object-scene';
+import type { CadLayer } from './cad-model';
 
 export interface Layer {
   id: number;
@@ -17,6 +19,8 @@ export interface Layer {
   opacity: number;
   paper: string | null;
   photo?: PhotoRecipe;
+  objects?: PaintObject[];
+  cad?: CadLayer;
 }
 export interface LayerSnapshot extends Omit<Layer, 'canvas'> { image: ImageData }
 const emptyLive = (): LiveSnapshot => ({ strokes: [], fills: [], sparkles: [] });
@@ -38,22 +42,22 @@ export function switchLayer(id: number): void {
 function surface(width = W, height = H): HTMLCanvasElement {
   const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height; return canvas;
 }
-export function addLayer(): void {
+export function addLayer(cad?: CadLayer): void {
   storeActive();
   let number = 1; while (layers.some(layer => layer.name === `Layer ${number}`)) number++;
-  const layer: Layer = { id: nextId++, name: `Layer ${number}`, canvas: surface(), live: emptyLive(), visible: true, opacity: 1, paper: null };
+  const layer: Layer = { id: nextId++, name: `Layer ${number}`, canvas: surface(), live: emptyLive(), visible: true, opacity: 1, paper: null, cad };
   layers.splice(layers.indexOf(activeLayer()) + 1, 0, layer);
   activate(layer); layerChanged();
 }
 export function duplicateLayer(): void {
   storeActive(); const original = activeLayer();
-  const layer = { ...original, photo:original.photo?structuredClone(original.photo):undefined, id: nextId++, name: `${original.name} copy`, canvas: cloneCanvas(original.canvas), live: snapshotLive() };
+  const layer = { ...original, cad:original.cad?{units:'mm' as const,bodies:original.cad.bodies.map(b=>({...b,id:crypto.randomUUID()}))}:undefined, objects:original.objects?.map(object=>object.kind==='raster'&&object.wet?{...object,image:cloneCanvas(object.image),wet:false}:{...object}), photo:original.photo?structuredClone(original.photo):undefined, id: nextId++, name: `${original.name} copy`, canvas: cloneCanvas(original.canvas), live: snapshotLive() };
   layers.splice(layers.indexOf(original) + 1, 0, layer); activate(layer); layerChanged();
 }
-export function deleteLayer(): void {
+export function deleteLayer(id=activeLayerId): void {
   if (layers.length === 1) return;
-  const index = layers.indexOf(activeLayer()); layers.splice(index, 1);
-  activate(layers[Math.max(0, index - 1)]); layerChanged();
+  const index = layers.findIndex(layer=>layer.id===id);if(index<0)return;const selected=id===activeLayerId;layers.splice(index, 1);
+  if(selected)activate(layers[Math.max(0, index - 1)]); layerChanged();
 }
 export function reorderLayer(direction: number): void {
   const index = layers.indexOf(activeLayer()), target = index + direction;
@@ -71,14 +75,14 @@ export function moveLayer(id: number, targetId: number, above: boolean): boolean
 export function canAddLayer(): boolean { return layers.length < 16 && W * H * (layers.length + 1) <= 64_000_000; }
 
 export function drawLayerThumbnail(ctx: CanvasRenderingContext2D, layer: Layer, now: number): void {
-  const live = layer.id === activeLayerId ? currentLive() : layer.live;
+  const live = layer.id === activeLayerId && objectCapture?.layer!==layer.id ? currentLive() : layer.live;
   let source = layer.canvas;
-  if (live.strokes.length || live.fills.length || live.sparkles.length) {
+  if (live.strokes.length || live.fills.length || live.sparkles.length || layer.objects?.length) {
     thumbnailBuffer ??= surface();
     if (thumbnailBuffer.width !== W || thumbnailBuffer.height !== H) { thumbnailBuffer.width = W; thumbnailBuffer.height = H; }
     const buffer = thumbnailBuffer.getContext('2d')!;
     resetPaint(buffer); buffer.clearRect(0, 0, W, H); buffer.drawImage(layer.canvas, 0, 0);
-    renderLiveSnapshot(buffer, live, now); source = thumbnailBuffer;
+    renderLiveSnapshot(buffer, live, now); drawSceneObjects(buffer,layer.objects,layer.id,now); source = thumbnailBuffer;
   }
   if(layer.photo&&hasPhotoAdjustments(layer.photo.settings))source=renderPhotoSurface(layer.photo,layer.canvas,source,now,Boolean(live.fills.length||live.strokes.length||live.sparkles.length));
   resetPaint(ctx); ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -87,32 +91,35 @@ export function drawLayerThumbnail(ctx: CanvasRenderingContext2D, layer: Layer, 
 }
 export function mergeLayerDown(now = performance.now()): void {
   const index = layers.indexOf(activeLayer()); if (!index) return;
+  if (layers[index].cad || layers[index - 1].cad) return;
   storeActive();
   const lower = layers[index - 1], upper = layers[index], canvas = surface();
   const ctx = canvas.getContext('2d')!;
   for (const layer of [lower, upper]) {
     if (!layer.visible) continue;
-    const image = cloneCanvas(layer.canvas); renderLiveSnapshot(image.getContext('2d')!, layer.live, now);
+    const image = cloneCanvas(layer.canvas); renderLiveSnapshot(image.getContext('2d')!, layer.live, now); drawObjects(image.getContext('2d')!,layer.objects,now);
     if(layer.photo)image.getContext('2d')!.putImageData(renderPhotoPixels(layer.photo,image),0,0);
     ctx.globalAlpha = layer.opacity; ctx.drawImage(image, 0, 0);
   }
-  lower.canvas = canvas; lower.photo=undefined; lower.live = emptyLive(); lower.opacity = 1; lower.visible = true;
+  lower.canvas = canvas; lower.objects=undefined; lower.photo=undefined; lower.live = emptyLive(); lower.opacity = 1; lower.visible = true;
   layers.splice(index, 1); activate(lower); layerChanged();
 }
 export function resetLayers(width = W, height = H, paper: string | null = '#ffffff'): void {
-  state.spiro.cx = width / 2; state.spiro.cy = height / 2; state.spiro.R = Math.max(8, Math.min(200, width / 3, height / 3));
+  state.spiro.cx = width / 2; state.spiro.cy = height / 2; state.spiro.R = Math.max(1, Math.min(width,height) / 3);
   setCanvasSize(width, height); clearLive();
   const canvas = surface();
   if (paper) { const ctx = canvas.getContext('2d')!; ctx.fillStyle = paper; ctx.fillRect(0, 0, W, H); }
   const layer: Layer = { id: nextId++, name: paper ? 'Paper' : 'Layer 1', canvas, live: emptyLive(), visible: true, opacity: 1, paper };
   layers.splice(0, layers.length, layer); activate(layer); layerChanged();
+  emit('document-created');
 }
 export function captureLayers(): LayerSnapshot[] {
   return layers.map(layer => {
     const { canvas, ...metadata } = layer;
     return { ...metadata,
+    objects:layer.objects?.map(object=>object.kind==='raster'&&object.wet?{...object,image:cloneCanvas(object.image)}:object),
     image: canvas.getContext('2d')!.getImageData(0, 0, W, H),
-    live: layer.id === activeLayerId ? snapshotLive() : cloneLive(layer.live),
+    live: layer.id === activeLayerId && objectCapture?.layer!==layer.id ? snapshotLive() : cloneLive(layer.live),
   }; });
 }
 function cloneLive(snap: LiveSnapshot): LiveSnapshot {
@@ -138,21 +145,25 @@ export function renderLayers(ctx: CanvasRenderingContext2D, now: number, activeO
     const preview=photoPreview(layer.id);
     resetPaint(buffer); buffer.clearRect(0, 0, W, H); buffer.drawImage(preview??layer.canvas, 0, 0, W, H);
     if (!preview) {
-      if (layer.id === activeLayerId) { renderLive(buffer, now); activeOverlay?.(buffer); }
+      if (layer.id === activeLayerId && objectCapture?.layer!==layer.id) renderLive(buffer, now);
       else renderLiveSnapshot(buffer, layer.live, now);
+      drawSceneObjects(buffer,layer.objects,layer.id,now);
+      if(layer.id===activeLayerId)activeOverlay?.(buffer);
     }
     const live=layer.id===activeLayerId?currentLive():layer.live;
-    const adjusted=!preview&&layer.photo&&hasPhotoAdjustments(layer.photo.settings)?renderPhotoSurface(layer.photo,layer.canvas,composite,now,Boolean(live.fills.length||live.strokes.length||live.sparkles.length)):composite;
+    const adjusted=!preview&&layer.photo&&hasPhotoAdjustments(layer.photo.settings)?renderPhotoSurface(layer.photo,layer.canvas,composite,now,Boolean(live.fills.length||live.strokes.length||live.sparkles.length||layer.objects?.some(objectAnimated)||objectCapture?.layer===layer.id)):composite;
     ctx.globalAlpha = layer.opacity; ctx.drawImage(adjusted, 0, 0, W, H);
   }
   resetPaint(ctx);
 }
 export function renderActive(ctx: CanvasRenderingContext2D, now: number): void {
-  resetPaint(ctx); ctx.clearRect(0, 0, W, H); ctx.drawImage(activeLayer().canvas, 0, 0); renderLive(ctx, now);
+  const layer=activeLayer();resetPaint(ctx); ctx.clearRect(0, 0, W, H); ctx.drawImage(layer.canvas, 0, 0);
+  if(objectCapture?.layer===layer.id)renderLiveSnapshot(ctx,layer.live,now);else renderLive(ctx, now);
+  drawSceneObjects(ctx,layer.objects,layer.id,now);
 }
 export async function renderFullPicture(now:number):Promise<HTMLCanvasElement> {
   const output=surface(),crop=documentCrop(),pending=layers.filter(layer=>layer.visible).map(layer=>{
-    const canvas=cloneCanvas(layer.canvas);renderLiveSnapshot(canvas.getContext('2d')!,layer.id===activeLayerId?currentLive():layer.live,now);
+    const canvas=cloneCanvas(layer.canvas);renderLiveSnapshot(canvas.getContext('2d')!,layer.id===activeLayerId?currentLive():layer.live,now);drawObjects(canvas.getContext('2d')!,layer.objects,now);
     return {canvas,opacity:layer.opacity,photo:layer.photo};
   });
   const ctx=output.getContext('2d')!;
@@ -174,6 +185,7 @@ export function transformLayers(width: number, height: number, matrix: Matrix, e
   const kit = point({ x: state.spiro.cx, y: state.spiro.cy });
   state.spiro.cx = Math.max(0, Math.min(width, kit.x)); state.spiro.cy = Math.max(0, Math.min(height, kit.y)); state.spiro.R = Math.max(8, state.spiro.R * scale);
   for (const layer of layers) {
+    layer.objects=layer.objects?.map(object=>({...object,matrix:multiply(matrix,object.matrix)}));
     const canvas = surface(width, height), ctx = canvas.getContext('2d')!;
     ctx.imageSmoothingEnabled = smooth;
     if (extendPaper && layer.paper) { ctx.fillStyle = layer.paper; ctx.fillRect(0, 0, width, height); }

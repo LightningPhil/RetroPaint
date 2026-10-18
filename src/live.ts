@@ -39,6 +39,10 @@ const pathCache = new WeakMap<LiveStroke, { count: number; bitmap: ReturnType<ty
 export function isStaticStroke(spec: LiveSpec): boolean {
   return ['neon', 'solid', 'rainbow', 'glitter'].includes(spec.kind);
 }
+export function liveAnimated(snapshot:LiveSnapshot):boolean {
+  const changing=(spec:LiveSpec)=>!isStaticStroke(spec)||Boolean(spec.texture);
+  return Boolean(snapshot.sparkles.length||snapshot.strokes.some(stroke=>changing(stroke.spec))||snapshot.fills.some(fill=>fill.sparkles.length||changing(fill.spec)||fill.gradient&&!fill.gradient.preset&&[fill.gradient.from,fill.gradient.to].some(ink=>ink==='live'||ink.startsWith('tex-'))));
+}
 
 export function hasLive(): boolean {
   return strokes.length > 0 || fills.length > 0 || sparkles.length > 0;

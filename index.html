@@ -31,13 +31,13 @@
     <button type="button" class="tool-btn magic" data-tool="spiro"><span>⚙️</span>Spiro</button>
     <button type="button" class="tool-btn" data-tool="text"><span>🔤</span>Text</button>
     <button type="button" class="tool-btn" data-tool="picker"><span>💉</span>Pick colour</button>
+    <button type="button" id="layersToggle" class="tool-btn advanced-tool" aria-controls="layersPanel" aria-expanded="false" title="Layers (L)" hidden><span aria-hidden="true">▱</span><span class="layer-toggle-label">Layers<small id="activeLayerName">Paper</small></span><span id="layerCount">1</span></button>
   </aside>
 
   <div id="canvasSlot">
     <div id="stage">
 
     </div>
-    <button type="button" id="layersToggle" class="choice" aria-controls="layersPanel" aria-expanded="false" title="Layers (L)"><span aria-hidden="true">▱</span><span class="layer-toggle-label">Layers<small id="activeLayerName">Paper</small></span><span id="layerCount">1</span></button>
     <aside id="layersPanel" aria-labelledby="layersTitle" hidden>
       <div class="layers-heading"><strong id="layersTitle">Layers</strong><button type="button" id="closeLayers" class="layer-icon-button" aria-label="Close layers">✕</button></div>
       <button type="button" class="choice" id="addLayer">＋ New layer</button>
@@ -225,7 +225,7 @@
 
   <div id="spiroDrawer" class="drawer">
     <strong>Spiro kit</strong>
-    <label class="teeth-field" id="ringField">↔ Ring size <input id="ringSize" type="range" min="60" max="290" value="200"></label>
+    <label class="teeth-field" id="ringField">↔ Ring radius <input id="ringSize" type="number" min="0.5" step="1" value="200" aria-label="Spiro ring radius in pixels"> px</label>
     <label class="teeth-field" id="outerField">Outer teeth <input id="outerTeeth" type="number" min="40" max="180" value="96"></label>
     <div id="outerChoices" class="row"></div>
     <label class="teeth-field" id="innerField">Inner teeth <input id="innerTeeth" type="number" min="10" max="170" value="36"></label>
@@ -276,11 +276,13 @@
   </div>
 
   <div id="studioDrawer" class="drawer">
-    <strong>Paint toolbox</strong>
+    <div class="studio-heading"><strong>Paint toolbox</strong><label class="advanced-switch"><input id="advancedMode" type="checkbox" role="switch"> Advanced mode</label></div>
+    <label class="drawing-mode-field">Draw with <select id="drawingMode" aria-label="Vectors or raster"><option value="raster">Raster · pixels</option><option value="vector">Vectors · editable pieces</option></select></label>
+    <button type="button" class="choice" id="openCad">🧊 3D workshop · build &amp; print</button>
     <div class="tray-tabs studio-tabs" role="tablist" aria-label="Paint toolbox">
       <button type="button" class="tray-tab active" data-studio="file" role="tab" aria-selected="true">📁 File</button>
       <button type="button" class="tray-tab" data-studio="image" role="tab" aria-selected="false">🖼 Image</button>
-      <button type="button" class="tray-tab" data-studio="layers" role="tab" aria-selected="false">🥞 Layers</button>
+      <button type="button" class="tray-tab" data-studio="layers" role="tab" aria-selected="false">✨ Advanced</button>
       <button type="button" class="tray-tab" data-studio="view" role="tab" aria-selected="false">🔍 View</button>
     </div>
     <div class="studio-panel" data-studio-panel="file">
@@ -303,8 +305,10 @@
       <p class="hint">Background removal clears colours connected to the top-left corner, using this tolerance. Best for flat backgrounds.</p>
     </div>
     <div class="studio-panel" data-studio-panel="layers" hidden>
-      <p class="hint">Layers are clear sheets you can paint on separately. Your stack now lives beside the paper.</p>
+      <p class="hint">Advanced mode adds Layers and Photo lab to the main tool palette. Turning it off keeps your artwork and saved adjustments.</p>
       <button type="button" class="choice" id="openLayers">Open layers</button>
+      <button type="button" class="choice" id="openSuperResolution">✨ Super resolution · 2× / 4×</button>
+      <p class="hint">Make a larger, enhanced copy with on-device AI. Compare the result before saving; your original stays untouched.</p>
     </div>
     <div class="studio-panel" data-studio-panel="view" hidden>
       <div class="row"><button type="button" class="choice" id="viewZoomOut">Zoom −</button><button type="button" class="choice" id="viewZoomIn">Zoom ＋</button><button type="button" class="choice" id="viewFit">Fit picture</button><button type="button" class="choice" id="viewActual">Actual pixels</button></div>

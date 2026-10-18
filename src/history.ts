@@ -5,6 +5,7 @@ import { activeLayerId, captureLayers, restoreLayers, type LayerSnapshot } from 
 import { emit } from './bus';
 import { documentCrop, setDocumentCrop } from './document-frame';
 import type { CropBox } from './photo-engine';
+import { play } from './audio';
 
 export interface Hist {
   image: ImageData;
@@ -43,7 +44,7 @@ export function pushHistory(item = captureHistory()): void {
   artwork.markWork();
   if (stack.length > 20) stack.shift();
   // Keep large multilayer documents within a predictable memory budget.
-  while (stack.length > 1 && stack.reduce((sum, entry) => sum + entry.width * entry.height * entry.layers.length * 4, 0) > 192_000_000) stack.shift();
+  while (stack.length > 1 && stack.reduce((sum, entry) => sum + entry.width * entry.height * entry.layers.length * 4 + entry.layers.reduce((total,layer)=>total+(layer.objects??[]).reduce((bytes,o)=>bytes+(o.kind==='raster'?o.image.width*o.image.height*4:0),0),0), 0) > 192_000_000) stack.shift();
   emit('history');
 }
 
@@ -54,12 +55,13 @@ export function undo(): void {
   }
   future.push(captureHistory());
   restoreHistory(item);
+  play('undo');
   emit('history');
 }
 
 export function redo(): void {
   const item = future.pop(); if (!item) return;
-  stack.push(captureHistory()); restoreHistory(item); emit('history');
+  stack.push(captureHistory()); restoreHistory(item);play('redo'); emit('history');
 }
 export function canUndo(): boolean { return stack.length > 0; }
 export function canRedo(): boolean { return future.length > 0; }

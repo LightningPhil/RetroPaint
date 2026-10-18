@@ -1,12 +1,12 @@
 import { activeSector, insideSector, clipLane } from './symmetry-mask';
 import { symmetryTransforms } from './symmetry';
 import { neonColor } from './color';
-import { play } from './audio';
+import { playDrawing } from './audio';
 import { renderPaintPath } from './stroke-renderer';
 import { baseCtx, paintThroughMask, viewCtx, W, H } from './canvas';
 import { mirrorPoints } from './draw';
 import { pushHistory } from './history';
-import { addFill, addSparkle, blankMask, renderLive, subtractMask } from './live';
+import { addFill, addSparkle, blankMask, subtractMask } from './live';
 import {
   activeInkId,
   animatedKind,
@@ -22,6 +22,8 @@ import { currentAlpha, state, strokeApplicator } from './state';
 import type { GradientLine, LiveSpec, Spark } from './types';
 import type { ShapeKind } from './types';
 import { shapePoints } from './shapes';
+import { beginObjectStroke, finishObjectStroke } from './objects';
+import { renderActive } from './layers';
 
 export interface PendingGradient {
   mask: HTMLCanvasElement;
@@ -114,6 +116,7 @@ export function lockPending(): void {
   pending = null;
   dragPin = null;
   pushHistory();
+  const objectStroke=beginObjectStroke('Gradient fill');
   const line: GradientLine = {
     x1: item.x1,
     y1: item.y1,
@@ -137,11 +140,13 @@ export function lockPending(): void {
   } else {
     paintGradient(baseCtx, item.mask, line, performance.now());
   }
-  play('splash');
+  playDrawing('splash');
+  if(objectStroke)finishObjectStroke();
 }
 
 function commitMask(mask: HTMLCanvasElement): void {
   pushHistory();
+  const objectStroke=beginObjectStroke('Fill');
   subtractMask(mask);
   const id = activeInkId();
   const spec = fillSpecFor(id);
@@ -155,7 +160,8 @@ function commitMask(mask: HTMLCanvasElement): void {
   } else {
     paintSolid(baseCtx, mask, id);
   }
-  play('splash');
+  playDrawing('splash');
+  if(objectStroke)finishObjectStroke();
 }
 
 function paintSolid(ctx: CanvasRenderingContext2D, mask: HTMLCanvasElement, id: string): void {
@@ -312,10 +318,7 @@ function maskToCanvas(mask: Uint8Array): HTMLCanvasElement {
 }
 
 function paintViewReady(): void {
-  viewCtx.setTransform(1, 0, 0, 1, 0, 0);
-  viewCtx.clearRect(0, 0, W, H);
-  viewCtx.drawImage(baseCtx.canvas, 0, 0);
-  renderLive(viewCtx, performance.now());
+  renderActive(viewCtx,performance.now());
 }
 
 export function drawShape(kind: ShapeKind, x0: number, y0: number, x1: number, y1: number, ctx: CanvasRenderingContext2D, commit: boolean): void {

@@ -1,6 +1,12 @@
 import { shapePoints } from './shapes';
 import type { ShapeKind } from './types';
 const paths: Record<string, string> = {
+  soundOn:'<path fill="#b7dce0" d="M3 9h4l5-5v16l-5-5H3z"/><path d="M16 8c3 2 3 6 0 8m3-11c5 4 5 10 0 14"/>',
+  soundOff:'<path fill="#d6c4e6" d="M3 9h4l5-5v16l-5-5H3z"/><path d="m16 9 6 6m0-6-6 6"/>',
+  redo:'<path d="m15 3 6 6-6 6m6-6H10a7 7 0 0 0 0 14"/>',
+  centre:'<path d="M3 8V3h5m8 0h5v5m0 8v5h-5M8 21H3v-5M12 7v10m-5-5h10"/>',
+  help:'<circle fill="#d8c7ee" cx="12" cy="12" r="10"/><path d="M9 8c0-4 7-4 7 0 0 3-4 3-4 6m0 4h.01"/>',
+  delete:'<path fill="#eeb5c6" d="m5 7 1 15h12l1-15z"/><path d="M3 7h18M9 7V3h6v4M10 11v7m4-7v7"/>',
   photo: '<rect x="2" y="5" width="20" height="16" rx="3" fill="#bce6ed"/><path d="m8 5 2-3h4l2 3"/><circle cx="12" cy="13" r="5" fill="#fffdf7"/><circle cx="12" cy="13" r="2" fill="#d9b5f6"/>',
   layers: '<path fill="#d9b5f6" d="m12 2 10 6-10 6L2 8z"/><path d="m2 12 10 6 10-6M2 16l10 6 10-6"/>',
   eye: '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle fill="#93dfbd" cx="12" cy="12" r="3"/>',

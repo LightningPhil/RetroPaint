@@ -1,6 +1,6 @@
 import { artwork } from './artwork';
 import { activeSector, clipSegment, paintSectorPatch } from './symmetry-mask';
-import { play } from './audio';
+import { play,playDrawing } from './audio';
 import { base, baseCtx, cloneCanvas, H, W } from './canvas';
 import { pushHistory } from './history';
 import { bakeLive, clearLive } from './live';
@@ -8,6 +8,7 @@ import { currentWidth, state } from './state';
 import { advectMany } from './smudge';
 import { mirrorMotion } from './symmetry';
 import { renderLayers, resetLayers } from './layers';
+import { finishObjectStroke } from './objects';
 
 export interface Drip {
   x: number;
@@ -75,14 +76,14 @@ export function tickSqueegee(dt: number): void {
   }
 }
 
-export function startHole(x: number, y: number): void {
+export function startHole(x: number, y: number, history=true): void {
   if (isBusy() || x+58<=0 || y+58<=0 || x-58>=W || y-58>=H) return;
-  pushHistory();
+  if(history)pushHistory();
   bakeLive(baseCtx, performance.now());
   clearLive();
   hole = { x, y, r: 58, life: 1, src: baseCtx.getImageData(0, 0, W, H) };
   state.busy = true;
-  play('vwoop');
+  playDrawing('vwoop');
 }
 
 export function tickHole(dt: number): void {
@@ -129,6 +130,7 @@ export function tickHole(dt: number): void {
     }
     hole = null;
     state.busy = false;
+    finishObjectStroke();
   }
 }
 

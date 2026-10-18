@@ -7,6 +7,8 @@ import { applyPhoto, beginPhoto, cancelPhoto, comparePhoto, photoSession, refres
 import { icon } from './icons';
 import { expandPhotoFrame } from './document-frame';
 import { choosePhotoLook, newPhotoRecipe, photoManualChange, PHOTO_LOOKS, type PhotoRecipe } from './photo-recipe';
+import { advancedEnabled } from './advanced-mode';
+import { state } from './state';
 
 interface Actions { editable:()=>boolean; settle:()=>void; message:(text:string)=>void; open:()=>void }
 type Category='light'|'colour'|'curves'|'detail'|'effects'|'geometry';
@@ -25,13 +27,15 @@ const groups:Group[]=[
   {id:'detail-sharp',category:'detail',label:'Sharpening',sliders:[slider('sharpness','Sharpness',0,150),slider('radius','Radius',.5,3,.1,' px'),slider('threshold','Threshold · protect smooth areas',0,32)]},
   {id:'detail-noise',category:'detail',label:'Noise reduction',sliders:[slider('noise','Luminance noise',0,100),slider('colourNoise','Colour noise',0,100)],hint:'Smooth small speckles while protecting stronger edges.'},
   {id:'effects-vignette',category:'effects',label:'Vignette',sliders:[slider('vignette','Vignette · dark / light'),slider('midpoint','Midpoint',0,100),slider('feather','Feather',0,100),slider('roundness','Roundness',0,100)]},
-  {id:'effects-grain',category:'effects',label:'Film grain',sliders:[slider('grain','Grain',0,100)]},
+  {id:'effects-grain',category:'effects',label:'Film grain',sliders:[slider('grain','Amount',0,100),slider('grainSize','Size',.5,3,.1),slider('grainRoughness','Roughness',0,100)],hint:'Fine silver-like texture. Size sets the clumps; roughness varies their structure.'},
   {id:'geometry-crop',category:'geometry',label:'Crop & alignment grid',sliders:[],hint:'Drag a box on the paper or small preview. Move it from inside; resize with yellow corners. Crop trims every layer.'},
   {id:'geometry-align',category:'geometry',label:'Straighten & flip',sliders:[slider('angle','Straighten',-45,45,.1,'°'),slider('zoom','Scale · fill clear edges',50,200,1,'%')],hint:'Alignment moves this layer inside the existing frame.'},
   {id:'geometry-perspective',category:'geometry',label:'Perspective',sliders:[slider('vertical','Vertical perspective',-75,75),slider('horizontal','Horizontal perspective',-75,75)],hint:'Use the grid to make buildings and horizons look straight.'},
   {id:'geometry-lens',category:'geometry',label:'Lens correction',sliders:[slider('distortion','Barrel / pincushion'),slider('aberration','Red / blue fringe alignment')],hint:'Manual corrections for this layer; no camera or lens profile is required.'},
 ];
 const colours=['Red','Orange','Yellow','Green','Aqua','Blue','Purple','Magenta'];
+const shortPhoto=matchMedia('(max-height:550px)');
+const categoryNames:Record<Category,string>={light:'Light',colour:'Colour',curves:'Curves',detail:'Detail',effects:'Effects',geometry:'Geometry'};
 const field=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
 let actions:Actions,category:Category='light',group='light-basic',channel:CurveChannel='rgb',point=0,mixColour=0,cropRatio=0,picking=false,horizon=false,curvePointer:number|null=null;
 let cropDrag:{id:number;kind:string;start:{x:number;y:number};box:CropBox}|null=null;
@@ -86,6 +90,7 @@ function updateStatus():void{
 }
 function buildControls():void{
   const session=photoSession;if(!session)return;const selected=groups.find(g=>g.id===group)!,container=field('photoControls');
+  container.classList.toggle('photo-curves-controls',group==='curves');
   container.innerHTML=selected.sliders.map(s=>sliderMarkup(s,s.key,session.settings[s.key])).join('');
   if(group==='light-basic')container.insertAdjacentHTML('beforeend','<div class="photo-action-row"><button class="choice" id="photoAuto">✨ Auto light</button></div>');
   if(group==='colour-balance')container.insertAdjacentHTML('beforeend','<div class="photo-action-row"><button class="choice" id="photoAutoBalance">Auto WB</button><button class="choice" id="photoNeutral">💉 Pick neutral</button></div><p class="photo-hint">Temperature and tint are relative to your image. Pick a grey patch for a neutral starting point.</p>');
@@ -113,7 +118,9 @@ function buildControls():void{
 }
 function selectCategory(value:Category):void{
   category=value;group=groups.find(g=>g.category===category)!.id;picking=horizon=false;
-  const select=field<HTMLSelectElement>('photoGroup');select.innerHTML=groups.filter(g=>g.category===category).map(g=>`<option value="${g.id}">${g.label}</option>`).join('');
+  const select=field<HTMLSelectElement>('photoGroup');
+  select.innerHTML=shortPhoto.matches?Object.entries(categoryNames).map(([id,label])=>`<optgroup label="${label}">${groups.filter(g=>g.category===id).map(g=>`<option value="${g.id}">${g.label}</option>`).join('')}</optgroup>`).join(''):groups.filter(g=>g.category===category).map(g=>`<option value="${g.id}">${g.label}</option>`).join('');
+  select.value=group;
   for(const button of field('photoTabs').querySelectorAll<HTMLElement>('[data-photo-category]'))button.setAttribute('aria-pressed',String(button.dataset.photoCategory===category));
   buildControls();
 }
@@ -230,22 +237,23 @@ function bindPaper():void{
   target.addEventListener('pointerup',stop,true);target.addEventListener('pointercancel',stop,true);target.addEventListener('lostpointercapture',stop,true);
   }
 }
-function lockDrawing(locked:boolean):void{for(const id of ['toolBin','bottomTray','layersPanel'])field(id).inert=locked;for(const id of ['studioBtn','layersToggle'])field<HTMLButtonElement>(id).disabled=locked;field('canvasSlot').classList.toggle('editing-photo',locked);}
+function lockDrawing(locked:boolean):void{for(const id of ['bottomTray','layersPanel'])field(id).inert=locked;for(const button of field('toolBin').querySelectorAll<HTMLButtonElement>('button:not(.advanced-tool)'))button.disabled=locked;field('canvasSlot').classList.toggle('editing-photo',locked);}
 export function initPhotoUi(callbacks:Actions):void{
   actions=callbacks;
   const panel=document.createElement('aside');panel.id='photoPanel';panel.hidden=true;panel.setAttribute('aria-labelledby','photoTitle');
   panel.innerHTML=`<header class="photo-heading"><strong id="photoTitle">📸 Photo lab</strong><button type="button" id="photoOpen" title="Open a photo" aria-label="Open a photo">Open photo</button><button type="button" id="photoClose" aria-label="Cancel photo edits">✕</button></header><div class="photo-content"><div class="photo-choices"><div class="photo-info"><span id="photoTarget"></span><select id="photoLook" aria-label="Photo look" title="Try a look"><option value="normal">Normal</option><option value="custom" disabled>Custom</option>${Object.entries(PHOTO_LOOKS).map(([value,look])=>`<option value="${value}">${look.label}</option>`).join('')}</select><canvas id="photoHistogram" width="256" height="48" role="img" aria-label="RGB histogram"></canvas></div><div id="photoMini"><canvas id="photoMiniCanvas" width="400" height="180" aria-label="Photo preview"></canvas></div><nav id="photoTabs" aria-label="Photo adjustments">${([['light','☀️','Light'],['colour','🎨','Colour'],['curves','〰','Curves'],['detail','✨','Detail'],['effects','◉','Effects'],['geometry','▧','Geometry']] as const).map(([id,glyph,label])=>`<button type="button" data-photo-category="${id}" aria-pressed="false">${glyph} ${label}</button>`).join('')}</nav></div><div class="photo-adjustments"><div id="photoGroupRow"><select id="photoGroup" aria-label="Adjustment group"></select><button type="button" id="photoGroupReset" aria-label="Reset this adjustment group" title="Reset this group">↺</button></div><div id="photoControls"></div></div></div><output id="photoStatus" aria-live="polite"></output><footer class="photo-footer"><button type="button" class="choice" id="photoCompare" aria-pressed="false">Before</button><button type="button" class="choice" id="photoReset">Reset</button><button type="button" class="choice" id="photoCancel">Cancel</button><button type="button" class="choice" id="photoApply">Done</button></footer>`;
   field('canvasSlot').append(panel);
-  const toggle=document.createElement('button');toggle.type='button';toggle.id='photoToggle';toggle.className='choice';toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-controls','photoPanel');toggle.title='Photo lab (P)';toggle.innerHTML=icon('photo')+'<span>Photo lab</span>';field('canvasSlot').append(toggle);
+  const toggle=document.createElement('button');toggle.type='button';toggle.id='photoToggle';toggle.className='tool-btn advanced-tool';toggle.hidden=true;toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-controls','photoPanel');toggle.title='Photo lab (P)';toggle.innerHTML=icon('photo')+'<span>Photo lab</span>';field('toolBin').append(toggle);
   const open=()=>{
-    if(photoSession){cancelPhoto();return;}if(!actions.editable())return;
+    if(photoSession){cancelPhoto();return;}if(!advancedEnabled()||!actions.editable())return;
+    if(activeLayer().cad){actions.message('Choose a paint layer for Photo lab. Open the 3D workshop to edit solids.');return;}
     if(!activeLayer().visible||activeLayer().opacity===0){actions.message('Show this layer and raise its opacity before opening Photo lab.');return;}
-    actions.settle();restoreLayers=!field('layersPanel').hidden;beginPhoto();picking=horizon=false;cropRatio=0;point=0;panel.hidden=false;toggle.setAttribute('aria-expanded','true');lockDrawing(true);emit('close-options');emit('photo-panel',true);
+    actions.settle();restoreLayers=!field('layersPanel').hidden;beginPhoto();picking=horizon=false;cropRatio=0;point=0;panel.hidden=false;toggle.setAttribute('aria-expanded','true');toggle.classList.add('active');lockDrawing(true);emit('close-options');emit('photo-panel',true);
     const previousGroup=group;selectCategory(category);if(groups.some(g=>g.id===previousGroup&&g.category===category)){group=previousGroup;field<HTMLSelectElement>('photoGroup').value=group;buildControls();}
     field<HTMLSelectElement>('photoLook').focus({preventScroll:true});
   };
   toggle.addEventListener('click',open);
-  const moreButton=document.createElement('button');moreButton.type='button';moreButton.className='choice';moreButton.id='openPhotoLab';moreButton.textContent='📸 Photo lab';moreButton.addEventListener('click',open);document.querySelector('[data-studio-panel="image"]')!.prepend(moreButton);
+  const moreButton=document.createElement('button');moreButton.type='button';moreButton.className='choice';moreButton.id='openPhotoLab';moreButton.textContent='📸 Photo lab';moreButton.addEventListener('click',open);document.querySelector('[data-studio-panel="layers"]')!.insertBefore(moreButton,field('openSuperResolution'));
   for(const id of ['photoClose','photoCancel'])field(id).addEventListener('click',()=>cancelPhoto());
   field('photoApply').addEventListener('click',()=>{void applyPhoto().then(applied=>{if(applied)actions.message('Photo adjustments saved. Your original is kept; reopen Photo lab to change them.');}).catch(error=>actions.message(error instanceof Error?error.message:String(error)));});
   field('photoCompare').addEventListener('click',()=>{if(photoSession)comparePhoto(!photoSession.compare);});
@@ -254,13 +262,17 @@ export function initPhotoUi(callbacks:Actions):void{
   field<HTMLSelectElement>('photoLook').addEventListener('change',event=>{if(photoSession){choosePhotoLook(photoSession,(event.target as HTMLSelectElement).value);changed(false);}});
   field('photoGroupReset').addEventListener('click',resetGroup);
   for(const button of panel.querySelectorAll<HTMLButtonElement>('[data-photo-category]'))button.addEventListener('click',()=>selectCategory(button.dataset.photoCategory as Category));
-  field<HTMLSelectElement>('photoGroup').addEventListener('change',event=>{group=(event.target as HTMLSelectElement).value;picking=horizon=false;buildControls();});
+  field<HTMLSelectElement>('photoGroup').addEventListener('change',event=>{group=(event.target as HTMLSelectElement).value;category=groups.find(g=>g.id===group)!.category;for(const button of field('photoTabs').querySelectorAll<HTMLElement>('[data-photo-category]'))button.setAttribute('aria-pressed',String(button.dataset.photoCategory===category));picking=horizon=false;buildControls();});
+  shortPhoto.addEventListener('change',()=>{if(photoSession){const previous=group;selectCategory(category);group=previous;field<HTMLSelectElement>('photoGroup').value=group;buildControls();}});
   bus.addEventListener('photo-update',updateStatus);bus.addEventListener('photo-error',event=>{actions.message((event as CustomEvent<string>).detail);field('photoStatus').textContent='Preview failed. Cancel and try again.';});
-  bus.addEventListener('photo-end',()=>{panel.hidden=true;field('photoControls').replaceChildren();toggle.setAttribute('aria-expanded','false');picking=horizon=false;cropDrag=null;curvePointer=null;setPhotoGuides(null);view.classList.remove('photo-picking');lockDrawing(false);emit('restore-layers',restoreLayers);emit('photo-panel',false);toggle.focus({preventScroll:true});});
+  bus.addEventListener('photo-end',()=>{panel.hidden=true;field('photoControls').replaceChildren();toggle.setAttribute('aria-expanded','false');toggle.classList.remove('active');picking=horizon=false;cropDrag=null;curvePointer=null;setPhotoGuides(null);view.classList.remove('photo-picking');lockDrawing(false);emit('restore-layers',restoreLayers);emit('photo-panel',false);if(!toggle.hidden)toggle.focus({preventScroll:true});});
+  bus.addEventListener('advanced-mode',()=>{if(!advancedEnabled())cancelPhoto();});
+  bus.addEventListener('close-photo',()=>cancelPhoto());
   bus.addEventListener('image-opened',()=>{if(pendingImport){pendingImport=false;importDraft=null;category='light';group='light-basic';open();}});
   bus.addEventListener('image-open-cancelled',()=>{if(pendingImport){pendingImport=false;const draft=importDraft;importDraft=null;open();if(photoSession&&draft){Object.assign(photoSession,draft);buildControls();changed(false);}}});
   bus.addEventListener('photo-undo',event=>{if(photoSession){event.preventDefault();cancelPhoto();}});
   document.addEventListener('keydown',event=>{
+    if(state.cad.open)return;
     const target=event.target,typing=target instanceof HTMLInputElement&&target.type!=='range'||target instanceof HTMLTextAreaElement||target instanceof HTMLSelectElement;
     if(photoSession){
       if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();cancelPhoto();toggle.focus();return;}

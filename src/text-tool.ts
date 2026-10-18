@@ -3,6 +3,8 @@ import { H, W } from './canvas';
 import { previewColor } from './materials';
 import { pasteImage } from './selection';
 import { state } from './state';
+import { addPaintObject, objectId } from './objects';
+import type { TextObject } from './object-scene';
 
 export interface TextOptions {
   text: string; font: string; size: number; width: number;
@@ -13,7 +15,7 @@ export const textOptions: TextOptions = { text: '', font: 'Trebuchet MS', size: 
 let anchor: { x: number; y: number } | null = null;
 let cached: HTMLCanvasElement | null = null, signature = '';
 
-export function makeTextBitmap(options: TextOptions, ink = previewColor(state.ink), paper = state.secondaryInk): HTMLCanvasElement {
+export function makeTextBitmap(options: TextOptions, ink = previewColor(state.ink), paper = state.secondaryInk, layout?:Partial<TextObject>): HTMLCanvasElement {
   const canvas = document.createElement('canvas'), ctx = canvas.getContext('2d')!;
   const size = Math.max(6, Math.min(300, options.size)), width = Math.max(20, Math.min(4096, options.width));
   const font = `${options.italic ? 'italic ' : ''}${options.bold ? 'bold ' : ''}${size}px "${options.font.replace(/["\\]/g, '')}"`;
@@ -35,6 +37,7 @@ export function makeTextBitmap(options: TextOptions, ink = previewColor(state.in
   if (options.opaque) { ctx.fillStyle = paper; ctx.fillRect(0, 0, canvas.width, canvas.height); }
   ctx.font = font; ctx.textBaseline = 'top'; ctx.textAlign = options.align; ctx.fillStyle = ink;
   const x = options.align === 'center' ? width / 2 : options.align === 'right' ? width - 4 : 4;
+  if(layout)Object.assign(layout,{kind:'text',width:canvas.width,height:canvas.height,font,size,align:options.align,color:ink,paper:options.opaque?paper:null,underline:options.underline,strike:options.strike,lines:lines.map((text,i)=>({text,x,y:4+i*size*1.35,width:ctx.measureText(text).width}))});
   lines.forEach((line, i) => {
     const y = 4 + i * size * 1.35;
     ctx.fillText(line, x, y);
@@ -54,6 +57,11 @@ export function hasText(): boolean { return Boolean(textOptions.text.trim()); }
 export function cancelText(): void { anchor = null; textOptions.text = ''; cached = null; emit('text'); }
 export function placeText(): void {
   if (!hasText()) return;
+  if(state.drawingMode==='vector'){
+    const object:Partial<TextObject>={id:objectId(),name:'Text',opacity:state.opacity};makeTextBitmap(textOptions,previewColor(state.ink),state.secondaryInk,object);
+    const p=anchor??{x:Math.max(0,(W-object.width!)/2),y:Math.max(0,(H-object.height!)/2)};object.matrix=[1,0,0,1,p.x,p.y];addPaintObject(object as TextObject);
+    anchor=null;textOptions.text='';cached=null;emit('text');state.tool='scissors';emit('tool-request');return;
+  }
   let image = bitmap();
   if (state.opacity < 1) {
     const faded = document.createElement('canvas'); faded.width = image.width; faded.height = image.height;
@@ -88,6 +96,7 @@ export function bindText(): void {
   document.getElementById('placeText')!.addEventListener('click', placeText);
   document.getElementById('cancelText')!.addEventListener('click', cancelText);
   document.addEventListener('keydown', event => {
+    if(state.cad.open)return;
     if (event.ctrlKey && event.key === 'Enter' && state.tool === 'text') { event.preventDefault(); placeText(); }
   });
   bus.addEventListener('text', () => { content.value = textOptions.text; });
