@@ -1,0 +1,190 @@
+﻿source,line,name,status
+tests/colour-wheel.ts,41,Wheel button is on the palette with a visible colour icon,Definition inspected; not executed for this catalogue
+tests/colour-wheel.ts,47,"Wheel, brightness and actions fit without scrolling",Definition inspected; not executed for this catalogue
+tests/colour-wheel.ts,53,Cancelling a preview leaves the ink and selection untouched,Definition inspected; not executed for this catalogue
+tests/colour-wheel.ts,58,Touch chooses an arbitrary blue with one obvious selected swatch,Definition inspected; not executed for this catalogue
+tests/colour-wheel.ts,66,Custom wheel colour paints at the touched canvas point,Definition inspected; not executed for this catalogue
+tests/colour-wheel.ts,78,Wheel colour tints Neon and Glitter,Definition inspected; not executed for this catalogue
+tests/colour-wheel.ts,82,"Reopening and accepting preserves exact colours, including white and black",Definition inspected; not executed for this catalogue
+tests/colour-wheel.ts,88,Switching tools keeps one selected ring even for a preset wheel colour,Definition inspected; not executed for this catalogue
+tests/colour-wheel.ts,94,Brightness reaches black; wheel centre reaches white; outside drags clamp,Definition inspected; not executed for this catalogue
+tests/colour-wheel.ts,99,Keyboard wheel controls work and modal keys do not alter drawing state,Definition inspected; not executed for this catalogue
+tests/mobile.ts,41,Toolbar and all twelve tools fit without overlap,Definition inspected; not executed for this catalogue
+tests/mobile.ts,54,Fitted paper uses the phone bottom alignment or desktop centred alignment,Definition inspected; not executed for this catalogue
+tests/mobile.ts,59,Tool menus fit and keep most of the picture visible,Definition inspected; not executed for this catalogue
+tests/mobile.ts,78,Stamp and Spiro settings remain accessible in compact panels,Definition inspected; not executed for this catalogue
+tests/mobile.ts,88,Tool choices also leave most of the zoomed drawing space visible,Definition inspected; not executed for this catalogue
+tests/mobile.ts,101,All palette tabs fit and opening them does not move paper,Definition inspected; not executed for this catalogue
+tests/mobile.ts,112,"Text, colour picker and every toolbox panel fit the viewport",Definition inspected; not executed for this catalogue
+tests/mobile.ts,127,Colour wheel and exact colour controls remain usable on small screens,Definition inspected; not executed for this catalogue
+tests/mobile.ts,134,Zoom and pan preserve artwork and keep drawing coordinates accurate,Definition inspected; not executed for this catalogue
+tests/mobile.ts,159,"Layers are easy to add, choose, hide and rename without covering the paper afterwards",Definition inspected; not executed for this catalogue
+tests/mobile.ts,196,Layer drag handles and keyboard moves reorder sheets and support Undo,Definition inspected; not executed for this catalogue
+tests/mobile.ts,215,"Every Photo lab category fits, including crop, curves and lens controls, without scrolling",Definition inspected; not executed for this catalogue
+tests/mobile.ts,234,"Photo sliders preview reversibly, curve points are editable and crop can be dragged",Definition inspected; not executed for this catalogue
+tests/mobile.ts,259,"Look selection is persistent, Normal restores the pre-look image and manual changes show Custom across tabs",Definition inspected; not executed for this catalogue
+tests/mobile.ts,270,Launching restores panel context and file-picker cancellation keeps the draft; a new photo opens directly in Photo lab,Definition inspected; not executed for this catalogue
+tests/mobile.ts,279,Photo crop keeps source dimensions and preserves accurate drawing coordinates in the visible frame,Definition inspected; not executed for this catalogue
+tests/mobile.ts,285,"Advanced mode owns the palette buttons, preserves saved work and remains usable while Photo lab is open",Definition inspected; not executed for this catalogue
+tests/mobile.ts,298,"Super resolution offers both exact scales and a responsive, cancellable copy preview",Definition inspected; not executed for this catalogue
+tests/mobile.ts,306,Enhancement preview areas are selectable and normal large photos can enhance the whole image,Definition inspected; not executed for this catalogue
+tests/mobile.ts,316,Advanced mode keeps the original tool dimensions unchanged,Definition inspected; not executed for this catalogue
+tests/mobile.ts,320,Vector mode and exact piece controls fit the viewport and preserve artwork across mode switches,Definition inspected; not executed for this catalogue
+tests/mobile.ts,328,Sound and desk preferences fit without scrolling and mute controls stay in sync,Definition inspected; not executed for this catalogue
+tests/mobile.ts,337,Every keyboard help category fits without scrolling,Definition inspected; not executed for this catalogue
+tests/mobile.ts,343,Placement controls stay usable when a raster or vector extends beyond the paper,Definition inspected; not executed for this catalogue
+tests/mobile.ts,352,"Idle pictures avoid full repaints, cursors redraw independently and live ink keeps animating",Definition inspected; not executed for this catalogue
+tests/mobile.ts,361,A brief stroke updates the visible layer thumbnail after painting stops,Definition inspected; not executed for this catalogue
+tests/mobile.ts,367,Recent drafts paginate without scrolling and keep picture previews readable,Definition inspected; not executed for this catalogue
+tests/mobile.ts,376,CAD keeps the picture Layers palette usable for guide visibility and open after returning to Paint,Definition inspected; not executed for this catalogue
+tests/mobile.ts,395,"CAD launches from More, shares one 3D layer and supports exact transforms with Undo",Definition inspected; not executed for this catalogue
+tests/mobile.ts,401,CAD dragging the move handle keeps the gesture alive across history updates and commits one reversible move,Definition inspected; not executed for this catalogue
+tests/mobile.ts,411,CAD rotation rings and size handles transform geometry and Undo restores each gesture,Definition inspected; not executed for this catalogue
+tests/mobile.ts,419,"CAD alignment, repeated pieces and moving pieces between 3D layers keep dimensions and are reversible",Definition inspected; not executed for this catalogue
+tests/mobile.ts,426,CAD face snapping mates selected solid faces with opposite normals,Definition inspected; not executed for this catalogue
+tests/mobile.ts,433,CAD every tool category and sketch stage fits without scrolling at this viewport,Definition inspected; not executed for this catalogue
+tests/mobile.ts,441,"CAD flat-face picking, dimensioned sketches and inward circle cuts make real closed geometry",Definition inspected; not executed for this catalogue
+tests/mobile.ts,448,"CAD feature edits preview safely, rebuild the final solid and Undo as one change",Definition inspected; not executed for this catalogue
+tests/mobile.ts,453,CAD original hole sketches and through depths edit without losing the solid,Definition inspected; not executed for this catalogue
+tests/mobile.ts,459,CAD timeline rollback and feature suppression preserve history and fit the viewport,Definition inspected; not executed for this catalogue
+tests/mobile.ts,464,CAD edge picking toggles real edges and applies editable fillets and chamfers with Undo,Definition inspected; not executed for this catalogue
+tests/mobile.ts,474,CAD finish history reselects original edges and safely rejects impossible radii without scrolling,Definition inspected; not executed for this catalogue
+tests/mobile.ts,481,"CAD shell picks whole faces, previews safely and edits wall thickness with one-step Undo",Definition inspected; not executed for this catalogue
+tests/mobile.ts,490,CAD shell reselects original faces and preserves editable drafts when walls are impossible,Definition inspected; not executed for this catalogue
+tests/mobile.ts,498,CAD loft builder preserves ordered profiles and History edits them without changing previews or Undo,Definition inspected; not executed for this catalogue
+tests/mobile.ts,508,"CAD sweep path dragging, exact point edits and settings stay parametric and fit the panel",Definition inspected; not executed for this catalogue
+tests/mobile.ts,519,CAD loft can copy saved and newly drawn sketch outlines while preserving their sources,Definition inspected; not executed for this catalogue
+tests/mobile.ts,525,CAD sketch dimensions create solids and edit in History with safe Preview Apply Cancel and Undo,Definition inspected; not executed for this catalogue
+tests/mobile.ts,532,CAD clickable sketch lines add editable geometric relations and reject conflicting angles,Definition inspected; not executed for this catalogue
+tests/mobile.ts,539,CAD loft and sweep profiles expose dimensions and retain them in the feature tree,Definition inspected; not executed for this catalogue
+tests/mobile.ts,544,CAD Inspect provides orthographic views measurement and reversible cutaway display without scrolling,Definition inspected; not executed for this catalogue
+tests/mobile.ts,552,CAD mixed picture layers stay above and below real solids and preserve their saved picture placement,Definition inspected; not executed for this catalogue
+tests/mobile.ts,558,CAD STL import controls add unit-correct editable meshes and reject bad files safely,Definition inspected; not executed for this catalogue
+tests/mobile.ts,563,"CAD revolving a hollow profile, making layers and checking STL size work through the controls",Definition inspected; not executed for this catalogue
+tests/mobile.ts,571,CAD workplane joins preserve positive and negative pull endpoints and editable dimensions with Undo Redo,Definition inspected; not executed for this catalogue
+tests/mobile.ts,579,CAD joined cylinder cube complex cap shells preview Apply Cancel and edit at 3mm without changing source artwork,Definition inspected; not executed for this catalogue
+tests/mobile.ts,587,CAD actual project download payload reopens through the file input with mixed pixels mesh recipes and camera intact,Definition inspected; not executed for this catalogue
+tests/painting.ts,83,Smudge preserves flat colour and pixels beyond the soft radius,Definition inspected; not executed for this catalogue
+tests/painting.ts,88,Smudge pulls colour in the direction of travel with no transparent gaps,Definition inspected; not executed for this catalogue
+tests/painting.ts,96,"Smudge ignores jitter, resamples fast motion and finishes at the release point",Definition inspected; not executed for this catalogue
+tests/painting.ts,106,Selection is non-destructive until moved; Cancel restores the original exactly,Definition inspected; not executed for this catalogue
+tests/painting.ts,113,Move and place removes the source and supports Undo,Definition inspected; not executed for this catalogue
+tests/painting.ts,119,Copy retains source; transparent paste preserves coloured destination,Definition inspected; not executed for this catalogue
+tests/painting.ts,128,Opaque paste restores white paper and Cut is undoable,Definition inspected; not executed for this catalogue
+tests/painting.ts,137,"Lasso hit testing follows its outline, not its bounding rectangle",Definition inspected; not executed for this catalogue
+tests/painting.ts,142,Raster selections can leave the canvas completely and commit only the visible pixels,Definition inspected; not executed for this catalogue
+tests/painting.ts,146,"6, 10 and 12-way symmetry produce unique, equally distant copies",Definition inspected; not executed for this catalogue
+tests/painting.ts,155,Spline interpolates knots and handles closed and duplicate points,Definition inspected; not executed for this catalogue
+tests/painting.ts,162,"Glitter is coloured opaque paint with fixed flecks, unchanged between frames",Definition inspected; not executed for this catalogue
+tests/painting.ts,172,Bucket uses the same glitter pigment,Definition inspected; not executed for this catalogue
+tests/painting.ts,176,"Neon keeps a coloured, lighter centre along the stroke and stays fixed",Definition inspected; not executed for this catalogue
+tests/painting.ts,186,Spiro resize changes drawing radius without changing the picture,Definition inspected; not executed for this catalogue
+tests/painting.ts,200,Thin Spiro curves have no missing segments with ,Definition inspected; not executed for this catalogue
+tests/painting.ts,209,Shape preview and committed neon use the same continuous rendering,Definition inspected; not executed for this catalogue
+tests/painting.ts,215,"Shapes restore a brush after spray, including with live ink",Definition inspected; not executed for this catalogue
+tests/painting.ts,220,"Low-opacity lines have uniform coverage, not repeated dark dabs",Definition inspected; not executed for this catalogue
+tests/painting.ts,227,A long neon path remains one connected stroke beyond 4000 samples,Definition inspected; not executed for this catalogue
+tests/painting.ts,233,Rainbow colour changes smoothly along a thin straight line,Definition inspected; not executed for this catalogue
+tests/painting.ts,243,"Glitter has a dense centre and a patchy, stationary edge falloff",Definition inspected; not executed for this catalogue
+tests/painting.ts,275,Smudge pushes paint in every ,Definition inspected; not executed for this catalogue
+tests/painting.ts,287,Stamps reflect their artwork as well as their position,Definition inspected; not executed for this catalogue
+tests/painting.ts,300,Overlapping mirror smudges are independent of section order,Definition inspected; not executed for this catalogue
+tests/painting.ts,307,Neon lifts muted colours and shades the centre without a white stripe,Definition inspected; not executed for this catalogue
+tests/painting.ts,322,Every symmetry slice can be chosen and contains its own centre line,Definition inspected; not executed for this catalogue
+tests/painting.ts,336,Mask clips a crossing stroke at the seam and rejects an outside stroke,Definition inspected; not executed for this catalogue
+tests/painting.ts,342,Tools whose footprints do not reach the working slice leave the picture unchanged,Definition inspected; not executed for this catalogue
+tests/painting.ts,347,Masked ,Definition inspected; not executed for this catalogue
+tests/painting.ts,355,Masked eraser makes mirrored edge cuts and leaves unrelated paper intact,Definition inspected; not executed for this catalogue
+tests/painting.ts,363,Live ink remembers its mask after toggling the mask off and restoring Undo data,Definition inspected; not executed for this catalogue
+tests/painting.ts,370,Masked bucket uses the slice boundary as a fill barrier,Definition inspected; not executed for this catalogue
+tests/painting.ts,393,Losing touch capture stops spraying immediately,Definition inspected; not executed for this catalogue
+tests/painting.ts,400,Cancelled touch strokes keep pigment without a line to the origin,Definition inspected; not executed for this catalogue
+tests/painting.ts,408,Switching away from the app stops held spray pointers,Definition inspected; not executed for this catalogue
+tests/painting.ts,413,The first click chooses the slice; the next stroke can start outside and paint on entry,Definition inspected; not executed for this catalogue
+tests/painting.ts,421,A brush can leave and re-enter while the mask clips the hidden part of its path,Definition inspected; not executed for this catalogue
+tests/painting.ts,428,Spray held beyond reach of the selected slice leaves it untouched,Definition inspected; not executed for this catalogue
+tests/painting.ts,435,A brush outside the slice can paint with its edge and mirror only the clipped footprint,Definition inspected; not executed for this catalogue
+tests/painting.ts,443,Spray can start in a masked region and spray across the boundary,Definition inspected; not executed for this catalogue
+tests/painting.ts,450,A shape can begin outside the slice and use its stroke edge inside it,Definition inspected; not executed for this catalogue
+tests/painting.ts,456,Selection can start outside the slice and captures only its interior intersection,Definition inspected; not executed for this catalogue
+tests/painting.ts,461,A held bucket can enter the selected slice from outside,Definition inspected; not executed for this catalogue
+tests/painting.ts,468,A gradient drag can enter the selected slice from outside,Definition inspected; not executed for this catalogue
+tests/painting.ts,476,Stamps outside the slice still contribute the portion that crosses its boundary,Definition inspected; not executed for this catalogue
+tests/painting.ts,482,Smudge centred outside the slice can push pigment along its inner edge,Definition inspected; not executed for this catalogue
+tests/painting.ts,491,Eraser filters centred outside the mask affect only their clipped mirrored footprint,Definition inspected; not executed for this catalogue
+tests/painting.ts,499,Black-hole eraser can cut in from outside without leaking past the mask,Definition inspected; not executed for this catalogue
+tests/painting.ts,508,Masked smudge does not pull pigment from the inactive side of a seam,Definition inspected; not executed for this catalogue
+tests/painting.ts,517,Masked shape preview matches the clipped committed outline,Definition inspected; not executed for this catalogue
+tests/painting.ts,527,Masked rectangle copying excludes pixels across the boundary,Definition inspected; not executed for this catalogue
+tests/painting.ts,540,"Masked lasso cut reflects the source outline, preserves neighbours and supports Undo",Definition inspected; not executed for this catalogue
+tests/painting.ts,548,Masked paste previews and commits identically in every symmetry mode and source slice,Definition inspected; not executed for this catalogue
+tests/painting.ts,566,Moving and copying a masked selection cannot include its hidden overhang,Definition inspected; not executed for this catalogue
+tests/painting.ts,574,Rainbow watercolour blends smoothly where a path doubles back over earlier pigment,Definition inspected; not executed for this catalogue
+tests/painting.ts,583,Rainbow watercolour is stable across sparse and dense pointer samples,Definition inspected; not executed for this catalogue
+tests/painting.ts,601,Extending rainbow ,Definition inspected; not executed for this catalogue
+tests/painting.ts,623,Closing a rainbow ,Definition inspected; not executed for this catalogue
+tests/painting.ts,635,Incremental rainbow ,Definition inspected; not executed for this catalogue
+tests/painting.ts,654,A prolonged rainbow gesture keeps one point and Undo restores the whole gesture,Definition inspected; not executed for this catalogue
+tests/painting.ts,664,An active rainbow snapshot restores both its pixels and continuing hue without retained history,Definition inspected; not executed for this catalogue
+tests/painting.ts,673,A long masked rainbow stroke retains one point per lane and bakes without changing its preview,Definition inspected; not executed for this catalogue
+tests/painting.ts,687,"Clear confirmation ages the picture from its first edit, not from opening the app",Definition inspected; not executed for this catalogue
+tests/painting.ts,695,"Clear dialog defaults to keeping the picture, and only confirmation clears older work",Definition inspected; not executed for this catalogue
+tests/painting.ts,709,Undo after Clear restores the picture age as well as its pixels,Definition inspected; not executed for this catalogue
+tests/painting.ts,715,Rainbow ,Definition inspected; not executed for this catalogue
+tests/painting.ts,735,Layer opacity applies to a whole layer; drawing and erasing leave lower layers intact,Definition inspected; not executed for this catalogue
+tests/painting.ts,744,"Undo and Redo restore dimensions, active layer, transparency and hidden layers",Definition inspected; not executed for this catalogue
+tests/painting.ts,751,Image resize transforms live ink and crop is reversible,Definition inspected; not executed for this catalogue
+tests/painting.ts,759,Whole-image rotate and flip use correct dimensions and pixel positions,Definition inspected; not executed for this catalogue
+tests/painting.ts,764,Selection transforms float the piece; Cancel and Undo restore its original source,Definition inspected; not executed for this catalogue
+tests/painting.ts,770,"Invert selection preserves the hole, and a second inversion restores the original region",Definition inspected; not executed for this catalogue
+tests/painting.ts,774,Colour wand masks delete only connected pixels on a transparent layer,Definition inspected; not executed for this catalogue
+tests/painting.ts,779,"Filled shapes use the second colour, and ovals stay within their dragged bounds",Definition inspected; not executed for this catalogue
+tests/painting.ts,784,Text wraps and preserves font styles and an opaque second-colour background,Definition inspected; not executed for this catalogue
+tests/painting.ts,789,Background removal respects a closed foreground region and is undoable,Definition inspected; not executed for this catalogue
+tests/painting.ts,794,Merge down preserves the visible composite,Definition inspected; not executed for this catalogue
+tests/painting.ts,799,"Moving sheets changes the composite and Undo restores order, active sheet and live ink",Definition inspected; not executed for this catalogue
+tests/painting.ts,813,"Layer thumbnails preserve aspect ratio, opacity and transparent areas and sample active and inactive live ink",Definition inspected; not executed for this catalogue
+tests/painting.ts,825,Right-click painting uses the second colour without changing the primary ink,Definition inspected; not executed for this catalogue
+tests/painting.ts,841,Semi-transparent erasing preserves lower layers and erases live ink with the chosen strength,Definition inspected; not executed for this catalogue
+tests/painting.ts,853,Wet spray drips continue on their own layer after switching layers,Definition inspected; not executed for this catalogue
+tests/painting.ts,863,Neutral photo adjustments preserve every pixel and alpha; exposure and saturation behave independently,Definition inspected; not executed for this catalogue
+tests/painting.ts,869,Photo shadows and highlights target their own tonal ranges,Definition inspected; not executed for this catalogue
+tests/painting.ts,874,RGB curves and individual channels are editable without cross-channel leakage,Definition inspected; not executed for this catalogue
+tests/painting.ts,880,White balance neutralises a sampled cast and auto balance ignores clear pixels,Definition inspected; not executed for this catalogue
+tests/painting.ts,886,Vibrance protects vivid colour while the colour mixer can target a single hue,Definition inspected; not executed for this catalogue
+tests/painting.ts,891,"Photo sharpening, Pop and noise reduction alter detail while preserving alpha and strong edges",Definition inspected; not executed for this catalogue
+tests/painting.ts,897,"Vignette follows the crop, grain is deterministic, and lens corrections preserve clear margins",Definition inspected; not executed for this catalogue
+tests/painting.ts,939,"Normal restores the exact pre-look settings, presets do not accumulate, and manual edits are Custom",Definition inspected; not executed for this catalogue
+tests/painting.ts,1003,Super resolution checks exact 2× and 4× dimensions before allocating memory,Definition inspected; not executed for this catalogue
+tests/painting.ts,1040,"Photographic grain is deterministic, neutral, structured, adjustable and preserves source pixels",Definition inspected; not executed for this catalogue
+tests/painting.ts,1049,Spiro radius scales with large paper and accepts sizes outside the old limits,Definition inspected; not executed for this catalogue
+tests/painting.ts,1054,Vector pieces resize from geometry without touching overlapping neighbours,Definition inspected; not executed for this catalogue
+tests/painting.ts,1058,"Each brush stroke is a cropped raster piece, with independent alpha and reusable source pixels",Definition inspected; not executed for this catalogue
+tests/painting.ts,1062,Curved vector shapes stay smooth after extreme enlargement and support precise hit testing,Definition inspected; not executed for this catalogue
+tests/painting.ts,1065,"Groups duplicate, turn, resize beyond the paper and stay within their normal layer",Definition inspected; not executed for this catalogue
+tests/painting.ts,1068,Manual Spiro produces an editable vector path at the selected ring size,Definition inspected; not executed for this catalogue
+tests/painting.ts,1077,"Existing artwork converts without a visual change, and later raster strokes keep their stacking order",Definition inspected; not executed for this catalogue
+tests/painting.ts,1080,"Pointer gestures create vector shapes, move them, resize with handles and keep each brush stroke separate",Definition inspected; not executed for this catalogue
+tests/painting.ts,1090,Transparent eraser strokes stay movable and reversible while preserving underlying objects,Definition inspected; not executed for this catalogue
+tests/painting.ts,1094,Auto Spiro retains its raster capture until the motor has completed after pointer release,Definition inspected; not executed for this catalogue
+tests/painting.ts,1100,"Pixel effects preserve the selected piece’s depth beneath overlapping neighbours, including during the gesture",Definition inspected; not executed for this catalogue
+tests/painting.ts,1103,"A floating raster can cross every paper edge, return intact before placement and clip on placement",Definition inspected; not executed for this catalogue
+tests/painting.ts,1107,Editable raster placement discards hidden pixels without snapping and combines with move Undo,Definition inspected; not executed for this catalogue
+tests/painting.ts,1110,Fully off-paper raster pieces are removed on Place while vectors retain all of their geometry,Definition inspected; not executed for this catalogue
+tests/painting.ts,1113,"Rotated, skewed and flipped raster trimming preserves source resolution and visible placement",Definition inspected; not executed for this catalogue
+tests/painting.ts,1120,Coalesced pen samples preserve the curve between pointer events rather than drawing a shortcut,Definition inspected; not executed for this catalogue
+tests/painting.ts,1126,Trimming a transformed raster keeps the visible interior pixels and does not resample its source,Definition inspected; not executed for this catalogue
+tests/painting.ts,1131,Stamp ghosts and the colour magnifier are previews and never change the picture,Definition inspected; not executed for this catalogue
+tests/painting.ts,1136,Animated raster strokes retain their live recipe but discarded overhang cannot return,Definition inspected; not executed for this catalogue
+tests/painting.ts,1141,Placing after Undo records a fresh raster trim instead of reusing a previous gesture,Definition inspected; not executed for this catalogue
+tests/painting.ts,1170,"Audio settings clamp safely, persist volume and make mute effective immediately",Definition inspected; not executed for this catalogue
+tests/painting.ts,1215,CAD face mating opposes normals and preserves physical dimensions,Definition inspected; not executed for this catalogue
+tests/painting.ts,1225,CAD sketch drafts cannot mutate a previously created solid through shared profile points,Definition inspected; not executed for this catalogue
+tests/painting.ts,1228,"CAD project validation rejects invalid workplanes, singular transforms and excessive recipes",Definition inspected; not executed for this catalogue
+tests/painting.ts,1403,CAD picture compositing respects background and foreground layers and preserves editable solid recipes,Definition inspected; not executed for this catalogue
+tests/painting.ts,1407,CAD length dimensions solve rectangles exactly and retain their square corners and centre,Definition inspected; not executed for this catalogue
+tests/painting.ts,1411,CAD absolute and between-line angle dimensions solve without flipping the initial branch,Definition inspected; not executed for this catalogue
+tests/painting.ts,1415,CAD horizontal vertical parallel and perpendicular relations constrain sketch lines,Definition inspected; not executed for this catalogue
+tests/painting.ts,1418,CAD inconsistent dimensions and impossible triangles fail without changing the last valid sketch,Definition inspected; not executed for this catalogue
+tests/painting.ts,1421,CAD redundant compatible constraints and repeated dimension changes remain stable,Definition inspected; not executed for this catalogue
+tests/painting.ts,1424,CAD diameter dimensions keep the centre and produce a true circle from an ellipse,Definition inspected; not executed for this catalogue

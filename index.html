@@ -250,6 +250,7 @@
 
   <div id="textDrawer" class="drawer">
     <strong>Say it with text</strong>
+    <label class="drawing-mode-field" data-advanced-only hidden>Text type <select id="textType"><option value="plain">Plain text</option><option value="callout">Label + arrow</option></select></label>
     <textarea id="textContent" rows="3" placeholder="Your words here…" aria-label="Text to paint"></textarea>
     <div class="row compact-fields">
       <label>Font <select id="textFont"><option>Trebuchet MS</option><option>Arial</option><option>Georgia</option><option>Courier New</option><option>Comic Sans MS</option><option>Impact</option></select></label>
@@ -264,6 +265,11 @@
       <select id="textAlign" aria-label="Text alignment"><option value="left">Left</option><option value="center">Centre</option><option value="right">Right</option></select>
     </div>
     <label class="selection-toggle"><input type="checkbox" id="textOpaque"> Fill text box with second colour</label>
+    <div id="calloutSettings" hidden>
+      <div class="row compact-fields"><label>Text colour <input id="calloutInk" type="color" value="#000000"></label><label>Background <input id="calloutPaper" type="color" value="#ffffff"></label></div>
+      <div class="row compact-fields"><label class="selection-toggle"><input id="calloutBorder" type="checkbox" checked> Thin black border</label><label>Corners <select id="calloutCorners"><option value="rounded">Slightly rounded</option><option value="square">Square</option></select></label></div>
+      <p class="hint">Tap to position the label, then Place text. Drag the blue arrow-tip handle to point at your subject; the blue centre handle moves just the box. Select the label to edit its words and style. Box width sets the wrapping limit; short labels fit their words automatically.</p>
+    </div>
     <div class="row"><button type="button" class="choice" id="placeText">Place text</button><button type="button" class="choice" id="cancelText">Cancel</button></div>
     <p class="hint">Tap the paper to position your words. Place text makes a movable selection, ready to resize or turn.</p>
   </div>
@@ -276,13 +282,15 @@
   </div>
 
   <div id="studioDrawer" class="drawer">
-    <div class="studio-heading"><strong>Paint toolbox</strong><label class="advanced-switch"><input id="advancedMode" type="checkbox" role="switch"> Advanced mode</label></div>
-    <label class="drawing-mode-field">Draw with <select id="drawingMode" aria-label="Vectors or raster"><option value="raster">Raster · pixels</option><option value="vector">Vectors · editable pieces</option></select></label>
-    <button type="button" class="choice" id="openCad">🧊 3D workshop · build &amp; print</button>
+    <div class="studio-heading"><strong id="workspaceModeTitle">Basic mode</strong><label class="advanced-switch"><input id="advancedMode" type="checkbox" role="switch" aria-describedby="workspaceModeDescription"> Advanced mode</label></div>
+    <p id="workspaceModeDescription" class="hint">Paint, draw and play. Turn on Advanced for layers, editable vectors, Photo lab and 3D.</p>
+    <p id="basicArtworkHint" class="hint" hidden>This picture contains layers or editable pieces. Advanced mode lets you choose layers and edit those pieces. Switching modes keeps your picture intact.</p>
+    <label class="drawing-mode-field" data-advanced-only hidden>Draw with <select id="drawingMode" aria-label="Vectors or raster"><option value="raster">Raster · pixels</option><option value="vector">Vectors · editable pieces</option></select></label>
+    <button type="button" class="choice" id="openCad" data-advanced-only hidden>🧊 3D workshop · build &amp; print</button>
     <div class="tray-tabs studio-tabs" role="tablist" aria-label="Paint toolbox">
       <button type="button" class="tray-tab active" data-studio="file" role="tab" aria-selected="true">📁 File</button>
       <button type="button" class="tray-tab" data-studio="image" role="tab" aria-selected="false">🖼 Image</button>
-      <button type="button" class="tray-tab" data-studio="layers" role="tab" aria-selected="false">✨ Advanced</button>
+      <button type="button" class="tray-tab" data-studio="layers" role="tab" aria-selected="false" data-advanced-only hidden>✨ Advanced</button>
       <button type="button" class="tray-tab" data-studio="view" role="tab" aria-selected="false">🔍 View</button>
     </div>
     <div class="studio-panel" data-studio-panel="file">
@@ -305,7 +313,7 @@
       <p class="hint">Background removal clears colours connected to the top-left corner, using this tolerance. Best for flat backgrounds.</p>
     </div>
     <div class="studio-panel" data-studio-panel="layers" hidden>
-      <p class="hint">Advanced mode adds Layers and Photo lab to the main tool palette. Turning it off keeps your artwork and saved adjustments.</p>
+      <p class="hint">Layers, vectors, Photo lab, enhancement and the 3D workshop. Basic mode keeps your picture intact and returns to painting and play.</p>
       <button type="button" class="choice" id="openLayers">Open layers</button>
       <button type="button" class="choice" id="openSuperResolution">✨ Super resolution · 2× / 4×</button>
       <p class="hint">Make a larger, enhanced copy with on-device AI. Compare the result before saving; your original stays untouched.</p>

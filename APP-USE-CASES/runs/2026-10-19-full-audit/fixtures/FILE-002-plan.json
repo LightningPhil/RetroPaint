@@ -1,0 +1,1225 @@
+{
+  "at": "2026-10-20T19:57:53.786015+00:00",
+  "case": "FILE-002",
+  "status": "Pre-execution plan, not a result",
+  "decoder": "Pillow 12.3.0",
+  "fixtures": [
+    {
+      "path": "F:\\WebDev\\RetroPaint\\APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\ORIENT-exif6.jpg",
+      "file": "ORIENT-exif6.jpg",
+      "sha256": "d010732b4c3c4ab820bc4c80499499578e96dbb1b54b75b45b567dd4540dc0c1",
+      "decoder_format": "JPEG",
+      "size": [
+        640,
+        960
+      ],
+      "decoded_rgba_sha256": "c2b15fc51c5ecb7cccbb76971da17550806fcbbd37bcc530dfb35991de12d0ac",
+      "alpha_minimum": 255
+    },
+    {
+      "path": "F:\\WebDev\\RetroPaint\\APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\ORIENT-L.tif",
+      "file": "ORIENT-L.tif",
+      "sha256": "fea886d2275e0ec1c87914a0738dc16819dcc797ce48dbc0ab7c7e57e1aeb549",
+      "decoder_format": "TIFF",
+      "size": [
+        960,
+        640
+      ],
+      "decoded_rgba_sha256": "76a3c6bceb6882e82a4149a34549eb95592cbbddae393d7778a1222150f80a2a",
+      "alpha_minimum": 255
+    },
+    {
+      "path": "F:\\WebDev\\RetroPaint\\APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\ORIENT-RGB.tif",
+      "file": "ORIENT-RGB.tif",
+      "sha256": "4aa05a7c3b0cccb7c86affbd276816cbecbd8a797d37fe84fbcccffe023f75ab",
+      "decoder_format": "TIFF",
+      "size": [
+        960,
+        640
+      ],
+      "decoded_rgba_sha256": "ec643685162839991fbac1e55fed177cf8d4abb07aca79fb176be17b4e038acd",
+      "alpha_minimum": 255
+    },
+    {
+      "path": "F:\\WebDev\\RetroPaint\\APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\ORIENT-RGBA.tif",
+      "file": "ORIENT-RGBA.tif",
+      "sha256": "555c0e2826181fba4d7e450f9e7fe76d922d1b56b127ecf98c46f7bd46edb2c6",
+      "decoder_format": "TIFF",
+      "size": [
+        960,
+        640
+      ],
+      "decoded_rgba_sha256": "ec643685162839991fbac1e55fed177cf8d4abb07aca79fb176be17b4e038acd",
+      "alpha_minimum": 255
+    },
+    {
+      "path": "F:\\WebDev\\RetroPaint\\APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\ORIENT.bmp",
+      "file": "ORIENT.bmp",
+      "sha256": "1161d0022df4e3481c0a38e1e2f75f23195e35c2558c518eec8047345d2b8411",
+      "decoder_format": "BMP",
+      "size": [
+        960,
+        640
+      ],
+      "decoded_rgba_sha256": "ec643685162839991fbac1e55fed177cf8d4abb07aca79fb176be17b4e038acd",
+      "alpha_minimum": 255
+    },
+    {
+      "path": "F:\\WebDev\\RetroPaint\\APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\ORIENT.gif",
+      "file": "ORIENT.gif",
+      "sha256": "c75b6d333803d69d5efd4526eda728cb7a5e98617e513dcc66caead0bdad7abb",
+      "decoder_format": "GIF",
+      "size": [
+        960,
+        640
+      ],
+      "decoded_rgba_sha256": "ec643685162839991fbac1e55fed177cf8d4abb07aca79fb176be17b4e038acd",
+      "alpha_minimum": 255
+    },
+    {
+      "path": "F:\\WebDev\\RetroPaint\\APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\ORIENT.jpg",
+      "file": "ORIENT.jpg",
+      "sha256": "3a802433a1e3547845753db14a6578cc3c244295eda97de4b06b3ed3d845cd63",
+      "decoder_format": "JPEG",
+      "size": [
+        960,
+        640
+      ],
+      "decoded_rgba_sha256": "b9104db36b06043ac820a636083e002ec5618d574321487742703960b8d9b494",
+      "alpha_minimum": 255
+    },
+    {
+      "path": "F:\\WebDev\\RetroPaint\\APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\ORIENT.png",
+      "file": "ORIENT.png",
+      "sha256": "49a22a71a196bd2469561ff05d38a5a84c098d118a917fc02e73ca68bd43bbf7",
+      "decoder_format": "PNG",
+      "size": [
+        960,
+        640
+      ],
+      "decoded_rgba_sha256": "ec643685162839991fbac1e55fed177cf8d4abb07aca79fb176be17b4e038acd",
+      "alpha_minimum": 255
+    },
+    {
+      "path": "F:\\WebDev\\RetroPaint\\APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\ORIENT.webp",
+      "file": "ORIENT.webp",
+      "sha256": "065838695e9f9950deb96877122e42cdb47dbafc17852817a261518095bb91c8",
+      "decoder_format": "WEBP",
+      "size": [
+        960,
+        640
+      ],
+      "decoded_rgba_sha256": "d73a5954b1ab29e9a28a42516b549a65ffd73725738092f2ff3537beee93cbf6",
+      "alpha_minimum": 255
+    },
+    {
+      "path": "F:\\WebDev\\RetroPaint\\APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\PATCH.png",
+      "file": "PATCH.png",
+      "sha256": "b4464813183d7122dfde28a33be00660dfe18e4aa255a92fd234bd8488199175",
+      "decoder_format": "PNG",
+      "size": [
+        960,
+        640
+      ],
+      "decoded_rgba_sha256": "5bd48ec7a41cfe0c7df112ae9233b5f8b5fd8dee5094b431d0f834500afa1668",
+      "alpha_minimum": 0
+    },
+    {
+      "path": "F:\\WebDev\\RetroPaint\\APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\PATCH-rgba.tif",
+      "file": "PATCH-rgba.tif",
+      "sha256": "0f650d94a509f8190149436e46402fca699714f9de92c15de50ad91b158da63c",
+      "decoder_format": "TIFF",
+      "size": [
+        960,
+        640
+      ],
+      "decoded_rgba_sha256": "5bd48ec7a41cfe0c7df112ae9233b5f8b5fd8dee5094b431d0f834500afa1668",
+      "alpha_minimum": 0
+    },
+    {
+      "path": "F:\\WebDev\\RetroPaint\\Example_Images\\Laukka sunset.jpg",
+      "file": "Laukka sunset.jpg",
+      "sha256": "35417dd62dfd4bf37bfc191864ff8766f7a41b5280dbf4a4c3ced50d82e08b2c",
+      "decoder_format": "JPEG",
+      "size": [
+        3896,
+        2586
+      ],
+      "decoded_rgba_sha256": "b588eec9b3f5cf8973c6a113028671cb288cb67be45384dc68c99af7b46b3a04",
+      "alpha_minimum": 255
+    }
+  ],
+  "positive_rows": [
+    {
+      "id": "f1-v1",
+      "fixture": "ORIENT-exif6.jpg",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": [
+        640,
+        960
+      ],
+      "mark": [
+        352.0,
+        432.0
+      ]
+    },
+    {
+      "id": "f1-v2",
+      "fixture": "ORIENT-exif6.jpg",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": [
+        640,
+        960
+      ],
+      "mark": [
+        352.0,
+        432.0
+      ]
+    },
+    {
+      "id": "f1-v3",
+      "fixture": "ORIENT-exif6.jpg",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": [
+        640,
+        960
+      ],
+      "mark": [
+        352.0,
+        432.0
+      ]
+    },
+    {
+      "id": "f1-v4",
+      "fixture": "ORIENT-exif6.jpg",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": [
+        640,
+        960
+      ],
+      "mark": [
+        352.0,
+        432.0
+      ]
+    },
+    {
+      "id": "f2-v1",
+      "fixture": "ORIENT-L.tif",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f2-v2",
+      "fixture": "ORIENT-L.tif",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f2-v3",
+      "fixture": "ORIENT-L.tif",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f2-v4",
+      "fixture": "ORIENT-L.tif",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f3-v1",
+      "fixture": "ORIENT-RGB.tif",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f3-v2",
+      "fixture": "ORIENT-RGB.tif",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f3-v3",
+      "fixture": "ORIENT-RGB.tif",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f3-v4",
+      "fixture": "ORIENT-RGB.tif",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f4-v1",
+      "fixture": "ORIENT-RGBA.tif",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f4-v2",
+      "fixture": "ORIENT-RGBA.tif",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f4-v3",
+      "fixture": "ORIENT-RGBA.tif",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f4-v4",
+      "fixture": "ORIENT-RGBA.tif",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f5-v1",
+      "fixture": "ORIENT.bmp",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f5-v2",
+      "fixture": "ORIENT.bmp",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f5-v3",
+      "fixture": "ORIENT.bmp",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f5-v4",
+      "fixture": "ORIENT.bmp",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f6-v1",
+      "fixture": "ORIENT.gif",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f6-v2",
+      "fixture": "ORIENT.gif",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f6-v3",
+      "fixture": "ORIENT.gif",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f6-v4",
+      "fixture": "ORIENT.gif",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f7-v1",
+      "fixture": "ORIENT.jpg",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f7-v2",
+      "fixture": "ORIENT.jpg",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f7-v3",
+      "fixture": "ORIENT.jpg",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f7-v4",
+      "fixture": "ORIENT.jpg",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f8-v1",
+      "fixture": "ORIENT.png",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f8-v2",
+      "fixture": "ORIENT.png",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f8-v3",
+      "fixture": "ORIENT.png",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f8-v4",
+      "fixture": "ORIENT.png",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f9-v1",
+      "fixture": "ORIENT.webp",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f9-v2",
+      "fixture": "ORIENT.webp",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f9-v3",
+      "fixture": "ORIENT.webp",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f9-v4",
+      "fixture": "ORIENT.webp",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f10-v1",
+      "fixture": "PATCH.png",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f10-v2",
+      "fixture": "PATCH.png",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f10-v3",
+      "fixture": "PATCH.png",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f10-v4",
+      "fixture": "PATCH.png",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f11-v1",
+      "fixture": "PATCH-rgba.tif",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f11-v2",
+      "fixture": "PATCH-rgba.tif",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f11-v3",
+      "fixture": "PATCH-rgba.tif",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f11-v4",
+      "fixture": "PATCH-rgba.tif",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": [
+        960,
+        640
+      ],
+      "mark": [
+        528.0,
+        288.0
+      ]
+    },
+    {
+      "id": "f12-v1",
+      "fixture": "Laukka sunset.jpg",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": [
+        3896,
+        2586
+      ],
+      "mark": [
+        2142.8,
+        1163.7
+      ]
+    },
+    {
+      "id": "f12-v2",
+      "fixture": "Laukka sunset.jpg",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": [
+        3896,
+        2586
+      ],
+      "mark": [
+        2142.8,
+        1163.7
+      ]
+    },
+    {
+      "id": "f12-v3",
+      "fixture": "Laukka sunset.jpg",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": [
+        3896,
+        2586
+      ],
+      "mark": [
+        2142.8,
+        1163.7
+      ]
+    },
+    {
+      "id": "f12-v4",
+      "fixture": "Laukka sunset.jpg",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": [
+        3896,
+        2586
+      ],
+      "mark": [
+        2142.8,
+        1163.7
+      ]
+    }
+  ],
+  "negative_rows": [
+    {
+      "id": "bad1-v1",
+      "fixture": "truncated-ORIENT.png",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "id": "bad1-v2",
+      "fixture": "truncated-ORIENT.png",
+      "viewport": [
+        320,
+        568
+      ]
+    },
+    {
+      "id": "bad1-v3",
+      "fixture": "truncated-ORIENT.png",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "bad1-v4",
+      "fixture": "truncated-ORIENT.png",
+      "viewport": [
+        844,
+        390
+      ]
+    },
+    {
+      "id": "bad2-v1",
+      "fixture": "truncated-ORIENT.jpg",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "id": "bad2-v2",
+      "fixture": "truncated-ORIENT.jpg",
+      "viewport": [
+        320,
+        568
+      ]
+    },
+    {
+      "id": "bad2-v3",
+      "fixture": "truncated-ORIENT.jpg",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "bad2-v4",
+      "fixture": "truncated-ORIENT.jpg",
+      "viewport": [
+        844,
+        390
+      ]
+    },
+    {
+      "id": "bad3-v1",
+      "fixture": "truncated-ORIENT.webp",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "id": "bad3-v2",
+      "fixture": "truncated-ORIENT.webp",
+      "viewport": [
+        320,
+        568
+      ]
+    },
+    {
+      "id": "bad3-v3",
+      "fixture": "truncated-ORIENT.webp",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "bad3-v4",
+      "fixture": "truncated-ORIENT.webp",
+      "viewport": [
+        844,
+        390
+      ]
+    },
+    {
+      "id": "bad4-v1",
+      "fixture": "truncated-ORIENT.bmp",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "id": "bad4-v2",
+      "fixture": "truncated-ORIENT.bmp",
+      "viewport": [
+        320,
+        568
+      ]
+    },
+    {
+      "id": "bad4-v3",
+      "fixture": "truncated-ORIENT.bmp",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "bad4-v4",
+      "fixture": "truncated-ORIENT.bmp",
+      "viewport": [
+        844,
+        390
+      ]
+    },
+    {
+      "id": "bad5-v1",
+      "fixture": "truncated-ORIENT.gif",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "id": "bad5-v2",
+      "fixture": "truncated-ORIENT.gif",
+      "viewport": [
+        320,
+        568
+      ]
+    },
+    {
+      "id": "bad5-v3",
+      "fixture": "truncated-ORIENT.gif",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "bad5-v4",
+      "fixture": "truncated-ORIENT.gif",
+      "viewport": [
+        844,
+        390
+      ]
+    },
+    {
+      "id": "bad6-v1",
+      "fixture": "truncated-ORIENT-RGB.tif",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "id": "bad6-v2",
+      "fixture": "truncated-ORIENT-RGB.tif",
+      "viewport": [
+        320,
+        568
+      ]
+    },
+    {
+      "id": "bad6-v3",
+      "fixture": "truncated-ORIENT-RGB.tif",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "bad6-v4",
+      "fixture": "truncated-ORIENT-RGB.tif",
+      "viewport": [
+        844,
+        390
+      ]
+    },
+    {
+      "id": "bad7-v1",
+      "fixture": "unsupported-lzw.tif",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "id": "bad7-v2",
+      "fixture": "unsupported-lzw.tif",
+      "viewport": [
+        320,
+        568
+      ]
+    },
+    {
+      "id": "bad7-v3",
+      "fixture": "unsupported-lzw.tif",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "bad7-v4",
+      "fixture": "unsupported-lzw.tif",
+      "viewport": [
+        844,
+        390
+      ]
+    }
+  ],
+  "rejected_fixtures": [
+    {
+      "path": "F:\\WebDev\\RetroPaint\\APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\FILE-002-rejected\\truncated-ORIENT.png",
+      "file": "truncated-ORIENT.png",
+      "sha256": "c93e2a066c3fab6da4e7395e61c7d7d55e011c4f67ca6ea0ea2d5a78b3d332bc",
+      "provenance": "First8 TIFF bytes or first14 bytes of a genuine independently encoded source; Pillow load independently rejects."
+    },
+    {
+      "path": "F:\\WebDev\\RetroPaint\\APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\FILE-002-rejected\\truncated-ORIENT.jpg",
+      "file": "truncated-ORIENT.jpg",
+      "sha256": "aeee9356ffdd7745f591ca7b3a1ddd1724ed4b8e2d426b50d4cfd1bace3943f4",
+      "provenance": "First8 TIFF bytes or first14 bytes of a genuine independently encoded source; Pillow load independently rejects."
+    },
+    {
+      "path": "F:\\WebDev\\RetroPaint\\APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\FILE-002-rejected\\truncated-ORIENT.webp",
+      "file": "truncated-ORIENT.webp",
+      "sha256": "81fbe1649b60e768a4b70c780240805e93f89f22a7d835bb978368d91520c7ec",
+      "provenance": "First8 TIFF bytes or first14 bytes of a genuine independently encoded source; Pillow load independently rejects."
+    },
+    {
+      "path": "F:\\WebDev\\RetroPaint\\APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\FILE-002-rejected\\truncated-ORIENT.bmp",
+      "file": "truncated-ORIENT.bmp",
+      "sha256": "8737a7715d697901f8e7b1f34d6dac5c45701c37684d51ebb32bbede2aec8579",
+      "provenance": "First8 TIFF bytes or first14 bytes of a genuine independently encoded source; Pillow load independently rejects."
+    },
+    {
+      "path": "F:\\WebDev\\RetroPaint\\APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\FILE-002-rejected\\truncated-ORIENT.gif",
+      "file": "truncated-ORIENT.gif",
+      "sha256": "936bd702b8f087f0fc34ea85a5510bc1aef30e4c9e91da83e98164afd0ca4175",
+      "provenance": "First8 TIFF bytes or first14 bytes of a genuine independently encoded source; Pillow load independently rejects."
+    },
+    {
+      "path": "F:\\WebDev\\RetroPaint\\APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\FILE-002-rejected\\truncated-ORIENT-RGB.tif",
+      "file": "truncated-ORIENT-RGB.tif",
+      "sha256": "e14e7408990dc136663693d7e57816e5e10b2c0668ede991ca62072d380c3d7a",
+      "provenance": "First8 TIFF bytes or first14 bytes of a genuine independently encoded source; Pillow load independently rejects."
+    },
+    {
+      "path": "F:\\WebDev\\RetroPaint\\APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\unsupported-lzw.tif",
+      "file": "unsupported-lzw.tif",
+      "sha256": "e275b578f74e5cd3c0650d6444f3d07e65eb3bc7fa692d8dc284cab47962b58c",
+      "provenance": "Genuinely Pillow-encoded LZW TIFF; native application documents only uncompressed8-bit support."
+    }
+  ],
+  "cancellation_rows": [
+    {
+      "id": "cancel-v1",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "id": "cancel-v2",
+      "viewport": [
+        320,
+        568
+      ]
+    },
+    {
+      "id": "cancel-v3",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "cancel-v4",
+      "viewport": [
+        844,
+        390
+      ]
+    }
+  ],
+  "before": "Fresh disposable960x640 PLAY with one native Red22px centre tap, actual before project/PNG. Every successful import must replace this target coherently. Every failure/cancel must preserve it, its prior history and usable real retry.",
+  "oracle": "Independent Pillow decode/exif_transpose and pre-recorded SHA/dimensions/orientation. Source alpha exact; lossless opaque RGB exact and alpha-bearing RGB within1 native premultiply step. JPEG/WebP RGB within2/255, natural photograph within1/255 as independently established in START010. Full-size actual PNG equals decoded project raster exactly. Declared Red22px mark affects only centre tube radius13 and its core source-over result; untouched pixels/alpha exact. Each whole import/mark Undo/Redo and fresh source/RGBA exact. Native browser chooser cancellation must produce trusted input cancel, not empty setFiles or a synthetic event; no OS chooser visual certification. Every rejected format and unsupported TIFF preserves complete prior bytes/pixels/history, shows an explanation, and accepts a genuine PNG retry with exact undo/redo/fresh input.",
+  "scope": "All six named formats,9 opaque/oriented codec fixtures including EXIF6 and three TIFF channel models, PNG/TIFF alpha and a full-size owned photograph, every one at four layouts=48 positives. All six corrupt encoded formats plus genuinely unsupported LZW TIFF at every layout=28 rejected rows, plus4 native chooser cancellations. Fixture generation/probe alone never passes the case."
+}

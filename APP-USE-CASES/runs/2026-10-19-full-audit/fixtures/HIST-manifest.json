@@ -1,0 +1,52 @@
+{
+  "at": "2026-10-20T12:55:29.810616+00:00",
+  "generator": "make-histogram-fixtures.py",
+  "fixtures": [
+    {
+      "name": "nearly-black",
+      "file": "HIST-nearly-black.png",
+      "sha256": "3366046af9284f20ee713a773d4c65c85bd2dc03df574a891d4592811b0958ed",
+      "size": [
+        1024,
+        256
+      ]
+    },
+    {
+      "name": "nearly-white",
+      "file": "HIST-nearly-white.png",
+      "sha256": "7962fe660883e3a15d059c243f6d094bcf382222f13610450aeac20130cb4693",
+      "size": [
+        1024,
+        256
+      ]
+    },
+    {
+      "name": "clear-half",
+      "file": "HIST-clear-half.png",
+      "sha256": "26e4030083bb178ebf7f3f0ada5372c63d4eb25011ea5c4a22d10fe8f1292386",
+      "size": [
+        1024,
+        256
+      ]
+    },
+    {
+      "name": "empty",
+      "file": "HIST-empty.png",
+      "sha256": "23fef1e99c9070404d925c51145ec89b811a79293595df98697de7311c51d529",
+      "size": [
+        1024,
+        256
+      ]
+    },
+    {
+      "name": "rgb-flat",
+      "file": "HIST-rgb-flat.png",
+      "sha256": "256443ed65bb0447be008d7fd44659d268753db4764e9efb71b3127102a4f4e0",
+      "size": [
+        1024,
+        256
+      ]
+    }
+  ],
+  "nearly_transparent_oracle": "Equal areas of opaque neutral and alpha 1/255 black/white. Opacity-weighted clipping is 1/256 = 0.390625%, which rounds to 0%; it must not dominate the histogram."
+}

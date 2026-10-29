@@ -1,19 +1,22 @@
+import { CadPullPreview } from './cad-pull-preview';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
 import { cadCompute } from './cad-engine';
 import { cadLayers, currentBodies, replaceBodies, selectBodies, selectedBodies } from './cad-document';
-import { activeLayer } from './layers';
+import { activeLayer, layers, renderLayers, layerChanged } from './layers';
+import { W, H } from './canvas';
 import { pushHistory } from './history';
 import { state } from './state';
 import { emit } from './bus';
-import { basePlane, cadInputs, planeMatrix, sketchPoints, snap, type CadBody, type CadMesh, type CadEdgeRef, type CadFaceRef, type V2, type V3, type Workplane } from './cad-model';
+import { basePlane, cadInputs, planeMatrix, readCadLayer, sketchPoints, snap, type CadBody, type CadMesh, type CadEdgeRef, type CadFaceRef, type V2, type V3, type Workplane } from './cad-model';
 import { invalidatePicture } from './render-state';
 import { CadEdgePicker } from './cad-edge-picker';
 import { CadFacePicker } from './cad-face-picker';
 import { pathBeziers, profileWorld, sweepPlane } from './cad-profiles';
-import type { CadForm } from './cad-model';
+import type { CadForm, CadView } from './cad-model';
+import { cameraAspect, cameraForView, cameraSpan, captureCadView, sameCadView, type CadCamera } from './cad-camera';
 
 interface DisplayBody { key: string; mesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>; data: CadMesh }
 interface Callbacks { notice: (text: string) => void; sketch: (points: V2[], plane: Workplane, target?: string) => void; face: (plane: Workplane, target: string) => void; changed: () => void }
@@ -22,7 +25,7 @@ const rad = Math.PI / 180;
 const hasFinish=(solid:CadBody['solid']):boolean=>['finish','shell','loft','sweep'].includes(solid.kind)||cadInputs(solid).some(body=>hasFinish(body.solid));
 export class CadViewport {
   readonly renderer: THREE.WebGLRenderer;
-  readonly camera = new THREE.PerspectiveCamera(38, 1, 0.1, 20000);
+  camera:CadCamera = new THREE.PerspectiveCamera(38, 1, 0.1, 30000);
   readonly scene = new THREE.Scene();
   readonly controls: OrbitControls;
   readonly transform: TransformControls;
@@ -30,6 +33,7 @@ export class CadViewport {
   readonly decoration = new THREE.Group();
   readonly sketchGroup = new THREE.Group();
   readonly pivot = new THREE.Object3D();
+  readonly pullPreview:CadPullPreview;
   readonly edges:CadEdgePicker;
   readonly faces:CadFacePicker;
   private boxes: THREE.BoxHelper[] = [];
@@ -37,6 +41,7 @@ export class CadViewport {
   private plane: Workplane = basePlane('xy');
   private faceTarget: string | undefined;
   private polygon: V2[] = [];
+  private sketchAnchor:V2|undefined;
   private down: { x: number; y: number; point?: V2; points?: V2[] } | null = null;
   private drag: { items: CadBody[]; matrix: THREE.Matrix4; starts: Map<string, THREE.Matrix4> } | null = null;
   private revision = 0;
@@ -45,6 +50,17 @@ export class CadViewport {
   private previewTimer = 0;
   private pending = new Map<string, Promise<CadMesh>>();
   private resizeObserver: ResizeObserver;
+  pictureMode=false;
+  private background=document.createElement('canvas');
+  private foreground=document.createElement('canvas');
+  private measureGroup=new THREE.Group();
+  private measureLabel=document.createElement('output');
+  private measurements:Array<{point:THREE.Vector3;normal:THREE.Vector3}>=[];
+  private section:THREE.Plane|undefined;
+  private appearance:'solid'|'xray'|'wireframe'='solid';
+  private savedViewSignature='null';
+  private previewSignature='';
+  private previewCanvases=new Map<number,HTMLCanvasElement>();
   constructor(readonly host: HTMLElement, private callbacks: Callbacks) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); this.renderer.setClearColor(0, 0);
@@ -54,7 +70,9 @@ export class CadViewport {
     canvas.setAttribute('aria-label', '3D workbench. Drag to orbit, right-drag to pan, scroll to zoom. Select a piece to move it.');
     this.edges=new CadEdgePicker(this.scene,this.camera,canvas,()=>this.render(),event=>this.hit(event)?.distance);
     this.faces=new CadFacePicker(this.scene,this.camera,canvas,()=>this.render(),event=>this.hit(event)?.distance);
+    this.pullPreview=new CadPullPreview(host,()=>this.camera);this.scene.add(this.pullPreview.group);
     host.prepend(canvas); this.camera.up.set(0, 0, 1); this.camera.position.set(130, -170, 130);
+    this.background.className='cad-picture-back';this.foreground.className='cad-picture-front';this.background.setAttribute('aria-hidden','true');this.foreground.setAttribute('aria-hidden','true');host.prepend(this.background);host.append(this.foreground);this.measureLabel.className='cad-measure-label';this.measureLabel.hidden=true;host.append(this.measureLabel);this.scene.add(this.measureGroup);this.renderer.localClippingEnabled=true;
     this.controls = new OrbitControls(this.camera, canvas); this.controls.target.set(0,0,10); this.controls.enableDamping = false; this.controls.minDistance = 3; this.controls.maxDistance = 6000; this.controls.update();
     this.controls.addEventListener('change', () => this.render());
     this.scene.add(new THREE.HemisphereLight(0xffffff, 0x7d8795, 2.8));
@@ -78,16 +96,30 @@ export class CadViewport {
     canvas.addEventListener('dblclick', event => { if (state.cad.tool === 'polygon') { event.preventDefault(); this.finishPolygon(); } });
     canvas.addEventListener('contextmenu', event => event.preventDefault());
     canvas.addEventListener('webglcontextlost', event => { event.preventDefault(); callbacks.notice('The 3D view paused. Your solids are safe. Return to Paint and reopen the workshop.'); });
-    this.resizeObserver = new ResizeObserver(() => this.resize()); this.resizeObserver.observe(host); this.resizeObserver.observe(canvas); this.resize();
+    this.resizeObserver = new ResizeObserver(() => this.resize()); this.resizeObserver.observe(host); this.resizeObserver.observe(canvas);
+    const saved=activeLayer().cad?.view;this.savedViewSignature=JSON.stringify(saved??null);if(saved){this.replaceCamera(cameraForView(saved,W/H));this.controls.target.set(...saved.target);this.controls.update();this.pictureMode=true;}this.resize();this.refreshPicture();
   }
   private isSketchTool(): boolean { return ['rectangle','circle','polygon'].includes(state.cad.tool); }
-  private resize(): void { const w = this.renderer.domElement.clientWidth, h = this.renderer.domElement.clientHeight; if (!w || !h) return; this.renderer.setSize(w,h,false); this.camera.aspect = w/h; this.camera.updateProjectionMatrix(); this.render(); }
+  private resize(): void {
+    const canvas=this.renderer.domElement;this.host.classList.toggle('cad-picture-mode',this.pictureMode);
+    if(this.pictureMode){const availableW=this.host.clientWidth,availableH=this.host.clientHeight-(this.host.closest('.cad-has-timeline')?120:0),scale=Math.min(availableW/W,availableH/H),width=Math.max(1,W*scale),height=Math.max(1,H*scale);for(const element of [canvas,this.background,this.foreground])Object.assign(element.style,{width:width+'px',height:height+'px',left:(availableW-width)/2+'px',top:(availableH-height)/2+'px'});}else canvas.removeAttribute('style');
+    const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;this.renderer.setSize(w,h,false);cameraAspect(this.camera,w/h);this.render();
+  }
+  private replaceCamera(next:CadCamera):void{this.camera=next;this.controls.object=next;this.transform.camera=next;this.edges.setCamera(next);this.faces.setCamera(next);}
+  setProjection(projection:CadView['projection']):void{const view=captureCadView(this.camera,this.controls.target);if(view.projection===projection)return;view.projection=projection;this.replaceCamera(cameraForView(view,this.renderer.domElement.clientWidth/this.renderer.domElement.clientHeight));this.controls.update();this.render();}
+  setPictureMode(value:boolean):void{this.pictureMode=value;this.decoration.visible=!value;this.resize();this.refreshPicture();void this.sync();}
+  refreshPicture():void{this.background.hidden=this.foreground.hidden=!this.pictureMode;if(!this.pictureMode)return;const index=layers.indexOf(activeLayer()),now=performance.now();for(const [canvas,sheets]of [[this.background,layers.slice(0,index)],[this.foreground,layers.slice(index+1)]] as const){canvas.width=W;canvas.height=H;renderLayers(canvas.getContext('2d')!,now,undefined,sheets);}this.decoration.visible=false;}
+  pinPictureView(history=true,notify=true):void{const view=captureCadView(this.camera,this.controls.target);readCadLayer({units:'mm',bodies:[],view});if(cadLayers().every(l=>sameCadView(l.cad!.view,view)))return;if(history)pushHistory();for(const layer of cadLayers())layer.cad={...layer.cad!,view:structuredClone(view)};this.savedViewSignature=JSON.stringify(view);this.updatePreviews();if(notify)layerChanged();}
+  resetInspection():void{this.section=undefined;this.appearance='solid';this.clearMeasure();this.applyAppearance();}
+  setInspection(appearance:'solid'|'xray'|'wireframe',axis:number|null=null,offset=0,flip=false):void{this.appearance=appearance;this.section=axis===null?undefined:new THREE.Plane(new THREE.Vector3().setComponent(axis,flip?1:-1),flip?-offset:offset);this.applyAppearance();}
+  private applyAppearance():void{for(const layer of cadLayers())for(const item of layer.cad!.bodies){const material=this.nodes.get(item.id)?.mesh.material;if(!material)continue;material.clippingPlanes=this.section?[this.section]:[];material.side=this.section?THREE.DoubleSide:THREE.FrontSide;material.wireframe=this.appearance==='wireframe';material.opacity=layer.opacity*(this.appearance==='xray'?.25:1);material.transparent=material.opacity<1;material.depthWrite=this.appearance!=='xray';material.needsUpdate=true;}this.render();}
   render(): void {
     if (this.scheduled || this.disposed) return; this.scheduled = true;
-    requestAnimationFrame(() => { this.scheduled = false; if (!this.disposed && state.cad.open) { this.boxes.forEach(box => box.update()); this.renderer.render(this.scene,this.camera); } });
+    requestAnimationFrame(() => { this.scheduled = false; if (!this.disposed && state.cad.open) { this.boxes.forEach(box => box.update());this.positionMeasureLabel();this.pullPreview.layout(); this.renderer.render(this.scene,this.camera); } });
   }
   async sync(): Promise<void> {
     if(this.drag)return;
+    const saved=activeLayer().cad?.view,signature=JSON.stringify(saved??null),viewChanged=signature!==this.savedViewSignature;this.savedViewSignature=signature;if(viewChanged){if(saved){this.replaceCamera(cameraForView(saved,W/H));this.controls.target.set(...saved.target);this.controls.update();}this.pictureMode=!!saved;this.decoration.visible=!this.pictureMode;this.resize();}
     const revision = ++this.revision, ids = new Set<string>();
     for (const layer of cadLayers()) for (const saved of layer.cad!.bodies) {
       const item = state.cad.preview?.id === saved.id ? state.cad.preview : saved;
@@ -109,14 +141,14 @@ export class CadViewport {
       }
       const node = this.nodes.get(item.id); if (!node) continue;
       node.mesh.position.set(...item.position); node.mesh.rotation.set(item.rotation[0]*rad,item.rotation[1]*rad,item.rotation[2]*rad,'ZYX'); node.mesh.scale.set(...item.scale);
-      node.mesh.visible = item.visible && layer.visible; node.mesh.material.color.set(item.color); node.mesh.material.opacity = layer.opacity; node.mesh.material.transparent = layer.opacity < 1;
+      node.mesh.visible = item.visible && layer.visible && (!this.pictureMode||layer===activeLayer()); node.mesh.material.color.set(item.color); node.mesh.material.opacity = layer.opacity; node.mesh.material.transparent = layer.opacity < 1;
       node.mesh.updateMatrixWorld(true);
     }
     if (revision !== this.revision) return;
     for (const id of this.nodes.keys()) if (!ids.has(id)) this.removeNode(id);
     // Cache only the current scene's recipes; geometry buffers are also shared by duplicates.
     const keys = new Set([...this.nodes.values()].map(n => n.key)); for (const key of this.pending.keys()) if (!keys.has(key)) this.pending.delete(key);
-    this.selection(); this.callbacks.changed(); this.render(); clearTimeout(this.previewTimer); this.previewTimer = window.setTimeout(() => this.updatePreviews(), 350);
+    if(viewChanged&&!saved)this.fit();this.selection();this.applyAppearance();this.refreshPicture(); this.callbacks.changed();this.resize(); this.render(); clearTimeout(this.previewTimer); this.previewTimer = window.setTimeout(() => this.updatePreviews(), 350);
   }
   private removeNode(id: string): void { const node = this.nodes.get(id); if (!node) return; this.scene.remove(node.mesh); node.mesh.geometry.dispose(); node.mesh.material.dispose(); this.nodes.delete(id); }
   selection(): void {
@@ -153,45 +185,57 @@ export class CadViewport {
     try{replaceBodies(next,false);}catch(error){this.callbacks.notice(error instanceof Error?error.message:String(error));void this.sync();}
     finally{emit('cad-gesture',false);this.callbacks.changed();}
   }
-  private ray(event: PointerEvent): void { const r = this.renderer.domElement.getBoundingClientRect(); this.raycaster.setFromCamera(new THREE.Vector2((event.clientX-r.left)/r.width*2-1,-(event.clientY-r.top)/r.height*2+1),this.camera); }
-  private hit(event: PointerEvent): THREE.Intersection | undefined { this.ray(event); return this.raycaster.intersectObjects([...this.nodes.values()].filter(n => n.mesh.visible).map(n => n.mesh),false)[0]; }
+  private ray(event: PointerEvent): void { const r = this.renderer.domElement.getBoundingClientRect(); this.camera.updateMatrixWorld();this.raycaster.setFromCamera(new THREE.Vector2((event.clientX-r.left)/r.width*2-1,-(event.clientY-r.top)/r.height*2+1),this.camera); }
+  private hit(event: PointerEvent): THREE.Intersection | undefined { this.ray(event); return this.raycaster.intersectObjects([...this.nodes.values()].filter(n => n.mesh.visible).map(n => n.mesh),false).find(hit=>!this.section||this.section.distanceToPoint(hit.point)>=-.00001); }
   private sketchPoint(event: PointerEvent): V2 | undefined {
     this.ray(event); const hit = this.raycaster.ray.intersectPlane(new THREE.Plane().setFromNormalAndCoplanarPoint(vec(this.plane.normal),vec(this.plane.origin)),new THREE.Vector3());
     if (!hit) return; const relative = hit.sub(vec(this.plane.origin)), step = state.cad.snap ? state.cad.grid : 0;
     return [snap(relative.dot(vec(this.plane.u)),step),snap(relative.dot(vec(this.plane.v)),step)];
   }
   private pointerDown = (event: PointerEvent): void => {
+    if(this.pullPreview.group.children.length)return;
     if (event.button !== 0 || this.transform.dragging || ((state.cad.editing || state.cad.preview)&&!['edge','shellFace'].includes(state.cad.tool))) return;
-    this.down = {x:event.clientX,y:event.clientY,point:this.isSketchTool()?this.sketchPoint(event):undefined};
+    this.down = {x:event.clientX,y:event.clientY,point:this.isSketchTool()?(this.sketchAnchor??this.sketchPoint(event)):undefined};
     if (this.isSketchTool()) { event.preventDefault(); this.renderer.domElement.setPointerCapture(event.pointerId); }
   };
   private pointerMove = (event: PointerEvent): void => {
     if(state.cad.tool==='edge'){this.edges.hover(event);return;}
     if(state.cad.tool==='shellFace'){this.faces.hover(event);return;}
-    if (!this.down?.point || !this.isSketchTool()) return;
+    if(state.cad.tool==='polygon'&&this.polygon.length){const end=this.sketchPoint(event);if(end)this.showSketch([...this.polygon,end],false);return;}
+    if ((!this.down?.point&&!this.sketchAnchor) || !this.isSketchTool()) return;
     const end = this.sketchPoint(event); if (!end) return;
-    const [x,y] = this.down.point;
+    const [x,y] = this.down?.point??this.sketchAnchor!;
     if (state.cad.tool === 'polygon') { this.showSketch([...this.polygon,end],false); return; }
     const width=end[0]-x,height=event.shiftKey?Math.sign(end[1]-y||1)*Math.abs(width):end[1]-y;
     const points = state.cad.tool === 'circle' ? sketchPoints('circle',x,y,Math.hypot(width,height)*2,Math.hypot(width,height)*2) : sketchPoints('rectangle',x,y,width,height);
-    this.down.points = points; this.showSketch(points,true);
+    if(this.down)this.down.points = points; this.showSketch(points,true);
   };
   private pointerUp = (event: PointerEvent): void => {
+    if(this.down?.point&&this.isSketchTool()&&state.cad.tool!=='polygon')this.pointerMove(event);
     const start = this.down; this.down = null; if (!start || this.transform.dragging || this.drag) return;
     if(state.cad.tool==='edge'){if(Math.hypot(event.clientX-start.x,event.clientY-start.y)<5)this.edges.pick(event);return;}
     if(state.cad.tool==='shellFace'){if(Math.hypot(event.clientX-start.x,event.clientY-start.y)<5)this.faces.pick(event);return;}
     if (this.isSketchTool()) {
-      if (state.cad.tool === 'polygon') { const point=this.sketchPoint(event); if (point && (!this.polygon.length || Math.hypot(point[0]-this.polygon.at(-1)![0],point[1]-this.polygon.at(-1)![1])>0.01)) this.polygon.push(point); this.showSketch(this.polygon,false); return; }
-      if (start.points && Math.hypot(event.clientX-start.x,event.clientY-start.y)>4) this.callbacks.sketch(start.points,structuredClone(this.plane),this.faceTarget);
+      if (state.cad.tool === 'polygon') {
+        const point=this.sketchPoint(event);
+        if(this.polygon.length>=3){
+          const first=vec(this.plane.origin).addScaledVector(vec(this.plane.u),this.polygon[0][0]).addScaledVector(vec(this.plane.v),this.polygon[0][1]).project(this.camera),r=this.renderer.domElement.getBoundingClientRect();
+          if((point&&Math.hypot(point[0]-this.polygon[0][0],point[1]-this.polygon[0][1])<.01)||Math.hypot(event.clientX-(r.left+(first.x+1)*r.width/2),event.clientY-(r.top+(1-first.y)*r.height/2))<=12){this.finishPolygon();return;}
+        }
+        if (point && (!this.polygon.length || Math.hypot(point[0]-this.polygon.at(-1)![0],point[1]-this.polygon.at(-1)![1])>0.01)) this.polygon.push(point); this.showSketch(this.polygon,false); return;
+      }
+      if (start.points && (this.sketchAnchor||Math.hypot(event.clientX-start.x,event.clientY-start.y)>4)) {this.sketchAnchor=undefined;this.callbacks.sketch(start.points,structuredClone(this.plane),this.faceTarget);}
+      else{this.sketchAnchor=start.point;if(start.point)this.showSketch([start.point],false);this.callbacks.notice(state.cad.tool==='circle'?'Centre set. Move the pointer, then click the circle edge.':'First corner set. Move the pointer, then click the opposite corner.');}
       return;
     }
-    if (Math.hypot(event.clientX-start.x,event.clientY-start.y)>5 || this.transform.axis) return;
+    if (Math.hypot(event.clientX-start.x,event.clientY-start.y)>5 || (this.transform.object && this.transform.axis)) return;
+    if(state.cad.tool==='measure'){this.measure(event);return;}
     const hit=this.hit(event), id=hit?.object.userData.id as string | undefined;
     if (state.cad.tool === 'face' && hit && id) { this.pickFace(hit,id); return; }
     if (!id || !currentBodies().some(b => b.id === id)) { if (id) this.callbacks.notice('Choose that piece’s 3D layer to edit it.'); else selectBodies([]); return; }
     selectBodies(event.shiftKey ? state.cad.selected.includes(id) ? state.cad.selected.filter(s => s!==id) : [...state.cad.selected,id] : [id]);
   };
-  private pointerCancel = (): void => { this.down = null; if (this.drag) this.finishDrag(); };
+  private pointerCancel = (): void => { this.down = null;this.sketchAnchor=undefined; if (this.drag) this.finishDrag(); };
   private pickFace(hit: THREE.Intersection, id: string): void {
     if (!hit.face || !currentBodies().some(b => b.id === id && !b.locked)) { this.callbacks.notice('Choose an unlocked piece on this 3D layer.'); return; }
     const mesh = hit.object as THREE.Mesh<THREE.BufferGeometry>, normal=hit.face.normal.clone().applyNormalMatrix(new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld)).normalize();
@@ -209,14 +253,23 @@ export class CadViewport {
   setPlane(plane: Workplane, target?: string): void { this.plane=structuredClone(plane);this.faceTarget=target;this.polygon=[];this.clearSketch();this.showPlane(); }
   getPlane(): Workplane { return structuredClone(this.plane); }
   getTarget(): string | undefined { return this.faceTarget; }
-  setTool(): void { this.down=null;if(state.cad.tool!=='edge'){this.edges.clear();this.renderer.domElement.style.cursor='';}if(state.cad.tool!=='shellFace')this.faces.clear();this.selection();if(this.isSketchTool()||state.cad.tool==='face')this.showPlane();else this.clearSketch(); }
+  setTool(): void { this.sketchAnchor=undefined;this.down=null;this.polygon=[];if(!this.isSketchTool()){this.camera.up.set(0,0,1);this.controls.update();}if(state.cad.tool!=='measure')this.clearMeasure();if(state.cad.tool!=='edge'){this.edges.clear();this.renderer.domElement.style.cursor='';}if(state.cad.tool!=='shellFace')this.faces.clear();this.selection();if(this.isSketchTool()||state.cad.tool==='face')this.showPlane();else this.clearSketch(); }
+  clearMeasure():void{for(const child of [...this.measureGroup.children]){this.measureGroup.remove(child);const item=child as THREE.Mesh;item.geometry?.dispose();(item.material as THREE.Material)?.dispose();}this.measurements=[];this.measureLabel.hidden=true;emit('cad-measure',null);this.render();}
+  private measure(event:PointerEvent):void{
+    const hit=this.hit(event);if(!hit?.face)return;let point=hit.point.clone(),snapped=false;const mesh=hit.object as THREE.Mesh<THREE.BufferGeometry>,positions=mesh.geometry.getAttribute('position'),rect=this.renderer.domElement.getBoundingClientRect();let closest=11;
+    for(let i=0;i<positions.count;i++){const vertex=new THREE.Vector3().fromBufferAttribute(positions,i).applyMatrix4(mesh.matrixWorld);if(this.section&&this.section.distanceToPoint(vertex)<0)continue;const screen=vertex.clone().project(this.camera),distance=Math.hypot((screen.x+1)*rect.width/2+rect.left-event.clientX,(1-screen.y)*rect.height/2+rect.top-event.clientY);if(distance<closest&&vertex.clone().sub(this.raycaster.ray.origin).dot(this.raycaster.ray.direction)<=hit.distance+cameraSpan(this.camera,this.controls.target)*.03){closest=distance;point=vertex;snapped=true;}}
+    if(this.measurements.length===2)this.clearMeasure();this.measurements.push({point,normal:hit.face.normal.clone().applyNormalMatrix(new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld)).normalize()});
+    const material=new THREE.MeshBasicMaterial({color:0xbc3e80,depthTest:false}),sphere=new THREE.Mesh(new THREE.SphereGeometry(cameraSpan(this.camera,this.controls.target)*.006,12,8),material);sphere.position.copy(point);sphere.renderOrder=15;this.measureGroup.add(sphere);
+    if(this.measurements.length===2){const [a,b]=this.measurements,delta=b.point.clone().sub(a.point),distance=delta.length(),angle=Math.acos(THREE.MathUtils.clamp(a.normal.dot(b.normal),-1,1))*180/Math.PI,line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([a.point,b.point]),new THREE.LineBasicMaterial({color:0xbc3e80,depthTest:false}));line.renderOrder=15;this.measureGroup.add(line);this.measureLabel.value=distance.toFixed(3)+' mm';this.measureLabel.hidden=false;emit('cad-measure',{distance,delta:tuple(delta),angle,point:tuple(point),snapped});this.callbacks.notice(`Distance ${distance.toFixed(3)} mm · face-normal angle ${angle.toFixed(2)}°`);}else{emit('cad-measure',{point:tuple(point),snapped});this.callbacks.notice((snapped?'Vertex snapped. ':'Point set. ')+'Pick the second point; drag to orbit.');}this.render();
+  }
+  private positionMeasureLabel():void{if(this.measurements.length!==2||this.measureLabel.hidden)return;const midpoint=this.measurements[0].point.clone().add(this.measurements[1].point).multiplyScalar(.5).project(this.camera),r=this.renderer.domElement.getBoundingClientRect(),host=this.host.getBoundingClientRect();this.measureLabel.style.left=(r.left-host.left+(midpoint.x+1)*r.width/2)+'px';this.measureLabel.style.top=(r.top-host.top+(1-midpoint.y)*r.height/2-15)+'px';}
   async pickBodyEdges(item:CadBody):Promise<void>{const pose=new THREE.Object3D();pose.position.set(...item.position);pose.rotation.set(...item.rotation.map(n=>n*rad) as V3,'ZYX');pose.updateMatrix();state.cad.tool='edge';this.setTool();await this.edges.start({...structuredClone(item),position:[0,0,0],rotation:[0,0,0]},pose.matrix);}
   async pickFeatureEdges(root:CadBody,path:number[],source:CadBody,refs:CadEdgeRef[],changed:()=>void):Promise<void>{const matrix=new THREE.Matrix4();let item=root;const append=(item:CadBody)=>{const pose=new THREE.Object3D();pose.position.set(...item.position);pose.rotation.set(...item.rotation.map(n=>n*rad) as V3,'ZYX');pose.scale.set(...item.scale);pose.updateMatrix();matrix.multiply(pose.matrix);};append(item);for(const index of path){item=cadInputs(item.solid)[index];append(item);}state.cad.tool='edge';this.setTool();await this.edges.start(source,matrix,refs,changed);}
   async pickBodyFaces(item:CadBody):Promise<void>{const pose=new THREE.Object3D();pose.position.set(...item.position);pose.rotation.set(...item.rotation.map(n=>n*rad) as V3,'ZYX');pose.updateMatrix();state.cad.tool='shellFace';this.setTool();await this.faces.start({...structuredClone(item),position:[0,0,0],rotation:[0,0,0]},pose.matrix);}
   async pickFeatureFaces(root:CadBody,path:number[],source:CadBody,refs:CadFaceRef[],changed:()=>void):Promise<void>{const matrix=new THREE.Matrix4();let item=root;const append=(item:CadBody)=>{const pose=new THREE.Object3D();pose.position.set(...item.position);pose.rotation.set(...item.rotation.map(n=>n*rad) as V3,'ZYX');pose.scale.set(...item.scale);pose.updateMatrix();matrix.multiply(pose.matrix);};append(item);for(const index of path){item=cadInputs(item.solid)[index];append(item);}state.cad.tool='shellFace';this.setTool();await this.faces.start(source,matrix,refs,changed);}
   finishPolygon(): void { if(this.polygon.length<3){this.callbacks.notice('Tap at least three points, then Finish sketch.');return;}const points=this.polygon;this.polygon=[];this.showSketch(points,true);this.callbacks.sketch(points,structuredClone(this.plane),this.faceTarget); }
-  cancelSketch():void{this.down=null;this.polygon=[];this.clearSketch();}
-  clearSketch(): void { this.sketchGroup.userData.form=false;for(const child of [...this.sketchGroup.children]){this.sketchGroup.remove(child);const object=child as THREE.Line;object.geometry?.dispose();if(object.material)for(const material of Array.isArray(object.material)?object.material:[object.material])material.dispose();}this.render(); }
+  cancelSketch():void{this.sketchAnchor=undefined;this.down=null;this.polygon=[];this.clearSketch();}
+  clearSketch(): void { this.pullPreview.clear();this.sketchGroup.userData.form=false;for(const child of [...this.sketchGroup.children]){this.sketchGroup.remove(child);const object=child as THREE.Line;object.geometry?.dispose();if(object.material)for(const material of Array.isArray(object.material)?object.material:[object.material])material.dispose();}this.render(); }
   showPlane(): void {
     this.clearSketch();const geometry=new THREE.PlaneGeometry(100,100),material=new THREE.MeshBasicMaterial({color:0x77c9d2,transparent:true,opacity:0.1,side:THREE.DoubleSide,depthWrite:false});
     const plane=new THREE.Mesh(geometry,material);plane.applyMatrix4(new THREE.Matrix4().fromArray(planeMatrix(this.plane)));plane.position.addScaledVector(vec(this.plane.normal),0.025);this.sketchGroup.add(plane);this.render();
@@ -225,7 +278,10 @@ export class CadViewport {
     this.showPlane();if(!points.length)return;
     const world=points.map(p=>vec(this.plane.origin).addScaledVector(vec(this.plane.u),p[0]).addScaledVector(vec(this.plane.v),p[1]).addScaledVector(vec(this.plane.normal),0.05));
     const geometry=new THREE.BufferGeometry().setFromPoints(world),material=new THREE.LineBasicMaterial({color:0xb42b64,depthTest:false});
-    this.sketchGroup.add(closed?new THREE.LineLoop(geometry,material):new THREE.Line(geometry,material));this.render();
+    this.sketchGroup.add(closed?new THREE.LineLoop(geometry,material):new THREE.Line(geometry,material));
+    if(!closed){for(const p of world){const dot=new THREE.Mesh(new THREE.SphereGeometry(cameraSpan(this.camera,vec(this.plane.origin))/Math.max(1,this.host.clientHeight)*4,8,6),new THREE.MeshBasicMaterial({color:0xb42b64,depthTest:false}));dot.position.copy(p);dot.renderOrder=7;this.sketchGroup.add(dot);}}
+    if(closed&&points.length>=3){const shape=new THREE.Shape(points.map(p=>new THREE.Vector2(...p))),fill=new THREE.Mesh(new THREE.ShapeGeometry(shape),new THREE.MeshBasicMaterial({color:0xe44591,transparent:true,opacity:.3,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));fill.applyMatrix4(new THREE.Matrix4().fromArray(planeMatrix(this.plane)));fill.renderOrder=5;this.sketchGroup.add(fill);}
+    this.render();
   }
   showFormInputs(form:CadForm,matrix=new THREE.Matrix4()):void {
     this.clearSketch();this.sketchGroup.userData.form=true;
@@ -239,29 +295,34 @@ export class CadViewport {
   }
   view(name: string): void {
     const target=this.controls.target.clone(),distance=this.camera.position.distanceTo(target);
-    const direction=name==='top'?new THREE.Vector3(0,-0.001,1):name==='front'?new THREE.Vector3(0,-1,0.001):name==='right'?new THREE.Vector3(1,0,0.001):name==='sketch'?vec(this.plane.normal):new THREE.Vector3(1,-1.3,1);
+    this.camera.up.copy(name==='sketch'?vec(this.plane.v):new THREE.Vector3(0,0,1));
+    const direction=name==='top'?new THREE.Vector3(0,0,1):name==='bottom'?new THREE.Vector3(0,0,-1):name==='front'?new THREE.Vector3(0,-1,0):name==='back'?new THREE.Vector3(0,1,0):name==='right'?new THREE.Vector3(1,0,0):name==='left'?new THREE.Vector3(-1,0,0):name==='sketch'?vec(this.plane.normal):new THREE.Vector3(1,-1.3,1);
     if(name==='sketch')target.copy(vec(this.plane.origin));this.controls.target.copy(target);this.camera.position.copy(target).add(direction.normalize().multiplyScalar(distance));this.controls.update();this.render();
   }
-  fit(): void {
-    const box=new THREE.Box3();for(const node of this.nodes.values())if(node.mesh.visible)box.expandByObject(node.mesh);
+  fit(selectionOnly=false): void {
+    const box=new THREE.Box3();for(const[id,node]of this.nodes)if(node.mesh.visible&&(!selectionOnly||state.cad.selected.includes(id)))box.expandByObject(node.mesh);
     if(this.sketchGroup.userData.form)box.expandByObject(this.sketchGroup);
-    if(box.isEmpty()){this.camera.position.set(130,-170,130);this.controls.target.set(0,0,10);}else{const centre=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3()),distance=Math.max(35,size.length()*1.6,Math.max(size.x,size.y)/this.camera.aspect*1.7);this.controls.target.copy(centre);this.camera.position.copy(centre).add(new THREE.Vector3(1,-1.3,1).normalize().multiplyScalar(distance));}this.controls.update();this.render();
+    if(box.isEmpty()){this.camera.position.set(130,-170,130);this.controls.target.set(0,0,10);}else{const centre=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3()),aspect=this.renderer.domElement.clientWidth/this.renderer.domElement.clientHeight,distance=Math.max(35,size.length()*1.6,Math.max(size.x,size.y)/aspect*1.7);this.controls.target.copy(centre);this.camera.position.copy(centre).add(new THREE.Vector3(1,-1.3,1).normalize().multiplyScalar(distance));if(this.camera instanceof THREE.OrthographicCamera){const span=Math.max(25,size.length()*1.25,size.length()/aspect*1.25);this.camera.top=span/2;this.camera.bottom=-span/2;this.camera.zoom=1;cameraAspect(this.camera,aspect);}}this.controls.update();this.render();
   }
   updatePreviews(): void {
-    if(this.disposed||state.cad.preview||state.cad.editing)return;const edgeVisible=this.edges.group.visible,faceVisible=this.faces.group.visible;this.edges.group.visible=false;this.faces.group.visible=false;const visibility=new Map([...this.nodes].map(([id,n])=>[id,n.mesh.visible])),opacity=new Map([...this.nodes].map(([id,n])=>[id,n.mesh.material.opacity])),helper=this.transform.getHelper(),wasHelper=helper.visible;helper.visible=false;this.decoration.visible=false;this.sketchGroup.visible=false;this.boxes.forEach(b=>b.visible=false);for(const node of this.nodes.values()){node.mesh.material.opacity=1;node.mesh.material.transparent=false;}
-    const camera=this.camera.clone();camera.aspect=activeLayer().canvas.width/activeLayer().canvas.height;camera.updateProjectionMatrix();
+    if(this.disposed||state.cad.preview||state.cad.editing)return;
+    const sheets=cadLayers(),view=this.pictureMode?captureCadView(this.camera,this.controls.target):sheets.find(l=>l.cad?.view)?.cad?.view,signature=JSON.stringify([W,H,view,sheets.map(l=>[l.id,l.cad!.bodies.map(b=>[b.id,this.nodes.get(b.id)?.key,b.visible,b.color,b.position,b.rotation,b.scale])])]);
+    // Returning from a timeline/inspection preview must preserve the unchanged picture bytes.
+    if(signature===this.previewSignature&&sheets.every(l=>this.previewCanvases.get(l.id)===l.canvas)){this.refreshPicture();return;}
+    const edgeVisible=this.edges.group.visible,faceVisible=this.faces.group.visible;this.edges.group.visible=false;this.faces.group.visible=false;this.measureGroup.visible=false;const visibility=new Map([...this.nodes].map(([id,n])=>[id,n.mesh.visible])),materials=new Map([...this.nodes].map(([id,n])=>{const m=n.mesh.material;return[id,{opacity:m.opacity,transparent:m.transparent,side:m.side,wireframe:m.wireframe,clippingPlanes:m.clippingPlanes,depthWrite:m.depthWrite}] as const;})),helper=this.transform.getHelper(),wasHelper=helper.visible;helper.visible=false;this.decoration.visible=false;this.sketchGroup.visible=false;this.pullPreview.group.visible=false;this.boxes.forEach(b=>b.visible=false);for(const node of this.nodes.values()){Object.assign(node.mesh.material,{opacity:1,transparent:false,side:THREE.FrontSide,wireframe:false,clippingPlanes:[],depthWrite:true,needsUpdate:true});}
+    const camera=view?cameraForView(view,W/H):new THREE.PerspectiveCamera(38,W/H,.1,30000);if(!view)camera.up.set(0,0,1);cameraAspect(camera,W/H);
     const allIds=new Set(cadLayers().flatMap(l=>l.cad!.bodies.filter(b=>b.visible).map(b=>b.id))),box=new THREE.Box3();for(const[id,node]of this.nodes)if(allIds.has(id))box.expandByObject(node.mesh);
-    if(!box.isEmpty()){const centre=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3()),distance=Math.max(40,size.length()*1.7,Math.max(size.x,size.y)/camera.aspect*1.9);camera.position.copy(centre).add(new THREE.Vector3(1,-1.3,1).normalize().multiplyScalar(distance));camera.lookAt(centre);}
-    const originalSize=this.renderer.getSize(new THREE.Vector2());this.renderer.setSize(Math.min(1200,activeLayer().canvas.width),Math.min(1200,activeLayer().canvas.height),false);
+    if(!view&&!box.isEmpty()){const centre=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3()),distance=Math.max(40,size.length()*1.7,Math.max(size.x,size.y)/(W/H)*1.9);camera.position.copy(centre).add(new THREE.Vector3(1,-1.3,1).normalize().multiplyScalar(distance));camera.lookAt(centre);}
+    const originalSize=this.renderer.getSize(new THREE.Vector2()),ratio=Math.min(1,1200/Math.max(W,H));this.renderer.setSize(Math.max(1,Math.round(W*ratio)),Math.max(1,Math.round(H*ratio)),false);
     for(const layer of cadLayers()){
       const ids=new Set(layer.cad!.bodies.filter(b=>b.visible).map(b=>b.id));for(const[id,node]of this.nodes)node.mesh.visible=ids.has(id);
       this.renderer.render(this.scene,camera);const ctx=layer.canvas.getContext('2d')!;ctx.clearRect(0,0,layer.canvas.width,layer.canvas.height);ctx.drawImage(this.renderer.domElement,0,0,layer.canvas.width,layer.canvas.height);
     }
-    for(const[id,node]of this.nodes){node.mesh.visible=visibility.get(id)??false;node.mesh.material.opacity=opacity.get(id)??1;node.mesh.material.transparent=node.mesh.material.opacity<1;}
-    this.renderer.setSize(originalSize.x,originalSize.y,false);this.edges.group.visible=edgeVisible;this.faces.group.visible=faceVisible;helper.visible=wasHelper;this.decoration.visible=true;this.sketchGroup.visible=true;this.boxes.forEach(b=>b.visible=true);invalidatePicture();emit('cad-preview');this.render();
+    for(const[id,node]of this.nodes){node.mesh.visible=visibility.get(id)??false;Object.assign(node.mesh.material,materials.get(id),{needsUpdate:true});}
+    this.renderer.setSize(originalSize.x,originalSize.y,false);this.edges.group.visible=edgeVisible;this.faces.group.visible=faceVisible;this.measureGroup.visible=true;helper.visible=wasHelper;this.decoration.visible=!this.pictureMode;this.sketchGroup.visible=true;this.pullPreview.group.visible=true;this.boxes.forEach(b=>b.visible=true);this.previewSignature=signature;this.previewCanvases=new Map(sheets.map(l=>[l.id,l.canvas]));this.refreshPicture();invalidatePicture();emit('cad-preview');this.render();
   }
-  dispose(): void {
-    if(this.drag)this.finishDrag();this.updatePreviews();this.edges.clear();this.faces.clear();this.disposed=true;++this.revision;clearTimeout(this.previewTimer);this.resizeObserver.disconnect();this.controls.dispose();this.transform.dispose();
-    for(const id of [...this.nodes.keys()])this.removeNode(id);this.clearSketch();this.scene.traverse(object=>{if(object instanceof THREE.Line||object instanceof THREE.Mesh){object.geometry.dispose();for(const material of Array.isArray(object.material)?object.material:[object.material])material.dispose();}if(object instanceof THREE.DirectionalLight)object.shadow.dispose();});this.pending.clear();this.renderer.dispose();this.renderer.domElement.remove();
+  dispose(update=true): void {
+    if(this.drag)this.finishDrag();if(update)this.updatePreviews();this.edges.clear();this.faces.clear();this.disposed=true;++this.revision;clearTimeout(this.previewTimer);this.resizeObserver.disconnect();this.controls.dispose();this.transform.dispose();
+    for(const id of [...this.nodes.keys()])this.removeNode(id);this.clearSketch();this.clearMeasure();this.scene.traverse(object=>{if(object instanceof THREE.Line||object instanceof THREE.Mesh){object.geometry.dispose();for(const material of Array.isArray(object.material)?object.material:[object.material])material.dispose();}if(object instanceof THREE.DirectionalLight)object.shadow.dispose();});this.pending.clear();this.pullPreview.dispose();this.renderer.dispose();this.renderer.domElement.remove();this.background.remove();this.foreground.remove();this.measureLabel.remove();
   }
 }

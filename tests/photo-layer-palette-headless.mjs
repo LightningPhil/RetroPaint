@@ -1,0 +1,29 @@
+import {chromium} from 'playwright';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import {AcceptanceDriver} from './acceptance-driver.mjs';
+import {controlledRenderClock} from './controlled-render-time.mjs';
+const args=process.argv.slice(2),option=(key,fallback)=>{const i=args.indexOf(key);return i<0?fallback:args[i+1];};
+const root=path.resolve('APP-USE-CASES/runs/2026-10-19-full-audit'),out=path.resolve(option('--out','test-results/photo-layer-palette')),origin=option('--origin','http://127.0.0.1:8095/');await fs.mkdir(out,{recursive:true});assert.equal((await fs.readdir(out)).length,0,'Refusing to replace retained evidence');const file=path.join(out,'LAYER-015-ui.json');
+const browser=await chromium.launch({headless:true,channel:'chrome'}),report={started:new Date().toISOString(),origin,execution:'Actual Photo lab, Layers and Advanced controls in isolated headless contexts; fixed10000ms only for completed-art comparisons',rows:[],errors:[]};
+const create=async(width,height,folder)=>{await fs.mkdir(folder,{recursive:true});const context=await browser.newContext({viewport:{width,height},acceptDownloads:true});await context.addInitScript(controlledRenderClock);await context.addInitScript(()=>{window.__acceptanceRenderTime=10000;});const page=await context.newPage(),driver=new AcceptanceDriver(page,folder);page.setDefaultTimeout(30000);page.on('pageerror',e=>report.errors.push(String(e)));await page.goto(origin,{waitUntil:'domcontentloaded'});return {context,page,driver};};
+const pair=async(driver,label)=>{const saved=await driver.download(label);await driver.download(label,'png');return saved;};
+const fresh=async(width,height,folder,saved)=>{const {context,page,driver}=await create(width,height,folder);try{await driver.open(saved,'project');await pair(driver,'reopened');await driver.snapshot('reopened');}finally{await context.close();}};
+try{
+ for(const [width,height] of [[1280,720],[320,568],[390,844],[844,390]].filter(([w,h])=>option('--viewport','all')==='all'||option('--viewport','all').split(',').includes(w+'x'+h)))for(const label of ['closed-cancel','open-cancel','closed-done','open-done','basic']){
+  console.log('PHOTO-LAYERS '+width+'x'+height+' '+label);const folder=path.join(out,width+'x'+height,label),{context,page,driver}=await create(width,height,folder);
+  const palette=async(open)=>{const current=await page.locator('#layersPanel').isVisible();if(current!==open)await page.locator(open?'#layersToggle':'#closeLayers').click();await page.locator('#layersPanel').waitFor({state:open?'visible':'hidden'});};
+  try{
+   await driver.advanced();await driver.open(path.join(root,'headless/MIX-final/MIX-enriched.retropaint'),'project');await palette(true);await page.getByRole('button',{name:'Paint on Backdrop',exact:true}).click();await pair(driver,'before');const prior=label.startsWith('open')||label==='basic';await palette(prior);if(prior){await page.getByRole('button',{name:'Edit Backdrop in Photo lab',exact:true}).click();await driver.ready();}else await driver.photo();assert.equal(await page.locator('#layersPanel').isVisible(),false);assert(await page.locator('#layersPanel').evaluate(e=>e.inert));assert(await page.locator('#bottomTray').evaluate(e=>e.inert));assert.equal(await page.locator('#photoTarget').innerText(),'Editing Backdrop');await driver.group('light','light-basic');await driver.slider('Brightness',label==='basic'?-20:20);await driver.ready();await driver.snapshot('draft');let saved;
+   if(label==='basic'){
+    await driver.drawer();await page.locator('#advancedMode').uncheck();await driver.close();await page.locator('#photoPanel').waitFor({state:'hidden'});assert.equal(await page.locator('#layersToggle').isVisible(),false);assert.equal(await page.locator('#photoToggle').isVisible(),false);assert.equal(await page.locator('#layersPanel').isVisible(),false);await driver.snapshot('basic-hid-controls');await pair(driver,'basic');await driver.advanced();await driver.photo();await driver.group('light','light-basic');assert.equal(Number(await page.getByRole('slider',{name:'Brightness',exact:true}).inputValue()),0);assert.equal(Number(await page.getByRole('slider',{name:'Exposure',exact:true}).inputValue()),.5);await page.locator('#photoCancel').click();saved=await pair(driver,'advanced-restored');
+   }else{
+    await page.locator(label.endsWith('done')?'#photoApply':'#photoCancel').click();await page.locator('#photoPanel').waitFor({state:'hidden'});await page.locator('#layersPanel').waitFor({state:prior?'visible':'hidden'});assert.equal(await page.locator('#layersPanel').evaluate(e=>e.inert),false);assert.equal(await page.locator('#bottomTray').evaluate(e=>e.inert),false);assert.equal(await page.locator('#layerList .layer-row.active .layer-name').innerText(),'Backdrop');if(prior)await page.getByRole('button',{name:'Paint on Backdrop, selected',exact:true}).scrollIntoViewIfNeeded();await driver.snapshot('restored-palette');saved=await pair(driver,'after');await page.locator('#undoBtn').click();await pair(driver,'undone');await page.locator('#view').press('Control+Shift+z');await pair(driver,'redone');
+   }
+   await fresh(width,height,path.join(folder,'fresh'),saved);report.rows.push({width,height,label,prior_palette_open:prior,photo_and_layers_exclusive:true,target:'Backdrop',restored_palette:label==='basic'?'hidden in basic':prior,fresh_reopen_complete:true});
+  }catch(error){await driver.snapshot('failure').catch(()=>{});throw error;}finally{await context.close();}
+ }
+ report.status=report.errors.length?'Fail':'Pass';
+}catch(error){report.status='Fail';report.error=String(error.stack??error);}
+finally{report.finished=new Date().toISOString();await fs.writeFile(file,JSON.stringify(report,null,2)+'\n');await browser.close();console.log('PHOTO-LAYERS '+report.status);if(report.status!=='Pass')process.exitCode=1;}

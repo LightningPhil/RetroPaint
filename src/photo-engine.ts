@@ -48,11 +48,14 @@ export function curveTable(points: CurvePoint[]): Float32Array {
 export function histogram(image: ImageData): { rgb: number[][]; clipped: [number,number]; count: number } {
   const rgb=Array.from({ length:3 },()=>Array<number>(256).fill(0)); let count=0,black=0,white=0;
   for(let i=0;i<image.data.length;i+=4)if(image.data[i+3]>0) {
-    count++; for(let c=0;c<3;c++)rgb[c][image.data[i+c]]++;
-    if(Math.min(image.data[i],image.data[i+1],image.data[i+2])<=1)black++;
-    if(Math.max(image.data[i],image.data[i+1],image.data[i+2])>=254)white++;
+    // Count visible coverage so almost clear padding cannot overwhelm opaque
+    // photographic content. count is the equivalent number of opaque pixels.
+    const weight=image.data[i+3]/255;
+    count+=weight; for(let c=0;c<3;c++)rgb[c][image.data[i+c]]+=weight;
+    if(Math.min(image.data[i],image.data[i+1],image.data[i+2])<=1)black+=weight;
+    if(Math.max(image.data[i],image.data[i+1],image.data[i+2])>=254)white+=weight;
   }
-  return { rgb,clipped:[black/Math.max(1,count),white/Math.max(1,count)],count };
+  return { rgb,clipped:count?[black/count,white/count]:[0,0],count };
 }
 export function neutralBalance(rgb: number[]): [number,number,number] {
   const values=rgb.map(v=>linear(clamp(v/255,0.02,0.98))), target=(values[0]*values[1]*values[2])**(1/3);

@@ -1,0 +1,165 @@
+{
+  "at": "2026-10-20T18:04:36.463305+00:00",
+  "case": "PAINT-006",
+  "status": "Additional size/Strength plan before execution, separate from32x32 core",
+  "rows": [
+    {
+      "id": "p1",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 1,
+      "strength": 0.15
+    },
+    {
+      "id": "p2",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 22,
+      "strength": 1
+    },
+    {
+      "id": "p3",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 96,
+      "strength": 0.15
+    },
+    {
+      "id": "p4",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 1,
+      "strength": 1
+    },
+    {
+      "id": "p5",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 0.15
+    },
+    {
+      "id": "p6",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 96,
+      "strength": 1
+    },
+    {
+      "id": "p7",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 1
+    },
+    {
+      "id": "p8",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 1,
+      "strength": 0.15
+    },
+    {
+      "id": "p9",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 22,
+      "strength": 1
+    },
+    {
+      "id": "p10",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 96,
+      "strength": 0.15
+    },
+    {
+      "id": "p11",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 1,
+      "strength": 1
+    },
+    {
+      "id": "p12",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 0.15
+    },
+    {
+      "id": "p13",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 96,
+      "strength": 1
+    },
+    {
+      "id": "p14",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 1
+    }
+  ],
+  "pairwise_proof": [
+    {
+      "factors": [
+        "viewport",
+        "size"
+      ],
+      "pairs": 12
+    },
+    {
+      "factors": [
+        "viewport",
+        "strength"
+      ],
+      "pairs": 8
+    },
+    {
+      "factors": [
+        "size",
+        "strength"
+      ],
+      "pairs": 6
+    }
+  ],
+  "geometry": {
+    "slow": "Quadratic from150,280 through400,160 to650,280;41 native points,15ms delay between points",
+    "fast": "Same quadratic shifted160px up;41 native points, no inserted delay",
+    "tap": [
+      800,
+      200
+    ]
+  },
+  "oracle": "Every native Pencil gesture must be8-connected, in the declared circular size/2+2px tube and cover dense centreline samples. At1px each tap changes exactly one source cell. Every changed opaque-white source pixel has one known Red Strength contribution within1/255; pixel edges must not introduce extra AA shades. All old data outside the gesture, all separate Undo/Redo and actual fresh complete source/RGBA exact. This boundary matrix supplements, rather than replaces, the strict32x32 core and exact reopened PNG checks."
+}

@@ -2,7 +2,7 @@ import { activeSector, sectorPolygon, clipPolygon } from './symmetry-mask';
 import { playThrottled } from './audio';
 import { baseCtx, W, H } from './canvas';
 import { symmetryTransforms } from './symmetry';
-import { state } from './state';
+import { state, vectorDrawingEnabled } from './state';
 import { bakeStaticStrokes } from './live';
 import { addPaintObject, makePathObject, objectId } from './objects';
 import { shapePoints } from './shapes';
@@ -20,7 +20,7 @@ export const STAMP_BANKS: { id: string; label: string; items: string[] }[] = [
 ];
 
 export function placeStamp(x: number, y: number): void {
-  if(state.drawingMode==='vector'){
+  if(vectorDrawingEnabled()){
     const size=82*state.stampScale,angle=state.stampSpin==='auto'?(Math.random()-.5)*28*Math.PI/180:0;
     if(state.stampId.startsWith('vec:')){
       const names:Record<string,Parameters<typeof shapePoints>[0]>={'vec:star':'star5','vec:heart':'heart','vec:triangle':'triangle','vec:diamond':'diamond','vec:blob':'ellipse'};

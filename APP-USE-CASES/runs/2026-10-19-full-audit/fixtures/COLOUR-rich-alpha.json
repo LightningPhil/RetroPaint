@@ -1,0 +1,15 @@
+{
+  "generator": "audit_support.py rich_colour",
+  "sha256": "c162141b7712104931e47ab3512f5dd1300216f31d4f1234d794888855e98ddc",
+  "size": [
+    320,
+    240
+  ],
+  "alpha_levels": [
+    0,
+    64,
+    128,
+    192,
+    255
+  ]
+}

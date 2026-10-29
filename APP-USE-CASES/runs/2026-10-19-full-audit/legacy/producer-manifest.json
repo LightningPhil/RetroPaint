@@ -1,0 +1,46 @@
+{
+  "producers": [
+    {
+      "version": 1,
+      "producing_revision": "3916c2404b35fe3f6284b83bfa23db3168d749e4",
+      "source_archive": "v1-3916c24.zip",
+      "source_archive_sha256": "7f32638f1d2600ad89e2efa3b87fc06500e0ef0421fd035e812b412ed20bcfa0",
+      "source_directory": "legacy\\v1-3916c24",
+      "execution": "Actual historical UI download, current UI migration and upgraded UI roundtrip verified",
+      "fixture_sha256": "c5201ce950dbdf2a1402c70d1f20dc97bb5f4ebeb2188ef1b8d031dea04c4ac9",
+      "fixture": "fixtures/legacy-v1-3916c24.retropaint",
+      "runtime": "Unmodified archived application sources served by current Vite 6.4.3 and installed dependencies via current serving config; no serializer changes"
+    },
+    {
+      "version": 2,
+      "producing_revision": "5ae116905277b0e60f104f7c398cd07c36684c00",
+      "source_archive": "v2-5ae1169.zip",
+      "source_archive_sha256": "c19180d5e27a8a41d147f56efcf068cd25f32c2cd91188cbc9fa10748651799d",
+      "source_directory": "legacy\\v2-5ae1169",
+      "execution": "Actual historical UI download, current UI migration and upgraded UI roundtrip verified",
+      "fixture_sha256": "4c5c609f4badbc02db0b5c037dc71f1cb5070fb9722a1f1213d9270040dd2d3c",
+      "fixture": "fixtures/legacy-v2-5ae1169.retropaint",
+      "runtime": "Unmodified archived application sources served by current Vite 6.4.3 and installed dependencies via current serving config; no serializer changes"
+    },
+    {
+      "version": 9,
+      "producing_revision": "c85f751a2e6273da74b94aa76f00ff419fe0186b",
+      "source_archive": "v9-c85f751.zip",
+      "source_archive_sha256": "45217926b906c3e87143610d112ea75e4ca9a83b756e495428ace757a3bbfaea",
+      "source_directory": "legacy\\v9-c85f751",
+      "execution": "Actual historical UI download, current UI migration and upgraded UI roundtrip verified",
+      "fixture_sha256": "2869721f9d6b3a16f0a2229dfd638c69f9e6e20239c0329e6b60b871f8ae9a60",
+      "fixture": "fixtures/legacy-v9-c85f751.retropaint",
+      "runtime": "Unmodified archived application sources served by current Vite 6.4.3 and installed dependencies via current serving config; no serializer changes"
+    }
+  ],
+  "unlocated_producing_versions": [
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "notes": "Only three project-producing revisions exist in current git history. Archive search found no further project serializer. These are unchanged historical sources; no current project version numbers are relabelled. Current installed dependencies will be reused and recorded."
+}

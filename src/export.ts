@@ -22,7 +22,7 @@ export async function imageBlob(format: string): Promise<Blob> {
     const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
     return format === 'bmp' ? encodeBmp(image) : format === 'gif' ? encodeGif(image) : encodeTiff(image);
   }
-  const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, `image/${format}`, 0.95));
+  const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, `image/${format}`, format === 'webp' ? 1 : 0.95));
   if (!blob || blob.type !== `image/${format}`) throw new Error(`Your browser cannot save ${format.toUpperCase()}. Choose PNG.`);
   return blob;
 }

@@ -1,0 +1,21 @@
+import './style.css';
+import './editor.css';
+import './layers.css';
+import './photo.css';
+import './advanced.css';
+import './objects.css';
+import './super-resolution.css';
+import './polish.css';
+import { playMarkerPop } from './audio';
+import { initCanvas } from './canvas';
+import { initInput } from './input';
+import { initMaterials } from './materials';
+import { startLoop } from './loop';
+import { initUi } from './ui';
+
+initCanvas();
+initMaterials();
+initUi();
+initInput();
+startLoop();
+playMarkerPop();

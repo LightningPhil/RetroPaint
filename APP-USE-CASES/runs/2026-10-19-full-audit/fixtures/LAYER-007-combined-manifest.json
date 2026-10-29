@@ -1,0 +1,17 @@
+{
+  "at": "2026-10-20T15:35:33.556082+00:00",
+  "project": "F:\\WebDev\\RetroPaint\\APP-USE-CASES\\runs\\2026-10-19-full-audit\\headless\\LAYER-007-fixture\\fresh\\fixture.retropaint",
+  "sha256": "ce28feb3326aea704b06d4f1871ce6a8f9cfb80f8ae3e689ba636cf6ab588815",
+  "decoder": "Pillow 12.3.0",
+  "actual_downloads_verified": 5,
+  "original_MIX_source_pixels_and_live_definitions_retained_in_editable_raster_object": true,
+  "new_text_content_and_default_centred_position_verified": true,
+  "independent_saved_photo_recipe": {
+    "exposure": 0.25,
+    "brightness": 10
+  },
+  "all_other_sheets_exact": true,
+  "fresh_rgba_exact": true,
+  "only_reopen_representation_change": "objects[0].live.strokes[0].clip absent -> null, the known optional no-clipping default",
+  "scope": "Fixture preparation only, not an acceptance case Pass. All content created through actual public controls; no application serializer/renderer supplied the expected saved data."
+}

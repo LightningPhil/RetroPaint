@@ -1,0 +1,43 @@
+{
+  "at": "2026-10-20T15:19:58.347884+00:00",
+  "generator": "Independent Pillow 12.3.0 known RGBA with two corner patches",
+  "nearest_invalid_combination": {
+    "stored_pixels": 64000006,
+    "layers": 7,
+    "width": 2518,
+    "height": 3631
+  },
+  "nearest_search": "All layer counts2..16 and widths1..4096; first integer height above budget, retained if<=4096. Minimum invalid total is64,000,006. Exact valid64,000,000 is4000x4000x4.",
+  "fixtures": [
+    {
+      "label": "count",
+      "width": 64,
+      "height": 64,
+      "max_layers": 16,
+      "reason": "16 sheets",
+      "file": "F:\\WebDev\\RetroPaint\\APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\layer-limits\\count.png",
+      "bytes": 219,
+      "sha256": "f38e2f0d0413c280d36c8330c4d2f4f3ab0b17db6282bce4abbc90411f1fd096"
+    },
+    {
+      "label": "exact-budget",
+      "width": 4000,
+      "height": 4000,
+      "max_layers": 4,
+      "reason": "exactly64 million stored pixels",
+      "file": "F:\\WebDev\\RetroPaint\\APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\layer-limits\\exact-budget.png",
+      "bytes": 70274,
+      "sha256": "a79bfdad7b3d395c5ab17fb9fecd68297d48e5bb8d4c2821105c4461ac532947"
+    },
+    {
+      "label": "nearest-over-budget",
+      "width": 2518,
+      "height": 3631,
+      "max_layers": 6,
+      "reason": "seventh sheet exceeds the budget by6 pixels",
+      "file": "F:\\WebDev\\RetroPaint\\APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\layer-limits\\nearest-over-budget.png",
+      "bytes": 43325,
+      "sha256": "8f6d33f0c8c184f1fc527e77c44047986765429563fcd8c0363f9c25c6a07db5"
+    }
+  ]
+}

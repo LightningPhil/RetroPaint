@@ -1,0 +1,312 @@
+{
+  "at": "2026-10-20T19:10:22.407322+00:00",
+  "case": "PAINT-012",
+  "applicator": "confetti",
+  "status": "Pre-execution plan, not a result",
+  "rows": [
+    {
+      "id": "e1",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 1,
+      "strength": 0.15,
+      "edge": [
+        0.5,
+        320
+      ],
+      "long_hold": false
+    },
+    {
+      "id": "e2",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 96,
+      "strength": 1,
+      "edge": [
+        0.5,
+        320
+      ],
+      "long_hold": false
+    },
+    {
+      "id": "e3",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 1,
+      "strength": 1,
+      "edge": [
+        480,
+        0.5
+      ],
+      "long_hold": false
+    },
+    {
+      "id": "e4",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 96,
+      "strength": 0.15,
+      "edge": [
+        480,
+        0.5
+      ],
+      "long_hold": false
+    },
+    {
+      "id": "e5",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 1,
+      "strength": 0.15,
+      "edge": [
+        959.5,
+        320
+      ],
+      "long_hold": false
+    },
+    {
+      "id": "e6",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 96,
+      "strength": 1,
+      "edge": [
+        959.5,
+        320
+      ],
+      "long_hold": false
+    },
+    {
+      "id": "e7",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 1,
+      "strength": 1,
+      "edge": [
+        480,
+        639.5
+      ],
+      "long_hold": false
+    },
+    {
+      "id": "e8",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 96,
+      "strength": 0.15,
+      "edge": [
+        480,
+        639.5
+      ],
+      "long_hold": false
+    },
+    {
+      "id": "m1",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 22,
+      "strength": 1,
+      "edge": [
+        0.5,
+        320
+      ],
+      "long_hold": true
+    },
+    {
+      "id": "m2",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 1,
+      "edge": [
+        480,
+        0.5
+      ],
+      "long_hold": true
+    },
+    {
+      "id": "m3",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 22,
+      "strength": 1,
+      "edge": [
+        959.5,
+        320
+      ],
+      "long_hold": true
+    },
+    {
+      "id": "m4",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 1,
+      "edge": [
+        480,
+        639.5
+      ],
+      "long_hold": true
+    }
+  ],
+  "cancellation_rows": [
+    {
+      "id": "touch-cancel-1",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 22,
+      "strength": 1,
+      "mode": "touch-cancel",
+      "hold_ms": 180
+    },
+    {
+      "id": "blur-cancel-1",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 22,
+      "strength": 1,
+      "mode": "blur-cancel",
+      "hold_ms": 1200
+    },
+    {
+      "id": "touch-cancel-2",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 1,
+      "mode": "touch-cancel",
+      "hold_ms": 180
+    },
+    {
+      "id": "blur-cancel-2",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 1,
+      "mode": "blur-cancel",
+      "hold_ms": 1200
+    },
+    {
+      "id": "touch-cancel-3",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 22,
+      "strength": 1,
+      "mode": "touch-cancel",
+      "hold_ms": 180
+    },
+    {
+      "id": "blur-cancel-3",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 22,
+      "strength": 1,
+      "mode": "blur-cancel",
+      "hold_ms": 1200
+    },
+    {
+      "id": "touch-cancel-4",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 1,
+      "mode": "touch-cancel",
+      "hold_ms": 180
+    },
+    {
+      "id": "blur-cancel-4",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 1,
+      "mode": "blur-cancel",
+      "hold_ms": 1200
+    }
+  ],
+  "extreme_pairwise_proof": [
+    {
+      "factors": [
+        "viewport",
+        "size"
+      ],
+      "pairs": 8
+    },
+    {
+      "factors": [
+        "viewport",
+        "strength"
+      ],
+      "pairs": 8
+    },
+    {
+      "factors": [
+        "size",
+        "strength"
+      ],
+      "pairs": 4
+    }
+  ],
+  "main": "Fresh960x640 white PLAY. Each row: stationary150ms, optional main1200ms hold, moving41 samples320,320 to640,320, then150ms at the declared half-cell edge. Confetti uses Rainbow first and an additional actual Red burst, preserving the older pixels. Every gesture gets actual project/PNG, separate Undo/Redo and fresh input.",
+  "capture": "Public paint-canvas captures after two real frames while held, after actual hold, then two frames after release and250ms later. No file control is operated while a pointer is held. All gesture/event/elapsed data retained; no fake clock or random generator override.",
+  "cancellation": "Separate fresh context for each row. Chrome-native emulated touchStart/touchCancel generates trusted pointercancel after180ms; this is software emulation, not physical device certification. A separate1200ms mouse hold is cancelled by actually activating another tab of the same isolated headless context; return with button still held and verify no resumed deposit before cleanup mouse-up. Observe native blur/visibility events. No user browser/profile/desktop access.",
+  "footprint": {
+    "radius_factor": 2.8,
+    "radius_padding": 6,
+    "stationary": [
+      480,
+      320
+    ],
+    "moving": [
+      [
+        320,
+        320
+      ],
+      [
+        640,
+        320
+      ]
+    ]
+  },
+  "oracle": "Independent affected masks and point/segment distances, actual all-four-edge clipped boundary pixels and no opposite-edge wrap. Stationary first/late frames must show additional pigment without displaced pointer events; released/cancelled frames must stop changing after render acknowledgement. Known Red updates lie on the source-over segment from previous pixel to Red within2/255, including Red over existing Rainbow. Main full-Strength Confetti has >=3 distinct chromatic hue bins. Each style is inspected separately; large-size stationary radius90 must exceed eight times minimum-size radius90, with source dimensions unchanged. Splatter main has an independently measured connected drop component >=30px. Every history/fresh source/RGBA exact; all actual downloads hashed. Unseeded random arrangements are measured, never compared to invented expected pixels.",
+  "scope": "12 positive main/extreme rows plus8 software cancellation rows per actual spray applicator; every named style, all four edges/layouts, min/max/intermediate size and both Strength endpoints. Physical pen/touch and AT remain separate unverified scope."
+}

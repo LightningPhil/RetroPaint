@@ -1,0 +1,135 @@
+{
+  "at": "2026-10-20T17:47:37.036910+00:00",
+  "case": "PAINT-006",
+  "status": "Core plan recorded before execution; brush boundary matrix remains additional required coverage",
+  "fixture": "fixtures/PIXEL.png",
+  "fixture_sha256": "c8b1fb11ea07eb68d88812d96040a9047eabf112c23d5972600766137dac7b5e",
+  "viewports": [
+    [
+      1280,
+      720
+    ],
+    [
+      320,
+      568
+    ],
+    [
+      390,
+      844
+    ],
+    [
+      844,
+      390
+    ]
+  ],
+  "staircase_points": [
+    [
+      3.5,
+      18.5
+    ],
+    [
+      4.5,
+      18.5
+    ],
+    [
+      4.5,
+      19.5
+    ],
+    [
+      5.5,
+      19.5
+    ],
+    [
+      5.5,
+      20.5
+    ],
+    [
+      6.5,
+      20.5
+    ],
+    [
+      6.5,
+      21.5
+    ],
+    [
+      7.5,
+      21.5
+    ],
+    [
+      7.5,
+      22.5
+    ],
+    [
+      8.5,
+      22.5
+    ],
+    [
+      8.5,
+      23.5
+    ],
+    [
+      9.5,
+      23.5
+    ],
+    [
+      9.5,
+      24.5
+    ],
+    [
+      10.5,
+      24.5
+    ],
+    [
+      10.5,
+      25.5
+    ],
+    [
+      11.5,
+      25.5
+    ],
+    [
+      11.5,
+      26.5
+    ],
+    [
+      12.5,
+      26.5
+    ],
+    [
+      12.5,
+      27.5
+    ],
+    [
+      13.5,
+      27.5
+    ],
+    [
+      13.5,
+      28.5
+    ],
+    [
+      14.5,
+      28.5
+    ],
+    [
+      14.5,
+      29.5
+    ]
+  ],
+  "fit_tap": [
+    28.5,
+    4.5
+  ],
+  "actual_pixel_tap": [
+    28.5,
+    7.5
+  ],
+  "colour": [
+    26,
+    26,
+    26,
+    255
+  ],
+  "main": "Open genuine32x32 PIXEL via chooser. Set96 before selecting Pencil through Classic brushes, then verify automatic1px selection. Enable Pixel grid, confirm >=6 CSS pixels per source cell and draw the declared staircase. Tap after Fit whole picture, switch to Actual pixels and tap again. Undo/Redo each, fresh project input and separately fresh PNG image input.",
+  "oracle": "Independent fixture decode and explicit occupied source cells: floor of every declared staircase vertex, plus the two single tap cells. All changed source cells must be exactly known opaque palette Black#1A1A1A, every other fixture byte unchanged, source dimensions32x32. Exact full gesture history and actual project/PNG fresh input. UI grid is observational only and must never appear in exported bytes. No AA tolerance or resampling permitted for this1px Pencil case. Mouse only; separate size/Strength boundary coverage is not implied by core execution."
+}

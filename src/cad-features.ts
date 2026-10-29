@@ -6,7 +6,7 @@ export interface FeatureEntry { key: string; path: number[]; sketch: boolean; la
 export function featureKey(path: number[], sketch = false): string { return (path.join('.') || 'root')+(sketch?':sketch':''); }
 export function featureName(item: CadBody): string {
   const s=item.solid;
-  return s.feature?.label || (s.kind==='loft'?'Loft':s.kind==='sweep'?'Sweep':s.kind==='shell'?'Shell':s.kind==='finish'?(s.mode==='fillet'?'Fillet':'Chamfer'):s.kind==='boolean'?{union:'Join',subtract:'Cut / hole',intersect:'Intersection',hull:'Hull'}[s.operation]:s.kind==='extrude'?'Extrusion':s.kind==='revolve'?'Revolve':item.name);
+  return s.feature?.label || (s.kind==='mesh'?'Imported STL':s.kind==='loft'?'Loft':s.kind==='sweep'?'Sweep':s.kind==='shell'?'Shell':s.kind==='finish'?(s.mode==='fillet'?'Fillet':'Chamfer'):s.kind==='boolean'?{union:'Join',subtract:'Cut / hole',intersect:'Intersection',hull:'Hull'}[s.operation]:s.kind==='extrude'?'Extrusion':s.kind==='revolve'?'Revolve':item.name);
 }
 /** Paths are scoped to the solid: copies may share original construction IDs safely. */
 export function featureTree(root: CadBody): FeatureEntry[] {

@@ -1,0 +1,272 @@
+{
+  "at": "2026-10-20T19:40:02.593108+00:00",
+  "case": "FILE-001",
+  "status": "Pre-execution plan, not a result",
+  "before": "Disposable PLAY with a known native centre tap. Preserve actual project/PNG before opening New; original personal artwork backup remains immutable.",
+  "positive_rows": [
+    {
+      "id": "v1-s1",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": [
+        1,
+        1
+      ]
+    },
+    {
+      "id": "v1-s2",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": [
+        320,
+        240
+      ]
+    },
+    {
+      "id": "v1-s3",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": [
+        4096,
+        1
+      ]
+    },
+    {
+      "id": "v1-s4",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": [
+        1,
+        4096
+      ]
+    },
+    {
+      "id": "v1-s5",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": [
+        4096,
+        4096
+      ]
+    },
+    {
+      "id": "v2-s1",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": [
+        1,
+        1
+      ]
+    },
+    {
+      "id": "v2-s2",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": [
+        320,
+        240
+      ]
+    },
+    {
+      "id": "v2-s3",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": [
+        4096,
+        1
+      ]
+    },
+    {
+      "id": "v2-s4",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": [
+        1,
+        4096
+      ]
+    },
+    {
+      "id": "v2-s5",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": [
+        4096,
+        4096
+      ]
+    },
+    {
+      "id": "v3-s1",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": [
+        1,
+        1
+      ]
+    },
+    {
+      "id": "v3-s2",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": [
+        320,
+        240
+      ]
+    },
+    {
+      "id": "v3-s3",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": [
+        4096,
+        1
+      ]
+    },
+    {
+      "id": "v3-s4",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": [
+        1,
+        4096
+      ]
+    },
+    {
+      "id": "v3-s5",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": [
+        4096,
+        4096
+      ]
+    },
+    {
+      "id": "v4-s1",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": [
+        1,
+        1
+      ]
+    },
+    {
+      "id": "v4-s2",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": [
+        320,
+        240
+      ]
+    },
+    {
+      "id": "v4-s3",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": [
+        4096,
+        1
+      ]
+    },
+    {
+      "id": "v4-s4",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": [
+        1,
+        4096
+      ]
+    },
+    {
+      "id": "v4-s5",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": [
+        4096,
+        4096
+      ]
+    }
+  ],
+  "invalid_sizes": [
+    [
+      "",
+      "240"
+    ],
+    [
+      "0",
+      "240"
+    ],
+    [
+      "-1",
+      "240"
+    ],
+    [
+      "4097",
+      "240"
+    ],
+    [
+      "1.5",
+      "240"
+    ],
+    [
+      "320",
+      ""
+    ],
+    [
+      "320",
+      "0"
+    ],
+    [
+      "320",
+      "4097"
+    ],
+    [
+      "320",
+      "1.5"
+    ]
+  ],
+  "cancellation": [
+    "Cancel",
+    "Escape"
+  ],
+  "oracle": "Opening/editing/cancelling/rejecting the New dialog preserves every previous source field and pixel and adds no history. Supported integer1..4096 dimensions create one white Paper with a valid active target, full crop, no old objects/live/photo/CAD or old pixels; document mode is coherently handled. Native centre paint affects only the declared nib, one Undo/Redo restores mark, another Undo restores the entire old document. Actual fresh project/PNG source/dimensions/RGBA match independently decoded files. Invalid input explains1..4096 whole-pixel limits and allows correction/retry without prematurely settling/replacing old artwork.",
+  "scope": "All four layouts; both dimensional minima/maxima including4096x4096, narrow portrait/landscape and intermediate size. Every invalid width/height category and both cancellation paths at each layout. Before-state product failure is recorded separately, never inferred from source inspection."
+}

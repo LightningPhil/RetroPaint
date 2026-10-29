@@ -71,6 +71,7 @@ export class CadFeaturePanel {
   }
   private description(e:FeatureEntry):string{
     const s=e.item.solid;
+    if(s.kind==='mesh')return `${s.sourceName} · ${s.indices.length/3} triangles · original imported mesh preserved · editable position and size`;
     if(s.kind==='loft'||s.kind==='sweep'){
       if(e.sweepPath&&s.kind==='sweep')return `${s.path.points.length} points · ${s.path.smooth?'smooth interpolating curve':'straight segments'} · editable x, y, z in mm`;
       if(e.profile!==undefined){const p=s.kind==='loft'?s.profiles[e.profile]:s.profile,b=sketchBounds(solveSketch(p.points,p.constraints,p.shape));return `${p.shape} · ${b.width.toFixed(1)} × ${b.height.toFixed(1)} mm${p.constraints?.length?' · '+p.constraints.length+' saved dimensions / relations':''} · ${s.kind==='sweep'?'follows path tangent':'origin '+p.plane.origin.join(', ')+' mm'}`;}
@@ -119,7 +120,8 @@ export class CadFeaturePanel {
   private renderEditor():void{
     const d=this.draft!;const item=this.draftItem(),s=item.solid,sketch=d.entry.sketch&&(s.kind==='extrude'||s.kind==='revolve');
     let controls='';
-    if(s.kind==='loft'||s.kind==='sweep')controls='<div id="cadFeatureForm"></div>';
+    if(s.kind==='mesh')controls='<p class="cad-hint">Original imported STL mesh. Its source triangles stay intact inside later features. Use Edit to move, rotate or resize the solid; sketch cuts and boolean operations stay editable in History.</p>';
+    else if(s.kind==='loft'||s.kind==='sweep')controls='<div id="cadFeatureForm"></div>';
     else if(sketch&&(s.kind==='extrude'||s.kind==='revolve')){
       const shape=sketchType(s);s.points=solveSketch(s.points,s.feature?.constraints,shape);const b=sketchBounds(s.points);
       if(this.sketchMode==='constraints')controls='<div id="cadFeatureConstraints" class="cad-constraint-editor"></div>';
@@ -175,7 +177,7 @@ export class CadFeaturePanel {
     else if(s.kind==='revolve')s.degrees=this.number('cadFeatureDegrees',1,360);
     else if(s.kind==='shell')s.thickness=this.number('cadFeatureThickness',.01,1000);
     else if(s.kind==='finish'){s.size=this.number('cadFeatureFinishSize',.01,1000);s.mode=this.el<HTMLSelectElement>('cadFeatureFinishMode').value as 'fillet';}
-    else s.operation=this.el<HTMLSelectElement>('cadFeatureBoolean').value as 'union';
+    else if(s.kind==='boolean')s.operation=this.el<HTMLSelectElement>('cadFeatureBoolean').value as 'union';
     readCadLayer({units:'mm',bodies:[d.root]});
   }
   private async reselectEdges():Promise<void>{

@@ -13,6 +13,7 @@
 .layer-icon-button .icon { width:21px; height:21px; }
 .layer-icon-button:hover { background:#ebe3f4; }
 #closeLayers { min-width:36px; min-height:36px; background:#eee9df; border-radius:50%; }
+#layerPhotoLab { margin-left:auto; min-width:36px; min-height:36px; }
 #addLayer { flex:0 0 auto; width:100%; min-height:44px; background:#93dfbd; font-size:14px; }
 #layersHint { font-size:11px; line-height:1.4; }
 #layerList { flex:0 0 auto; display:flex; gap:8px; flex-direction:column; max-height:290px; overflow-y:auto; overscroll-behavior:contain; padding:3px; }
@@ -49,13 +50,14 @@
 #canvasSlot.layer-space #paperControls,#canvasSlot.layer-space #zoomReadout { right:var(--dock-space,280px); }
 @media(max-width:1000px), (max-height:550px) {
   :root { --palette-width:min(340px,calc(100vw - 16px)); }
-  #layersPanel { position:fixed; top:auto; bottom:max(64px,calc(env(safe-area-inset-bottom) + 64px)); right:max(8px,env(safe-area-inset-right)); width:min(340px,calc(100% - 16px)); max-height:min(440px,calc(100dvh - 90px)); z-index:30; gap:8px; }
+  #layersPanel { --layers-bottom:max(64px,calc(env(safe-area-inset-bottom) + 64px)); position:fixed; top:auto; bottom:var(--layers-bottom); right:max(8px,env(safe-area-inset-right)); width:min(340px,calc(100% - 16px)); max-height:min(440px,calc(100dvh - var(--layers-top,76px) - var(--layers-bottom))); z-index:30; gap:8px; }
   #layersPanel.layer-options-open { bottom:max(8px,env(safe-area-inset-bottom)); max-height:calc(100dvh - 16px); }
   #layersPanel #layerList { max-height:230px; }
   .layer-icon-button { min-height:44px; }
   .layer-eye { min-width:40px; flex-basis:40px; }
   .layer-grip { min-width:36px; }
   #closeLayers { min-width:44px; min-height:44px; }
+  #layerPhotoLab { min-width:44px; min-height:44px; }
   .layer-pick { min-height:52px; }
   .layer-name { font-size:13px; }.layer-state { font-size:10px; }
   #layerOptions > summary { min-height:44px; }

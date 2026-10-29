@@ -4,7 +4,7 @@ import { drawShape, getPending, strokePath } from './fill';
 import { drawSqueegee } from './effects';
 import { getPreview } from './preview';
 import { drawRig } from './spiro';
-import { state } from './state';
+import { state, vectorDrawingEnabled } from './state';
 import { renderSelection } from './selection';
 import { splinePoints } from './curves';
 import { photoEditing } from './photo-preview';
@@ -28,7 +28,7 @@ export function renderOverlay(): void {
   if (preview?.kind === 'shape') {
     const ink = state.ink, live = state.liveArmed;
     if (preview.ink) { state.ink = preview.ink; state.liveArmed = false; }
-    if(state.drawingMode==='vector')previewVectorShape(uiCtx,preview.shape,preview.x0,preview.y0,preview.x1,preview.y1);
+    if(vectorDrawingEnabled())previewVectorShape(uiCtx,preview.shape,preview.x0,preview.y0,preview.x1,preview.y1);
     else drawShape(preview.shape, preview.x0, preview.y0, preview.x1, preview.y1, uiCtx, false);
     state.ink = ink; state.liveArmed = live;
   } else if (preview?.kind === 'lasso') {

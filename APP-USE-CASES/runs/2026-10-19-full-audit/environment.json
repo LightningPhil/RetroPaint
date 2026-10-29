@@ -1,0 +1,29 @@
+{
+  "recorded_at": "2026-10-19T22:30:29.413Z",
+  "os": {
+    "platform": "win32",
+    "release": "10.0.26200",
+    "version": "Windows 11 Pro",
+    "architecture": "x64",
+    "logical_cpus": 16,
+    "cpu_model": "Intel(R) Xeon(R) W-11955M CPU @ 2.60GHz",
+    "total_memory_bytes": 136660258816
+  },
+  "browser": {
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "source": "Actual #mobileResults rendered diagnostic",
+    "device_pixel_ratio": 1.5,
+    "reported_coarse_pointer": false,
+    "reported_touch_points": 0,
+    "default_viewport": [
+      1280,
+      720
+    ]
+  },
+  "physical_input": {
+    "pen": "User reports none available",
+    "touch": "Not tested physically",
+    "screen_reader": "No actual assistive technology pass performed"
+  },
+  "control_limit": "Browser mouse, keyboard, file chooser and screenshots work. Native app methods are not exposed by this CUA session."
+}

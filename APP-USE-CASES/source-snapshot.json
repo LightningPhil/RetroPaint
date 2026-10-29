@@ -1,0 +1,453 @@
+{
+  "captured": "2026-10-19T21:34:31.624608+00:00",
+  "git_head": "c85f751a2e6273da74b94aa76f00ff419fe0186b",
+  "working_tree_status": " M README.md\n M src/cad-brep.ts\n M src/cad-document.ts\n M src/cad-edge-picker.ts\n M src/cad-face-picker.ts\n M src/cad-feature-ui.ts\n M src/cad-features.ts\n M src/cad-kernel.ts\n M src/cad-model.ts\n M src/cad-ui.ts\n M src/cad-viewport.ts\n M src/cad.css\n M src/layer-ui.ts\n M src/layers.ts\n M src/project.ts\n M src/state.ts\n M tests/mobile.ts\n M tests/painting.ts\n?? APP-USE-CASES/\n?? src/cad-camera.ts\n?? src/cad-inspect-ui.ts\n?? src/cad-stl.ts\n",
+  "review": "User-facing entry points, settings, serialization and recovery contracts and existing check definitions. Static references do not establish conformance.",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "34c14cfb4d12706817d8ccaba09de1929e98e0ec0f10d1e9039034cb59b76e74",
+      "bytes": 31418
+    },
+    {
+      "path": "index.html",
+      "sha256": "f4f9a9d2afa96027ad13a050e82f948f8bbddce1e8c33e79fdcabd7d470ee719",
+      "bytes": 25359
+    },
+    {
+      "path": "src/accessible-tabs.ts",
+      "sha256": "9c7a7738c0d29be61683681bf17dda2a9e1917b2405cc0e864d157613a45fd6c",
+      "bytes": 1669
+    },
+    {
+      "path": "src/advanced-mode.ts",
+      "sha256": "967cf6f6eb41925bc4d681bc13b5f468b1d42175e154bf2c01803d927dadac72",
+      "bytes": 1031
+    },
+    {
+      "path": "src/artwork.ts",
+      "sha256": "8743e8ff918cfbabc18120190946528c6ceb14b17199101db44c76f3350c8aa3",
+      "bytes": 580
+    },
+    {
+      "path": "src/audio.ts",
+      "sha256": "5ede0614e3d0e36f48efb5a30b8fa82cfa3f37d673aa9b3e25db11228be502f5",
+      "bytes": 4665
+    },
+    {
+      "path": "src/brush.ts",
+      "sha256": "94e2811ad54eddce935087e8d309f8a7380984e062d081a947cd9eea47b3d4bf",
+      "bytes": 11765
+    },
+    {
+      "path": "src/cad-attachment.ts",
+      "sha256": "cd9043b3c50746fadeb0b170331d29e073944b409343c78385810408a616f1e3",
+      "bytes": 1897
+    },
+    {
+      "path": "src/cad-brep.ts",
+      "sha256": "0459c5ab15944b7592d97543250562ba5fddde04a791b13fd470099f8770381a",
+      "bytes": 22740
+    },
+    {
+      "path": "src/cad-camera.ts",
+      "sha256": "91f781ec54e634a0fff5294d453bebb3eeb307112dc9b216b5b005b22d3b46f8",
+      "bytes": 1591
+    },
+    {
+      "path": "src/cad-document.ts",
+      "sha256": "16cc6bd3b61f740a1586d645445c6d340295a0f862292d6536d74406062a60ae",
+      "bytes": 4487
+    },
+    {
+      "path": "src/cad-edge-picker.ts",
+      "sha256": "d6a9b878753372e64e6cf7f1328fa789b9a3bb43aedc3587b1fd2fdc91071af7",
+      "bytes": 4411
+    },
+    {
+      "path": "src/cad-face-picker.ts",
+      "sha256": "69ef43d3f65fb9cb360ecbfc09a898dfcc34562a43e704f97d6a012f49422032",
+      "bytes": 3738
+    },
+    {
+      "path": "src/cad-feature-ui.ts",
+      "sha256": "3b5467000f85b8d5c3410cd8408e7e984851f108b335d93fe84c11f17be92c60",
+      "bytes": 37257
+    },
+    {
+      "path": "src/cad-features.ts",
+      "sha256": "f6e10059c4e8d9bd71eca4588ed5cc31773e4d441c276b9a7ff928cd9e8b82c9",
+      "bytes": 7231
+    },
+    {
+      "path": "src/cad-form-ui.ts",
+      "sha256": "6b42d5c1b613dbcbbb19a7fe88d3e709fb561b7c1ea29d33d146022b1cab6090",
+      "bytes": 19016
+    },
+    {
+      "path": "src/cad-inspect-ui.ts",
+      "sha256": "32c23c59a88bedb942a0d16a7bb181d4647daa51e5ef93c3bd23e5b7754110d5",
+      "bytes": 11406
+    },
+    {
+      "path": "src/cad-kernel.ts",
+      "sha256": "f5798ed65a0efbf4e2edb662afad271233d28de87dbed1832e4113ee00c66308",
+      "bytes": 10269
+    },
+    {
+      "path": "src/cad-launch.ts",
+      "sha256": "37584b1cd3e901e417f9fb1cc2f1132055256b9b466c066cdffbe307eecbd50a",
+      "bytes": 906
+    },
+    {
+      "path": "src/cad-model.ts",
+      "sha256": "54a0ac3720ea145855ee0622b2d342296887522aea3bfcd81b564dec51086030",
+      "bytes": 16826
+    },
+    {
+      "path": "src/cad-profiles.ts",
+      "sha256": "fb6bfe9289e57001c2efda598b306ab1a4c1c6c7360919a03e45a4de70d411ad",
+      "bytes": 3309
+    },
+    {
+      "path": "src/cad-sketch-constraints.ts",
+      "sha256": "5495ef48ebc2f43073554a31cd326bca9fe1b741b123791616bf6460531c0dc7",
+      "bytes": 5973
+    },
+    {
+      "path": "src/cad-sketch-ui.ts",
+      "sha256": "06da63de5e1327362b92768cf76b6531782068fe7b3f03dcd12742e82aa44314",
+      "bytes": 10345
+    },
+    {
+      "path": "src/cad-stl.ts",
+      "sha256": "486bb623297e81bc087a8c5766c7201ad3ea4148cb2e01f91f2b1b66c2e7bfa0",
+      "bytes": 8206
+    },
+    {
+      "path": "src/cad-ui.ts",
+      "sha256": "11a2ae08414eb0b6329f584028c5a37c2e1237ad9d92ba4f8a5d1694ca45f42d",
+      "bytes": 67806
+    },
+    {
+      "path": "src/cad-viewport.ts",
+      "sha256": "a984f1ac8533088496ab671e9a2753bf76ef2909e5e6828be6e2b976b800207d",
+      "bytes": 39149
+    },
+    {
+      "path": "src/cad.css",
+      "sha256": "b983860366ddc06ef797cb50156bcc39d8b00e799f4a4c9c7b3b7338589475b5",
+      "bytes": 22841
+    },
+    {
+      "path": "src/clear-confirmation.ts",
+      "sha256": "817c3b96d3b0bceae58b69af7071d4b24bd424d5513776a04c530708e89057c7",
+      "bytes": 1672
+    },
+    {
+      "path": "src/color.ts",
+      "sha256": "1d57b522761c00411adcb59145f7981ccb11f78cad78a01f1302ab861d322ce5",
+      "bytes": 2166
+    },
+    {
+      "path": "src/colour-wheel.ts",
+      "sha256": "e0159c76301d4c263176c9f5d04f80000546c336510566ed70b6e6496b8c85fb",
+      "bytes": 7823
+    },
+    {
+      "path": "src/cursor-renderer.ts",
+      "sha256": "7834c10df245c7e14ed15eadd87aeb76fc1ea1eb8aefdf2e02b26e8f76aab760",
+      "bytes": 3856
+    },
+    {
+      "path": "src/curves.ts",
+      "sha256": "4c3c34b14707606b0906282c555907080db7931cb337a3dc60a936ede6655773",
+      "bytes": 1220
+    },
+    {
+      "path": "src/document-frame.ts",
+      "sha256": "723e17d56f59bf2b63f7d7065eb7c98b0cd93a48955544c06f01833239311b54",
+      "bytes": 1037
+    },
+    {
+      "path": "src/draw.ts",
+      "sha256": "3a9f3852c9ac97b35cd79952dffa6a4689a80870d3d3903259aac6a8fac05de6",
+      "bytes": 10440
+    },
+    {
+      "path": "src/editor.ts",
+      "sha256": "e56a43e40a087ccce27204fa095c1116139639b5960227ba3ddbbda5acd7cce1",
+      "bytes": 16456
+    },
+    {
+      "path": "src/effects.ts",
+      "sha256": "939d2e7067eb2591b210df319de120d94bf622dae44b35c8da57188731a94b2f",
+      "bytes": 9982
+    },
+    {
+      "path": "src/enhancement-size.ts",
+      "sha256": "956fd97a1d6697506f1b956675ddc2a7dca1225d4c5e93e70e000a324a2ddbaf",
+      "bytes": 959
+    },
+    {
+      "path": "src/export.ts",
+      "sha256": "a4f3039b940105e874040f63b05c1f785adb4771011657fe088090b1b47eb90e",
+      "bytes": 3016
+    },
+    {
+      "path": "src/fill.ts",
+      "sha256": "a1f7e5bb803cc4f7cddcded07ac68733ec5f405d0952df1e0b8b5e359a93f515",
+      "bytes": 15623
+    },
+    {
+      "path": "src/film-grain.ts",
+      "sha256": "b5231f16176874bb9ba76557baaafa0216cd1668104f1680c24ea5708c8a75f1",
+      "bytes": 1970
+    },
+    {
+      "path": "src/history.ts",
+      "sha256": "d190f1cd0b94cb7c365042d54b0fcacb9618466c557a5bd21941119cf47970d0",
+      "bytes": 2297
+    },
+    {
+      "path": "src/image-codecs.ts",
+      "sha256": "cd53a7dc387765dae76f86f1a59e97ffc58ad27ff07d76ad9e78bf97ff5d14df",
+      "bytes": 6163
+    },
+    {
+      "path": "src/input.ts",
+      "sha256": "a936453ad00dbf25782530b229751af85861498e2cb9d2ef30f034dd611d8a39",
+      "bytes": 24019
+    },
+    {
+      "path": "src/layer-ui.ts",
+      "sha256": "352c0931b1cfc3ca80926379a7c98194c32525a65a480a66f4e8f2fecbc4d4a6",
+      "bytes": 16282
+    },
+    {
+      "path": "src/layers.ts",
+      "sha256": "9134cd88fe566c2295d0d849e05d414fa69268a53429d56349391db33e068a13",
+      "bytes": 13655
+    },
+    {
+      "path": "src/live.ts",
+      "sha256": "dc9c20335fb8ac6caebdf37296bfa22be6fcae7087f48794064ba7b01f2cb948",
+      "bytes": 12919
+    },
+    {
+      "path": "src/loop.ts",
+      "sha256": "12c1ef6f41eb14a0512b54edbd829467186d35ee66e315a6b47d49b43446f45e",
+      "bytes": 3288
+    },
+    {
+      "path": "src/main.ts",
+      "sha256": "6873ca345a84b4b17190d9663cc0bb078497d95e7cbfffad93d4474172d6c084",
+      "bytes": 530
+    },
+    {
+      "path": "src/materials.ts",
+      "sha256": "91e3d635c775d6fa41da0300124885e24a4facf791063b3a111607c4985bb04c",
+      "bytes": 11476
+    },
+    {
+      "path": "src/object-scene.ts",
+      "sha256": "c33e6c8892850ceee9282fcc06bab68ac0cda2e7f3f461072eed4b92e8483129",
+      "bytes": 7239
+    },
+    {
+      "path": "src/object-ui.ts",
+      "sha256": "7db59c4bd483fb799a80524f61adb514dd2c863bc3ce9316da328cbdedd15cbd",
+      "bytes": 8036
+    },
+    {
+      "path": "src/objects.ts",
+      "sha256": "0e7fe9e0728cee3b0e91351d5c8fb2e6922bfda38c587ddc37063b3fbbe56a93",
+      "bytes": 20798
+    },
+    {
+      "path": "src/paper-view.ts",
+      "sha256": "0d68969d3b7ba30846f8ec4b6876616f589c3c65f6eea0fe7be066bd8e3cdd38",
+      "bytes": 5785
+    },
+    {
+      "path": "src/photo-engine.ts",
+      "sha256": "fe389b006e404e863354499c4a44ade44e405f4f643db6c59a095668f55cbc20",
+      "bytes": 13371
+    },
+    {
+      "path": "src/photo-guides.ts",
+      "sha256": "ec928bd37ffbcf36420f42da2b076e69709b57b2a9150b35cd75dd9a958592cc",
+      "bytes": 1193
+    },
+    {
+      "path": "src/photo-preview.ts",
+      "sha256": "c3f4bfd8e298660f014758336e53d6e32c07701014bb799a68aa04794e0bcdd4",
+      "bytes": 662
+    },
+    {
+      "path": "src/photo-processor.ts",
+      "sha256": "a1f491c6737d125d37450e6ed3f1a324d367ca4f90c1be21b51f8d7ad8107662",
+      "bytes": 1231
+    },
+    {
+      "path": "src/photo-recipe.ts",
+      "sha256": "6d2876100fedb2327e9d88f1420f524c910e9313d57832b8855393111519f5ed",
+      "bytes": 4761
+    },
+    {
+      "path": "src/photo-render.ts",
+      "sha256": "dd2a7dfae544da4936620127f57f09adac702fc8b814d6280ed0014c58f87c81",
+      "bytes": 3850
+    },
+    {
+      "path": "src/photo-session.ts",
+      "sha256": "a6434c15831fb1d18546e01de9e7518cb09008210e0a0863c460c44cdf17844d",
+      "bytes": 5120
+    },
+    {
+      "path": "src/photo-ui.ts",
+      "sha256": "8f5442b83acfd6026f639c0e7395418be1a56a243e4643c87236da0d5b0cff5a",
+      "bytes": 35512
+    },
+    {
+      "path": "src/png-stream.ts",
+      "sha256": "493beacc7c18f3edeea4239da35baa18f8118bf363c304256b67f976a106cc20",
+      "bytes": 2467
+    },
+    {
+      "path": "src/preferences-store.ts",
+      "sha256": "0e07c9514e9f3753edc8be457205b032ac30b2c244ed61013f7da46f0ab63872",
+      "bytes": 455
+    },
+    {
+      "path": "src/preferences-ui.ts",
+      "sha256": "39234e51d00ff1922784ab6a4d3f9797e4828d17fb18c98daaf55c3f5c196f91",
+      "bytes": 7146
+    },
+    {
+      "path": "src/project.ts",
+      "sha256": "f374471b30df4c1e34e4f6899110d0b81e9dc0878dde5df168f99048cbc69437",
+      "bytes": 14675
+    },
+    {
+      "path": "src/rainbow-stroke.ts",
+      "sha256": "f4f0cc237cd891e9726c6b0c2599187cdf3e813b48094a8e78492f2516aeb55a",
+      "bytes": 6979
+    },
+    {
+      "path": "src/recovery-store.ts",
+      "sha256": "0329c6345b3e2f6444aa97640f8e7af3986aa1daf00842bdc367b3b587a31232",
+      "bytes": 3228
+    },
+    {
+      "path": "src/recovery-ui.ts",
+      "sha256": "d605c29b31472c6c9ec7fc0bc3a32b6e006fa709fa517f857b23016e3d6b74f1",
+      "bytes": 11028
+    },
+    {
+      "path": "src/render-state.ts",
+      "sha256": "dc6a4718a4a227184adf678cd11de9f98fbeb9e1eeafc324119bed9ef332c991",
+      "bytes": 131
+    },
+    {
+      "path": "src/selection-commit.ts",
+      "sha256": "5f65514a61cfbd90aef2e7175a0df108c7bd8c9d487873667429ba9c5ac18a31",
+      "bytes": 3040
+    },
+    {
+      "path": "src/selection.ts",
+      "sha256": "3850a2c2c7a287542d7085503fef3eb9217850e2a9c8b805dcf3b95db850d80b",
+      "bytes": 17594
+    },
+    {
+      "path": "src/shapes.ts",
+      "sha256": "5bdf273dd84a928af6c2bf2c52e66c0ac98ef34e6328ef49ba344730e3ff3d88",
+      "bytes": 3882
+    },
+    {
+      "path": "src/shortcuts-ui.ts",
+      "sha256": "8511da02da4885ef6448dc0beb3f80f1b19feb77101720f666d9f603c81e436d",
+      "bytes": 3395
+    },
+    {
+      "path": "src/smudge.ts",
+      "sha256": "caa0b7675e820b03204ad3429c1cf653cdeaab01393a0b036acf32fb4e837c2b",
+      "bytes": 3444
+    },
+    {
+      "path": "src/spiro.ts",
+      "sha256": "fdb6abbe9c460afe379fe3d8c2172b7524a6ddf4fa6dd406b15191131e798b58",
+      "bytes": 12998
+    },
+    {
+      "path": "src/stamps.ts",
+      "sha256": "c5fcab94d9cdfbb1e8f11ec9c4e3f4a59aa01c739aface0c20467ae3b17d778d",
+      "bytes": 6072
+    },
+    {
+      "path": "src/state.ts",
+      "sha256": "a2a7452cd69277723c42cf86b31981d7c27a425727966e5ccbda2d9fceb9a3bb",
+      "bytes": 2431
+    },
+    {
+      "path": "src/stroke-renderer.ts",
+      "sha256": "2b506b1ff6a8934fc698b0015d50c747d5cece9989da7f38a7be6c241f886798",
+      "bytes": 6403
+    },
+    {
+      "path": "src/super-resolution-area.ts",
+      "sha256": "b7cd3078fe44c131eeec3af43a675be5fdaa3c221709856c756a9af9756ea6a3",
+      "bytes": 4201
+    },
+    {
+      "path": "src/super-resolution-engine.ts",
+      "sha256": "f788943af360380d9c583a6ab636b4cc87a26faf3559fc4e3b277a5601466034",
+      "bytes": 7430
+    },
+    {
+      "path": "src/super-resolution-ui.ts",
+      "sha256": "eb6a45abd2f82f61b1086372591a70f577440e353d2ad8ad21c38d7fd89dca3a",
+      "bytes": 8736
+    },
+    {
+      "path": "src/super-resolution-worker.ts",
+      "sha256": "e056522ce301c375f14b602e11e99980b24a15191189d7daaab87a182c831d77",
+      "bytes": 794
+    },
+    {
+      "path": "src/symmetry-mask.ts",
+      "sha256": "b1754226c6c8e805c3a9d16f9e0d9db92a0ae575713cac7ef1661557f2f0ced3",
+      "bytes": 5257
+    },
+    {
+      "path": "src/symmetry.ts",
+      "sha256": "433abd68f8685be5c34863444533853256ea18a4989328dbc791eeb3687fff3e",
+      "bytes": 1720
+    },
+    {
+      "path": "src/text-tool.ts",
+      "sha256": "acc2be70f26e4274fca6ffbbd347c9d730ef17133820d5b2d7b724326d52eac5",
+      "bytes": 6726
+    },
+    {
+      "path": "src/types.ts",
+      "sha256": "095acbfe5ef7f961fdbf124c7e74b46925f628bf47f4d95053526fb7602c7621",
+      "bytes": 1709
+    },
+    {
+      "path": "src/ui.ts",
+      "sha256": "ab03dd1e5f5aee8d5459f146a629eab9a3d79edeb7e1e718cc8538ea84566b11",
+      "bytes": 51633
+    },
+    {
+      "path": "src/workspace-overlay.ts",
+      "sha256": "4d9345aec6afc2123678367aaf71a5830143cd61bb01ce65ba63f3b46005b7c8",
+      "bytes": 3658
+    },
+    {
+      "path": "src/workspace-ui.ts",
+      "sha256": "77900a69cb33e790472db6db82c8473ba80233813036fc1627211b4b6dda1196",
+      "bytes": 6302
+    }
+  ]
+}

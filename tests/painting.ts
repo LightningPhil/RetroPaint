@@ -13,9 +13,12 @@ import { splinePoints } from '../src/curves';
 import { renderPaintPath } from '../src/stroke-renderer';
 import { initMaterials } from '../src/materials';
 import { state } from '../src/state';
+// Component coverage includes advanced vector and CAD authoring. Workspace
+// gating is exercised separately through the application UI.
+state.workspaceMode = 'advanced';
 import { paintFrame } from '../src/paint';
 import { bakeStaticStrokes, clearLive, strokes, snapshotLive, restoreLive, renderLive } from '../src/live';
-import { smudge, beginBake, invertAt, startHole, tickHole, startSqueegee, tickSqueegee } from '../src/effects';
+import { smudge, beginBake, invertAt, pixelateAt, embossAt, startHole, tickHole, startSqueegee, tickSqueegee, isBusy } from '../src/effects';
 import { pushHistory, undo } from '../src/history';
 import { cancelSelection, commitSelection, copySelection, cutSelection, hasSelection, hitSelection, moveSelection, pasteSelection, rectangle, refreshTransparency, selectRegion, renderSelection } from '../src/selection';
 import { drawShape, floodAt, floodMask, setShapePainter, getPending, cancelPending } from '../src/fill';
@@ -48,7 +51,7 @@ import { renderToolCursor } from '../src/cursor-renderer';
 import { drawObject } from '../src/object-scene';
 import { defaultForm, newProfile, pathBeziers } from '../src/cad-profiles';
 import { primitive, body as cadBody, basePlane, readCadLayer, sketchPoints, type CadMesh, type Primitive } from '../src/cad-model';
-import { solidMesh, printMesh, binaryStl, solidEdges, solidFaces } from '../src/cad-kernel';
+import { initKernel, solidMesh, printMesh, binaryStl, solidEdges, solidFaces } from '../src/cad-kernel';
 import { ensureCadLayer, addBody as addCadBody, currentBodies, replaceBodies, combinedBody, finishedBody, shelledBody } from '../src/cad-document';
 import { cadCompute } from '../src/cad-engine';
 import { duplicateLayer } from '../src/layers';
@@ -57,13 +60,18 @@ import { captureAttachment } from '../src/cad-attachment';
 import { attachedPlane } from '../src/cad-attachment';
 import { editFeature, featureAt, featureTimeline, featureTree, historyStage, prepareFeatureHistory, resizeSketch } from '../src/cad-features';
 import { solveSketch } from '../src/cad-sketch-constraints';
+import { importStl } from '../src/cad-stl';
 import type { CadSketchConstraint, V2 } from '../src/cad-model';
 
 initCanvas(); initMaterials();
 setShapePainter((x0,y0,x1,y1,w) => segment(x0,y0,x1,y1,w,0));
 let failures = 0;
+const requestedCheck = new URLSearchParams(location.search).get('check');
+function includesCheck(name: string): boolean {
+  return (!requestedCheck || name.includes(requestedCheck)) && (!new URLSearchParams(location.search).has('cad-only') || name.startsWith('CAD '));
+}
 const check = (name: string, fn: () => void) => {
-  if(new URLSearchParams(location.search).has('cad-only')&&!name.startsWith('CAD '))return;
+  if(!includesCheck(name))return;
   const li = document.createElement('li');
   try { fn(); li.className = 'pass'; li.textContent = 'PASS ' + name; }
   catch (error) { failures++; li.className = 'fail'; li.textContent = 'FAIL ' + name + ': ' + error; }
@@ -83,6 +91,17 @@ check('Smudge preserves flat colour and pixels beyond the soft radius', () => {
   const src = new Uint8ClampedArray(40 * 40 * 4).fill(128);
   const out = advect(src, 40, 40, 20, 20, 2, 1, 12, 0.8);
   assert(out.every((v, i) => v === src[i]));
+});
+check('Smudge acceptance preserves pure pigment while feathering transparent edges',()=>{
+  const source=new Uint8ClampedArray([255,0,0,255,0,0,0,0]);
+  const moved=advect(source,2,1,1.5,.5,1,0,10,.5);
+  assert(moved[4]===255&&moved[5]===0&&moved[6]===0&&moved[7]===128,'Transparent Red acquired a dark fringe: '+Array.from(moved.slice(4)));
+  assert(source[4]===0&&source[7]===0,'Immutable input was modified');
+});
+check('Smudge acceptance ignores colour hidden in fully transparent neighbours',()=>{
+  const source=new Uint8ClampedArray([255,0,0,255,0,255,0,0]);
+  const moved=advect(source,2,1,1.5,.5,1,0,10,.5);
+  assert(moved[4]===255&&moved[5]===0&&moved[6]===0&&moved[7]===128,'Invisible Green contaminated visible Red: '+Array.from(moved.slice(4)));
 });
 check('Smudge pulls colour in the direction of travel with no transparent gaps', () => {
   const src = new Uint8ClampedArray(40 * 40 * 4).fill(255);
@@ -222,6 +241,31 @@ check('Low-opacity lines have uniform coverage, not repeated dark dabs', () => {
   bakeStaticStrokes(baseCtx);
   const reference=pixel(150,200);
   for(let x=151;x<460;x++)assert(pixel(x,200)===reference,'Opacity band at '+x);
+});
+  check('Tiny round Marker taps keep their nib area and remain visible at minimum Strength',()=>{
+    for(const [x,y] of [[19.9999718569885,20],[20,20],[20.25,20.25],[20.5,20.5],[20.75,20.25],[20.001,20.499]])for(const mode of ['repeat','single','tiny-move']){
+      const first={x,y,w:1},points=mode==='single'?[first]:mode==='repeat'?[first,{...first},{...first}]:[first,{x:x+.01,y,w:1}];
+      const result=renderPaintPath(points,{kind:'solid',color:'#E53935',applicator:'marker'},{width:64,height:64})!;
+      const rgba=result.canvas.getContext('2d')!.getImageData(0,0,result.canvas.width,result.canvas.height).data;let area=0;for(let i=3;i<rgba.length;i+=4)area+=rgba[i]/255;
+      assert(area>=.5&&area<=1.1,`1px ${mode} tap at ${x},${y} has ${area} covered pixels instead of a round nib`);
+      const output=document.createElement('canvas');output.width=output.height=64;const ctx=output.getContext('2d')!;ctx.fillStyle='#fff';ctx.fillRect(0,0,64,64);ctx.globalAlpha=.15;ctx.drawImage(result.canvas,result.x,result.y);const pixels=ctx.getImageData(0,0,64,64).data;let greenDeficit=0;for(let i=1;i<pixels.length;i+=4)greenDeficit+=255-pixels[i];
+      assert(greenDeficit>=10,'Minimum-Strength tap vanished after compositing onto paper');
+    }
+  });
+check('One-pixel Pencil writes exact opaque source cells without antialiasing',()=>{
+  const points=[{x:3.5,y:18.5,w:1}];for(let i=0;i<11;i++)points.push({x:4.5+i,y:18.5+i,w:1},{x:4.5+i,y:19.5+i,w:1});
+  for(const path of [points,[{x:28.5,y:4.5,w:1}],[{x:28.00001,y:4.99999,w:1}]]){
+    const result=renderPaintPath(path,{kind:'solid',color:'#1A1A1A',applicator:'pencil'},{width:32,height:32})!;
+    const output=document.createElement('canvas');output.width=output.height=32;const ctx=output.getContext('2d')!;ctx.fillStyle='#fff';ctx.fillRect(0,0,32,32);ctx.drawImage(result.canvas,result.x,result.y);
+    const rgba=ctx.getImageData(0,0,32,32).data,expected=new Set(path.map(p=>Math.floor(p.x)+','+Math.floor(p.y)));
+    for(let y=0;y<32;y++)for(let x=0;x<32;x++){const i=(y*32+x)*4,value=expected.has(x+','+y)?26:255;assert(rgba[i]===value&&rgba[i+1]===value&&rgba[i+2]===value&&rgba[i+3]===255,`Pencil cell ${x},${y} is ${Array.from(rgba.slice(i,i+4))}, expected ${value}`);}
+  }
+  for(const width of [22,96]){
+    const result=renderPaintPath([{x:120.25,y:120.75,w:width}],{kind:'solid',color:'#1A1A1A',applicator:'pencil'},{width:256,height:256})!;
+    const data=result.canvas.getContext('2d')!.getImageData(0,0,result.canvas.width,result.canvas.height).data;let occupied=0;
+    for(let i=0;i<data.length;i+=4)if(data[i+3]){occupied++;assert(data[i]===26&&data[i+1]===26&&data[i+2]===26&&data[i+3]===255,'Wide Pencil introduces antialiased colour/alpha');}
+    assert(occupied>=Math.PI*(width/2-1)**2&&occupied<=Math.PI*(width/2+1)**2,'Wide Pencil loses its requested circular footprint');
+  }
 });
 check('A long neon path remains one connected stroke beyond 4000 samples', () => {
   reset();state.ink='neon';beginStrokeGeneration();
@@ -389,6 +433,20 @@ function pointer(type:string,x:number,y:number) {
   const r=view.getBoundingClientRect();
   view.dispatchEvent(new PointerEvent(type,{pointerId:77,button:0,buttons:type==='pointerup'?0:1,clientX:r.left+x,clientY:r.top+y}));
 }
+check('Smudge acceptance keeps live Water until pigment actually moves',()=>{
+  const send=(type:string,x:number,y:number)=>{const r=view.getBoundingClientRect();view.dispatchEvent(new PointerEvent(type,{pointerId:1313,pointerType:'mouse',button:0,buttons:type==='pointerup'?0:1,clientX:r.left+x/W*r.width,clientY:r.top+y/H*r.height}));};
+  try{
+    resetLayers(160,96,null);reset();baseCtx.clearRect(0,0,W,H);baseCtx.fillStyle='#ff0000';baseCtx.fillRect(40,40,80,40);const mask=blankMask();mask.getContext('2d')!.fillRect(80,40,40,40);addFill(mask,{kind:'texture',colors:[],speed:1,mode:'snap',along:false,texture:'water'},1,null);state.tool='sponge';state.brushWidth=22;
+    const before=projectData();send('pointerdown',60,60);assert(projectData()===before,'Pressing without movement froze Water or changed the source');send('pointerup',60,60);assert(projectData()===before,'Releasing without movement changed live definitions');
+    send('pointerdown',60,60);send('pointermove',100,60);send('pointerup',100,60);assert(snapshotLive().fills.length===0&&projectData()!==before,'Meaningful movement failed to commit the live source');undo();assert(projectData()===before,'Undo did not restore complete live source');
+  }finally{send('pointercancel',60,60);resetLayers(960,640);reset();}
+});
+check('Smudge acceptance in empty space preserves the previous Undo action and guide',()=>{
+  const send=(type:string,x:number,y:number)=>{const r=view.getBoundingClientRect();view.dispatchEvent(new PointerEvent(type,{pointerId:1314,pointerType:'mouse',button:0,buttons:type==='pointerup'?0:1,clientX:r.left+x/W*r.width,clientY:r.top+y/H*r.height}));};
+  try{
+    resetLayers(160,96,null);reset();baseCtx.fillStyle='#43a047';baseCtx.fillRect(0,0,W,H);addLayer();baseCtx.fillStyle='#ff0000';baseCtx.fillRect(40,60,80,30);state.tool='sponge';state.brushWidth=22;const original=projectData();pushHistory();activeLayer().name='Previous rename';const renamed=projectData();send('pointerdown',10,20);send('pointermove',60,20);send('pointerup',60,20);assert(projectData()===renamed,'Clear-only movement changed the source or sampled the lower guide');undo();assert(projectData()===original,'Empty Smudge added a hidden Undo step');redo();assert(projectData()===renamed,'Redo lost the previous rename');
+  }finally{send('pointercancel',60,20);resetLayers(960,640);reset();}
+});
 check('Losing touch capture stops spraying immediately', () => {
   reset(); state.tool='spray'; state.applicator='mist';
   pointer('pointerdown',400,300); tickSpray();
@@ -849,16 +907,193 @@ check('Semi-transparent erasing preserves lower layers and erases live ink with 
     switchLayer(lower); assert(pixel(30, 25) === '0,0,255,255');
   } finally { view.setPointerCapture = capture; state.opacity = 1; inputStage.style.cssText = stageStyle; }
 });
+for(const strength of [1,.15])check('Scrub hidden-sheet Undo restores original visibility and neighbour at Strength '+strength,()=>{
+  const capture=view.setPointerCapture,stageStyle=inputStage.style.cssText;view.setPointerCapture=()=>{};inputStage.style.display='block';
+  const send=(type:string,x:number,y:number)=>{const r=view.getBoundingClientRect();view.dispatchEvent(new PointerEvent(type,{pointerId:1414,pointerType:'mouse',button:0,buttons:type==='pointerup'?0:1,clientX:r.left+x/W*r.width,clientY:r.top+y/H*r.height}));};
+  try{
+    resetLayers(160,96,null);reset();baseCtx.fillStyle='#0000ff';baseCtx.fillRect(0,0,W,H);const neighbour=activeLayer().canvas.toDataURL();addLayer();baseCtx.fillStyle='#ff0000';baseCtx.fillRect(20,20,100,60);activeLayer().visible=false;state.tool='eraser';state.eraserMode='scrub';state.brushWidth=22;state.opacity=strength;const before=projectData();send('pointerdown',60,48);send('pointerup',60,48);const after=projectData();assert(activeLayer().visible&&baseCtx.getImageData(60,48,1,1).data[3]<255,'Scrub did not erase the selected hidden sheet');assert(layers[0].canvas.toDataURL()===neighbour,'Scrub erased a visible neighbour');undo();assert(projectData()===before,'Undo restores pixels but leaves the original hidden working sheet visible');redo();assert(projectData()===after,'Redo fails to restore complete erase/reveal state');
+  }finally{send('pointercancel',60,48);view.setPointerCapture=capture;inputStage.style.cssText=stageStyle;resetLayers(960,640);reset();}
+});
+function eraserLifecycleFixture(action:(send:(type:string,x:number,y:number)=>void)=>void):void {
+  const capture=view.setPointerCapture,stageStyle=inputStage.style.cssText,drawingMode=state.drawingMode;view.setPointerCapture=()=>{};inputStage.style.display='block';
+  const send=(type:string,x:number,y:number)=>{const r=view.getBoundingClientRect();view.dispatchEvent(new PointerEvent(type,{pointerId:1515,pointerType:'mouse',button:0,buttons:type==='pointerup'||type==='pointercancel'?0:1,clientX:r.left+x/W*r.width,clientY:r.top+y/H*r.height}));};
+  try{resetLayers(180,100);reset();baseCtx.fillStyle='#ff0000';baseCtx.fillRect(0,0,W,H);state.drawingMode='raster';state.tool='eraser';state.eraserMode='blackhole';state.brushWidth=22;action(send);}
+  finally{send('pointercancel',60,50);tickHole(1000);view.setPointerCapture=capture;inputStage.style.cssText=stageStyle;state.drawingMode=drawingMode;resetLayers(960,640);reset();}
+}
+check('Eraser lifecycle Black Hole follows a held pointer and remains one edit',()=>eraserLifecycleFixture(send=>{
+  const before=projectData();send('pointerdown',30,50);tickHole(80);send('pointermove',140,50);tickHole(120);assert(pixel(140,50)==='255,255,255,255','Black Hole ignored movement to a fresh painted footprint');send('pointerup',140,50);const after=projectData();undo();assert(projectData()===before,'A moved Black Hole is not one complete undoable gesture');redo();assert(projectData()===after,'Moved Black Hole Redo changed source');
+}));
+for(const stop of ['pointerup','pointercancel','blur'] as const)check('Eraser lifecycle Black Hole '+stop+' stops future writes and releases busy state',()=>eraserLifecycleFixture(send=>{
+  send('pointerdown',60,50);tickHole(80);if(stop==='blur')window.dispatchEvent(new Event('blur'));else send(stop,60,50);const stopped=image();tickHole(240);tickHole(400);assert(image()===stopped,'Black Hole kept changing source after '+stop);assert(!isBusy()&&!state.busy,'Black Hole left the editor busy after '+stop);
+}));
+check('Eraser lifecycle Black Hole keeps clear pixels clear and never samples the guide',()=>eraserLifecycleFixture(send=>{
+  resetLayers(180,100,null);baseCtx.fillStyle='#43a047';baseCtx.fillRect(0,0,W,H);const guide=activeLayer().canvas.toDataURL();addLayer();baseCtx.fillStyle='#ff0000';baseCtx.fillRect(20,20,100,60);send('pointerdown',20,50);tickHole(120);assert(baseCtx.getImageData(5,50,1,1).data[3]===0,'Transparent pixels acquired opaque paint');assert(baseCtx.getImageData(20,50,1,1).data[3]===0,'Clear-sheet hole painted a matte instead of removing alpha');assert(layers[0].canvas.toDataURL()===guide,'Black Hole changed the guide');
+}));
+check('Eraser lifecycle hidden Black Hole Undo restores the original hidden state',()=>eraserLifecycleFixture(send=>{
+  activeLayer().visible=false;const before=projectData();send('pointerdown',60,50);tickHole(80);send('pointerup',60,50);const after=projectData();assert(activeLayer().visible,'Edited hidden target was not revealed');undo();assert(projectData()===before,'Black Hole Undo leaves the original hidden target visible');redo();assert(projectData()===after,'Black Hole Redo changed complete source');
+}));
+for(const mode of ['invert','pixelate','emboss'] as const)check('Eraser lifecycle hidden '+mode+' restores visibility and neighbour in history',()=>eraserLifecycleFixture(send=>{
+  resetLayers(180,100,null);baseCtx.fillStyle='#0000ff';baseCtx.fillRect(0,0,W,H);const guide=activeLayer().canvas.toDataURL();addLayer();const data=new ImageData(W,H);for(let y=0;y<H;y++)for(let x=0;x<W;x++){const v=(Math.floor(x/2)+Math.floor(y/2))%2?224:32;data.data.set([v,v,v,255],(y*W+x)*4);}baseCtx.putImageData(data,0,0);activeLayer().visible=false;state.eraserMode=mode;const before=projectData();send('pointerdown',60,50);send('pointerup',60,50);const after=projectData();assert(activeLayer().visible&&layers[0].canvas.toDataURL()===guide,'Hidden filter chose or changed its neighbour');undo();assert(projectData()===before,'Hidden '+mode+' Undo leaves the working sheet visible');redo();assert(projectData()===after,'Hidden '+mode+' Redo changes source');
+}));
+check('Eraser lifecycle completed Black Hole preserves bounding-box corners',()=>eraserLifecycleFixture(send=>{
+  const corner=pixel(5,2);send('pointerdown',60,50);tickHole(700);assert(pixel(5,2)===corner,'Completed hole cleared outside its circular footprint');send('pointerup',60,50);
+}));
+check('Eraser lifecycle Black Hole uses the defined Paper colour',()=>eraserLifecycleFixture(send=>{
+  activeLayer().paper='#43a047';send('pointerdown',60,50);tickHole(120);assert(pixel(60,50)==='67,160,71,255','Hole ignored the defined Paper colour');send('pointerup',60,50);
+}));
+check('Eraser lifecycle Black Hole remains held after its first animation and recovers from outside',()=>eraserLifecycleFixture(send=>{
+  send('pointerdown',30,50);tickHole(700);assert(isBusy(),'Held hole finished before release');send('pointermove',-200,50);tickHole(100);send('pointermove',140,50);tickHole(120);assert(pixel(140,50)==='255,255,255,255','Held hole failed to resume on painted material');send('pointercancel',140,50);const stopped=image();tickHole(700);assert(image()===stopped&&!isBusy());
+}));
+check('Eraser lifecycle masked Black Hole clears alpha without leaking across the seam',()=>{
+  try{resetLayers(960,640,null);reset();state.symmetry='4';state.symmetryMask=true;baseCtx.fillStyle='#ff0000';baseCtx.fillRect(0,0,W,H);startHole(620,300);tickHole(700);assert(baseCtx.getImageData(620,330,1,1).data[3]===0,'Masked clear-sheet hole retained an opaque matte');assert(pixel(620,260)==='255,0,0,255','Masked hole leaked past its slice');}
+  finally{tickHole(1000);resetLayers(960,640);reset();}
+});
+check('Pixel filter Strength blends one Invert contribution and preserves alpha',()=>{
+  try{
+    resetLayers(128,96,null);reset();baseCtx.clearRect(0,0,W,H);baseCtx.fillStyle='rgb(40,80,160)';baseCtx.fillRect(0,0,64,96);baseCtx.fillStyle='rgba(200,40,120,0.5)';baseCtx.fillRect(64,0,48,96);const before=baseCtx.getImageData(0,0,W,H).data;state.tool='eraser';state.eraserMode='invert';state.brushWidth=22;state.opacity=.15;invertAt(64,48);const after=baseCtx.getImageData(0,0,W,H).data;
+    assert(pixel(60,48)==='66,94,150,255','Invert ignored the selected15% Strength: '+pixel(60,48));for(let i=3;i<before.length;i+=4)assert(after[i]===before[i],'Weak Invert changed source alpha');
+  }finally{resetLayers(960,640);reset();}
+});
+check('Pixel filter Invert covers dense movement and applies each whole gesture once',()=>{
+  const capture=view.setPointerCapture,stageStyle=inputStage.style.cssText;view.setPointerCapture=()=>{};inputStage.style.display='block';
+  try{
+    resetLayers(160,96,null);reset();baseCtx.fillStyle='rgb(40,80,160)';baseCtx.fillRect(0,0,160,96);const before=image();state.tool='eraser';state.eraserMode='invert';state.brushWidth=22;state.opacity=1;
+    const send=(type:string,x:number)=>{const r=view.getBoundingClientRect();view.dispatchEvent(new PointerEvent(type,{pointerId:1741,pointerType:'mouse',button:0,buttons:type==='pointerup'?0:1,clientX:r.left+x/160*r.width,clientY:r.top+48/96*r.height}));};
+    const gesture=()=>{send('pointerdown',30);for(let x=34;x<=130;x+=4)send('pointermove',x);send('pointerup',130);};gesture();for(let x=30;x<=130;x++)assert(pixel(x,48)==='215,175,95,255','Dense Invert leaves or repeatedly toggles its swept core at'+x+': '+pixel(x,48));gesture();assert(image()===before,'Two identical full Invert gestures do not restore the complete source');
+  }finally{view.setPointerCapture=capture;inputStage.style.cssText=stageStyle;resetLayers(960,640);reset();}
+});
+check('Pixel filter covers release movement and bounds captured travel outside the paper',()=>{
+  const capture=view.setPointerCapture,stageStyle=inputStage.style.cssText;view.setPointerCapture=()=>{};inputStage.style.display='block';
+  try{
+    const prepare=()=>{resetLayers(160,96,null);reset();baseCtx.fillStyle='rgb(40,80,160)';baseCtx.fillRect(0,0,160,96);state.tool='eraser';state.eraserMode='invert';state.brushWidth=22;state.opacity=1;};
+    const send=(type:string,x:number)=>{const r=view.getBoundingClientRect();view.dispatchEvent(new PointerEvent(type,{pointerId:1742,pointerType:'mouse',button:0,buttons:type==='pointerup'?0:1,clientX:r.left+x/160*r.width,clientY:r.top+48/96*r.height}));};
+    prepare();send('pointerdown',30);send('pointerup',130);for(let x=30;x<=130;x++)assert(pixel(x,48)==='215,175,95,255','Release-only movement leaves the covered core unchanged at'+x);
+    prepare();const started=performance.now();send('pointerdown',-1_000_000);send('pointerup',1_000_000);assert(performance.now()-started<1000,'Captured movement was not clipped before sampling');for(let x=0;x<160;x++)assert(pixel(x,48)==='215,175,95,255','Clipping lost the segment crossing the paper at'+x);
+  }finally{view.setPointerCapture=capture;inputStage.style.cssText=stageStyle;resetLayers(960,640);reset();}
+});
+for(const [mode,apply] of [['pixelate',pixelateAt],['emboss',embossAt]] as const)check('Pixel filter '+mode+' respects the selected weak contribution bound',()=>{
+  try{
+    resetLayers(128,96,null);reset();const source=new ImageData(128,96);for(let y=0;y<96;y++)for(let x=0;x<128;x++){const i=(y*128+x)*4,v=mode==='pixelate'&&(x+y)%2?255:0;source.data.set([v,v,v,255],i);}baseCtx.putImageData(source,0,0);state.tool='eraser';state.eraserMode=mode;state.brushWidth=22;state.opacity=.15;apply(64,48);const sample=baseCtx.getImageData(64,48,1,1).data;
+    assert(sample[0]>0&&sample[0]<=39&&sample[0]===sample[1]&&sample[1]===sample[2]&&sample[3]===255,mode+' ignores15% Strength or changes neutral alpha: '+Array.from(sample));
+  }finally{resetLayers(960,640);reset();}
+});
 check('Wet spray drips continue on their own layer after switching layers', () => {
   resetLayers(96, 64); addDrip(10, 5, 3, '#ff0000'); const original = baseCtx; addLayer(); tickDrips(100);
   assert(baseCtx.getImageData(10, 11, 1, 1).data[3] === 0, 'Drip leaked onto the new layer'); assert(original.getImageData(10, 11, 1, 1).data[1] < 100);
   tickDrips(2000);
 });
 async function asyncCheck(name: string, action: () => Promise<void>): Promise<void> {
-  if(new URLSearchParams(location.search).has('cad-only')&&!name.startsWith('CAD '))return;
+  if(!includesCheck(name))return;
   let error: unknown; try { await action(); } catch (caught) { error = caught; }
   check(name, () => { if (error) throw error; });
 }
+
+await asyncCheck('Code wiki covers the core registry and links every topic',async()=>{
+ const {WIKI_TOPICS}=await import('../src/cad-wiki-content');const {searchWiki,mcadTopics}=await import('../src/cad-wiki');
+ const ids=new Set(WIKI_TOPICS.map(topic=>topic.id)),symbols=new Set(WIKI_TOPICS.flatMap(topic=>topic.symbols));assert(ids.size===WIKI_TOPICS.length,'Duplicate wiki id');
+ const core='abs sign rands min max sin cos asin acos tan atan atan2 round ceil floor pow sqrt exp len log ln str chr textmetrics fontmetrics ord concat lookup search version version_num norm cross parent_module is_undef is_list is_num is_bool is_string is_function is_object object has_key import cube sphere cylinder polyhedron square circle polygon linear_extrude rotate_extrude surface translate rotate scale resize mirror multmatrix color offset hull minkowski fill union difference intersection group projection children echo assert for let intersection_for if render roof'.split(' ');for(const name of core)assert(symbols.has(name),'Missing core topic: '+name);
+ for(const topic of WIKI_TOPICS){assert(topic.summary.length>20&&topic.body.length>0,'Thin article '+topic.id);assert(topic.lesson.beginner.length>=2&&topic.lesson.beginner.every(text=>text.length>80)&&topic.lesson.deeper.length>100,'Missing learning levels '+topic.id);for(const id of topic.related)assert(ids.has(id),'Broken related link '+id);for(const example of topic.examples){assert(example.result.length>20&&example.experiment.length>30,'Missing example guidance '+example.title);assert(example.code.split('\n').filter(line=>line.includes('//')).length>=2,'Missing code commentary '+example.title);for(const [path,source] of Object.entries(example.files??{}))if(path.endsWith('.scad'))assert(source.includes('//'),'Uncommented helper '+path);}}
+ assert(searchWiki(WIKI_TOPICS,'rotate_extrude').some(topic=>topic.id==='rotate-extrude'),'Function search failed');assert(searchWiki(WIKI_TOPICS,'nonsense-zzzz').length===0,'Empty search failed');
+ assert(searchWiki(WIKI_TOPICS,'potter').some(topic=>topic.id==='rotate-extrude'),'Beginner explanations are not searchable');assert(searchWiki(WIKI_TOPICS,'indentations').some(topic=>topic.id==='functions'),'Example exercises are not searchable');
+ const files=await (await fetch('/openscad/mcad.json')).json(),library=mcadTopics(files);assert(library.length===files.filter((file:{path:string})=>file.path.endsWith('.scad')).length,'Missing MCAD source file');assert(library.some(topic=>topic.symbols.includes('roundedBox'))&&library.some(topic=>topic.symbols.includes('gear')),'MCAD symbols not indexed');
+ for(const topic of library)assert(topic.lesson.beginner.length>=2&&topic.lesson.deeper.length>100,'Library learning levels missing '+topic.id);assert(library.find(topic=>topic.title==='MCAD / units.scad')?.syntax.startsWith('include'),'Constants loading guidance uses the wrong directive');
+});
+await asyncCheck('Code wiki runnable examples all render closed native OpenSCAD solids',async()=>{
+ const {WIKI_TOPICS}=await import('../src/cad-wiki-content');const {renderOpenSCAD}=await import('../src/openscad-engine');const failures:string[]=[];let count=0;
+ for(const topic of WIKI_TOPICS)for(const example of topic.examples){if(example.preview===false)continue;count++;try{const files=Object.entries(example.files??{}).map(([path,source])=>{let binary='';for(const byte of new TextEncoder().encode(source))binary+=String.fromCharCode(byte);return{path,data:btoa(binary)};});const result=await renderOpenSCAD(example.code,'main.scad',files);const warnings=result.logs.filter(line=>/^WARNING:/i.test(line));assert(warnings.length===0,'Warnings: '+warnings.join(' | '));const mesh=(await cadCompute([result.body])).mesh;closedCadMesh(mesh);assert(mesh.volume>0,'No material');}catch(error){failures.push(topic.id+' / '+example.title+': '+String(error));}}
+ assert(count>=50,'Too few runnable examples');assert(!failures.length,failures.join('\n'));
+});
+await asyncCheck('OpenSCAD parameters ignore locals comments strings and ambiguous reassignments',async()=>{
+ const {numericScriptParameters,openSCADLocation}=await import('../src/cad-script-editor');
+ const source='// comment=2;\n/* hidden=8; */\ntext="fake=9;";\nmodule part(){\n local=6;\n}\nsize=2e1; // width\nrepeated=2; repeated=4;\nother=8;\nother=10;\nfunction fn(x=2)=x;\nheight = -3.5;';
+ const params=numericScriptParameters(source);assert(params.map(p=>p.name).join(',')==='size,height','Unsafe parameters exposed');for(const p of params)assert(source.slice(p.start,p.end)===p.value,'Wrong source range');assert(openSCADLocation('ERROR: Parser error in file /project/lib/part.scad, line 3')?.file==='lib/part.scad','Native diagnostic path');
+});
+await asyncCheck('OpenSCAD diagnostics bound echo output preserve errors and explain 2D output',async()=>{
+ const {renderOpenSCAD}=await import('../src/openscad-engine');
+ const result=await renderOpenSCAD('echo("ERROR: this is only text"); for(i=[0:10000]) echo(i); cube(2);');assert((await cadCompute([result.body])).mesh.volume===8,'Echo was treated as an error');assert(result.logs.join('\n').length<68000&&result.logs.some(line=>line.includes('Output truncated')),'Unbounded diagnostics');
+ let message='';try{await renderOpenSCAD('cube(2); import("missing.stl");');}catch(error){message=String(error);}assert(/missing.stl/.test(message)&&message.split('missing.stl').length===2,'Missing asset diagnostic duplicated or lost');
+ try{await renderOpenSCAD('circle(3);');throw new Error('2D accepted as a solid');}catch(error){assert(/Extrude 2D/.test(String(error)),'2D error gives no recovery instruction');}
+ const files=[{path:'lib.scad',data:btoa('module part(){cube(2);}')}];const pending=renderOpenSCAD('use <lib.scad> part();','main.scad',files);files[0].data=btoa('module part(){cube(20);}');const snapshot=await pending;assert(snapshot.body.script!.files![0].data!==files[0].data&&(await cadCompute([snapshot.body])).mesh.volume===8,'Render source snapshot mutated');
+});
+await asyncCheck('OpenSCAD engine supports real language, fonts and dependencies',async()=>{
+  const {renderOpenSCAD}=await import('../src/openscad-engine');
+  const files=[{path:'lib/part.scad',data:btoa('function twice(n)=n*2; module part(){children();}')}];
+  const result=await renderOpenSCAD('use <lib/part.scad>\npart() mirror([1,0,0]) cube([twice(3),4,5]);','main.scad',files);
+  const mesh=(await cadCompute([result.body])).mesh;assert(Math.abs(mesh.volume-120)<.01,'native module/functions/children/mirror volume');
+  assert(result.body.script?.language==='openscad'&&result.body.script.files?.length===1,'source and files retained');
+  const mcad=await renderOpenSCAD('use <MCAD/boxes.scad> roundedBox([10,10,10],2,true);');assert((await cadCompute([mcad.body])).mesh.volume>0,'Bundled MCAD library');
+  const letters=await renderOpenSCAD('linear_extrude(2) text("ABC",size=8);');assert((await cadCompute([letters.body])).mesh.volume>0,'font rendering');
+  let rejected=false;try{await renderOpenSCAD('include <missing.scad> cube(2);');}catch{rejected=true;}assert(rejected,'missing include must not silently render');
+});
+
+await asyncCheck('OpenSCAD engine renders upstream files and formerly unsupported operations',async()=>{
+ const {renderOpenSCAD}=await import('../src/openscad-engine');
+ const {LEGACY_SCRIPT_EXAMPLES}=await import('../src/cad-script');for(const [name,source] of Object.entries(LEGACY_SCRIPT_EXAMPLES)){try{const result=await renderOpenSCAD(source);const mesh=(await cadCompute([result.body])).mesh;closedCadMesh(mesh);assert(mesh.volume>0,'Native starter: '+name);}catch(error){throw new Error(name+': '+String(error));}}
+ for(const name of ['CSG.scad','rotate_extrude.scad']){const source=await (await fetch('/openscad/examples/'+name)).text();const result=await renderOpenSCAD(source,name);const mesh=(await cadCompute([result.body])).mesh;closedCadMesh(mesh);assert(mesh.volume>0,'Upstream '+name);}
+ for(const source of ['minkowski(){cube(3);sphere(1,$fn=12);}', 'linear_extrude(3) offset(r=1) polygon([for(i=[0:4]) [cos(i*72)*8,sin(i*72)*8]]);','rotate(a=35,v=[1,1,0]) scale([-1,2,1]) cube(4);','n=2; cube(n); n=5;']){const result=await renderOpenSCAD(source);const mesh=(await cadCompute([result.body])).mesh;closedCadMesh(mesh);assert(mesh.volume>0,'Native geometry');if(source.startsWith('n='))assert(Math.abs(mesh.volume-125)<.01,'Declarative reassignment differs from OpenSCAD');}
+});
+await asyncCheck('OpenSCAD advanced starters remain connected solids after parameter changes',async()=>{
+ const {ADVANCED_SCRIPT_EXAMPLES}=await import('../src/cad-script-examples'),{renderOpenSCAD}=await import('../src/openscad-engine');
+ const changes:Record<string,[string,string]>={'Spiral lattice lantern':['twist=90;','twist=120;'],'Orbital sculpture':['orbit_radius=25;','orbit_radius=30;'],'Twisted wave pen pot':['height=64;','height=80;'],'Rocket desk organiser':['fins=3;','fins=4;'],'Castle gatehouse':['tower_height=32;','tower_height=42;']};
+ for(const [name,source] of Object.entries(ADVANCED_SCRIPT_EXAMPLES)){
+  const [before,after]=changes[name];assert(source.includes(before),'Missing editable parameter '+name);let originalVolume=0;
+  for(const [version,code] of [source,source.replace(before,after)].entries()){
+   try{const result=await renderOpenSCAD(code);assert(!result.logs.some(line=>/^WARNING:/i.test(line)),result.logs.join('\n'));const mesh=(await cadCompute([result.body])).mesh;closedCadMesh(mesh);assert(mesh.bounds.min[2]>=-.001,'Below print bed');
+    // Weld equal STL coordinates, then count connected surface components.
+    const parents=new Map<string,string>(),key=(i:number)=>Array.from(mesh.positions.subarray(i*3,i*3+3)).map(v=>Math.round(v*1e5)).join(',');
+    const root=(id:string):string=>{if(!parents.has(id))parents.set(id,id);let node=id;while(parents.get(node)!==node)node=parents.get(node)!;while(id!==node){const next=parents.get(id)!;parents.set(id,node);id=next;}return node;};
+    for(let i=0;i<mesh.indices.length;i+=3){const a=root(key(mesh.indices[i]));for(let j=1;j<3;j++)parents.set(root(key(mesh.indices[i+j])),root(a));}
+    assert(new Set([...parents.keys()].map(root)).size===1,'Detached features or sealed internal shells');
+    if(version===0)originalVolume=mesh.volume;else assert(Math.abs(mesh.volume-originalVolume)>1,'Parameter did not alter geometry');
+   }catch(error){throw new Error(name+(version?' (edited)':' (default)')+': '+String(error));}
+  }
+ }
+});
+await asyncCheck('OpenSCAD engine imports SVG, heightmaps and STL and saves complete projects',async()=>{
+ const {renderOpenSCAD}=await import('../src/openscad-engine');
+ const cube=await renderOpenSCAD('cube(4);');const stl=(await cadCompute([cube.body],'print')).stl!;
+ let binary='';for(const b of new Uint8Array(stl))binary+=String.fromCharCode(b);
+ const files=[{path:'parts/block.stl',data:btoa(binary)},{path:'profiles/box.svg',data:btoa('<svg xmlns="http://www.w3.org/2000/svg" width="10mm" height="10mm" viewBox="0 0 10 10"><rect width="10" height="10"/></svg>')},{path:'data/grid.dat',data:btoa('1 2 1\n2 3 2\n1 2 1\n')},{path:'config.scad',data:btoa('height=3;')}];
+ const source='include <../config.scad> union(){import("../parts/block.stl"); translate([15,0,0]) linear_extrude(height) import("../profiles/box.svg"); translate([30,0,0]) surface("../data/grid.dat");}';
+ const result=await renderOpenSCAD(source,'src/main.scad',files);closedCadMesh((await cadCompute([result.body])).mesh);
+ resetLayers(160,120);ensureCadLayer();addCadBody(result.body);const saved=projectData();assert(JSON.parse(saved).version===13,'Native project version');resetLayers(10,10);await loadProjectData(saved);const script=currentBodies()[0].script!;assert(script.entry==='src/main.scad'&&script.files?.length===4,'Dependencies lost');const rebuilt=await renderOpenSCAD(script.source,script.entry,script.files);assert((await cadCompute([rebuilt.body])).mesh.volume>300,'Restored project does not render');resetLayers(960,640);
+});
+await asyncCheck('OpenSCAD native cut solids join workshop shapes and export closed STL',async()=>{
+ const {renderOpenSCAD}=await import('../src/openscad-engine');const {importStl}=await import('../src/cad-stl');const rendered=await renderOpenSCAD('difference(){cube([20,20,10],center=true);cylinder(h=20,r=3,center=true,$fn=64);}');const sphere=primitive('sphere',[12,12,12]);sphere.position=[10,0,0];const original=(await cadCompute([rendered.body])).mesh.volume,joined=combinedBody('union',[rendered.body,sphere]),result=await cadCompute([joined],'print');closedCadMesh(result.mesh);assert(result.mesh.volume>original&&result.mesh.volume<original+910,'Join failed to fuse native mesh');const roundtrip=importStl(result.stl!,'native-joined.stl');const printed=(await cadCompute([roundtrip])).mesh;closedCadMesh(printed);assert(Math.abs(printed.volume-result.mesh.volume)<.1,'STL changed material volume');
+});
+await asyncCheck('OpenSCAD engine cancels and rejects unsafe project paths',async()=>{
+ const {renderOpenSCAD}=await import('../src/openscad-engine');const controller=new AbortController();const pending=renderOpenSCAD('sphere(100,$fn=1000);','main.scad',[],controller.signal);controller.abort();let cancelled=false;try{await pending;}catch(error){cancelled=/cancelled/.test(String(error));}assert(cancelled,'Render cannot be cancelled');
+ let conflict=false;try{await renderOpenSCAD('cube(1);','main.scad',[{path:'parts',data:''},{path:'parts/part.scad',data:''}]);}catch(error){conflict=/both a file and a folder/.test(String(error));}assert(conflict,'File/directory conflict was not explained');
+ for(const path of ['../escape.scad','/absolute.scad','C:/file.scad']){let rejected=false;try{await renderOpenSCAD('cube(1);',path);}catch{rejected=true;}assert(rejected,'Unsafe path accepted');}
+});
+
+await asyncCheck('Script CAD examples build closed printable solids',async()=>{
+  const {compileCadScript,LEGACY_SCRIPT_EXAMPLES}=await import('../src/cad-script');
+  for(const [name,source] of Object.entries(LEGACY_SCRIPT_EXAMPLES)){const item=compileCadScript(source),mesh=await solidMesh(item);try{closedCadMesh(mesh);}catch(error){throw new Error(name+': '+String(error));}assert(mesh.volume>1,name+' has no volume');}
+});
+await asyncCheck('Script CAD boolean volumes, centres, ordered transforms and profile holes',async()=>{
+  const {compileCadScript}=await import('../src/cad-script');
+  for(const [source,volume] of [
+    ['difference(){cube(10);translate([2,2,-1])cube([6,6,12]);}',640],
+    ['intersection(){cube(10);translate([5,0,0])cube(10);}',500],
+    ['linear_extrude(height=5)difference(){square(10);translate([2,2])square(6);}',320],
+    ['module block(s=2){cube(s);} for(i=[0:2])translate([i*4,0,0])block();',24],
+    ['if(sin(90)==1) cube([2,3,4]); else cube(1);',24],
+    ['intersection(){translate([0,0,0]){cube(10);translate([10,0,0])cube(10);}cube([20,10,10]);}',2000]
+  ] as const){const mesh=await solidMesh(compileCadScript(source));closedCadMesh(mesh);assert(Math.abs(mesh.volume-volume)<.01,'Incorrect script volume: '+source+' = '+mesh.volume);}
+  const moved=await solidMesh(compileCadScript('rotate([0,0,90])translate([10,0,0])cube([2,4,6],center=true);'));assert(Math.abs(moved.bounds.min[1]-9)<.01&&Math.abs(moved.bounds.max[0]-2)<.01,'Transform order or centering changed');
+  for(const source of ['cylinder(h=10,r1=5,r2=0);','cylinder(h=10,r1=0,r2=5,center=true);']){const mesh=await solidMesh(compileCadScript(source));closedCadMesh(mesh);assert(Math.abs(mesh.volume-Math.PI*25*10/3)<1,'Cone volume wrong');}
+});
+await asyncCheck('Script CAD errors and limits reject bad code without executing it',async()=>{
+  const {compileCadScript}=await import('../src/cad-script');
+  for(const source of ['cube([1,2]);','cube(10); fetch("https://example.com");','for(i=[0:100000])cube(1);','module again(){again();} again();','cube(1/0);','import("file.stl");','cube(2,wrong=true);','translate([1,2,3]) circle(3);','/* unclosed','cube(3)']){let failed=false;try{compileCadScript(source);}catch(error){failed=error instanceof Error&&error.message.length>0;}assert(failed,'Invalid script accepted: '+source);}
+});
+await asyncCheck('Script CAD project roundtrip keeps editable source and undo',async()=>{
+  const {compileCadScript,SCRIPT_EXAMPLES}=await import('../src/cad-script');resetLayers(160,120);ensureCadLayer();const item=compileCadScript(SCRIPT_EXAMPLES['Drilled flange']);addCadBody(item);const saved=projectData();assert(JSON.parse(saved).version===12,'Script project needs format 12');resetLayers(10,10);await loadProjectData(saved);assert(currentBodies()[0].script?.source===item.script?.source,'Source lost on reopen');const mesh=await solidMesh(currentBodies()[0]);closedCadMesh(mesh);assert(mesh.volume>10000,'Flange geometry lost');resetLayers(960,640);
+});
+await asyncCheck('Script CAD solids join existing workshop pieces and export a closed STL',async()=>{
+  const {compileCadScript}=await import('../src/cad-script');const scripted=compileCadScript('cube([20,20,10],center=true);'),sphere=primitive('sphere',[12,12,12]);sphere.position=[0,0,5];const joined=combinedBody('union',[scripted,sphere]);const result=await cadCompute([joined],'print');closedCadMesh(result.mesh);assert(result.mesh.volume>4000&&result.mesh.volume<4905,'Join did not fuse the overlapping solids');assert(result.stl?.byteLength===84+result.mesh.triangles*50,'STL triangle count incorrect');
+});
 check('Neutral photo adjustments preserve every pixel and alpha; exposure and saturation behave independently', () => {
   const source=new ImageData(new Uint8ClampedArray([90,120,160,255,180,90,70,128,10,20,30,0]),3,1),settings=defaultPhotoSettings();
   const neutral=processPhoto(source,settings);assert(neutral.data.every((v,i)=>v===source.data[i]),'Neutral edit changed pixels');
@@ -900,6 +1135,16 @@ check('Vignette follows the crop, grain is deterministic, and lens corrections p
   s.grain=0;s.distortion=100;const lens=processPhoto(source,s);assert(lens.data[3]===0&&lens.data[(10*40+20)*4+3]===255,'Lens correction failed to map edges');
   const flipped=defaultPhotoSettings();flipped.flipX=true;source.data.set([255,0,0,255],0);assert(processPhoto(source,flipped).data[(39)*4]===255,'Flip did not mirror pixels');
   const hist=histogram(new ImageData(new Uint8ClampedArray([0,0,0,255,255,255,255,255,255,0,0,0]),3,1));assert(hist.count===2&&hist.clipped[0]===.5&&hist.clipped[1]===.5,'Histogram counted transparent pixels');
+});
+check('Photo histogram weights translucent pixels by visible opacity',()=>{
+  const source=new ImageData(new Uint8ClampedArray([128,128,128,255,0,0,0,1,255,255,255,1,255,0,0,0]),4,1),result=histogram(source);
+  assert(Math.abs(result.count-257/255)<1e-12,'Nearly invisible pixels dominate the histogram count');
+  assert(Math.abs(result.clipped[0]-1/257)<1e-12&&Math.abs(result.clipped[1]-1/257)<1e-12,'Clipping does not follow visible opacity');
+  for(const channel of result.rgb){assert(channel[128]===1&&Math.abs(channel[0]-1/255)<1e-12&&Math.abs(channel[255]-1/255)<1e-12,'Histogram bins lost alpha weighting');}
+  const partial=histogram(new ImageData(new Uint8ClampedArray([128,128,128,255,255,255,255,127]),2,1));
+  assert(partial.clipped[0]===0&&Math.abs(partial.clipped[1]-127/382)<1e-12,'Partially visible highlights are counted as opaque');
+  const faint=histogram(new ImageData(new Uint8ClampedArray([255,255,255,1]),1,1));assert(faint.clipped[0]===0&&faint.clipped[1]===1,'A fractional total opacity was rounded up to one opaque pixel');
+  const empty=histogram(new ImageData(3,2));assert(empty.count===0&&empty.clipped.every(n=>n===0)&&empty.rgb.every(channel=>channel.every(n=>n===0)),'Empty histogram is not a defined zero result');
 });
 await asyncCheck('Photo preview, saved adjustments and crop preserve every source pixel and live ink; Undo restores the recipe and frame',async()=>{
   resetLayers(48,32);const paper=activeLayer().id;addLayer();baseCtx.fillStyle='#557799';baseCtx.fillRect(0,0,W,H);
@@ -961,6 +1206,36 @@ await asyncCheck('TIFF round-trips RGBA pixels through the local encoder and dec
   const before = baseCtx.getImageData(0, 0, W, H), decoded = decodeTiff(await encodeTiff(before).arrayBuffer());
   assert(decoded.toDataURL() === image(), 'TIFF pixels did not round-trip');
 });
+await asyncCheck('WebP export preserves high contrast colour boundaries and exact alpha',async()=>{
+  resetLayers(32,24,null);
+  for(let y=0;y<24;y++)for(let x=0;x<32;x++){baseCtx.fillStyle=x%2?'#ff0000':'#0000ff';baseCtx.globalAlpha=y<12?1:.5;baseCtx.fillRect(x,y,1,1);}baseCtx.globalAlpha=1;
+  const expected=baseCtx.getImageData(0,0,W,H).data,decoded=await decodeImage(await imageBlob('webp')),actual=decoded.getContext('2d')!.getImageData(0,0,W,H).data;
+  for(let i=0;i<expected.length;i+=4){assert(actual[i+3]===expected[i+3],'WebP changed alpha');for(let c=0;c<3;c++)assert(Math.abs(actual[i+c]-expected[i+c])<=4,'WebP colour boundary changed by '+Math.abs(actual[i+c]-expected[i+c]));}
+});
+// Independent two-strip fixture: do not use the encoder under test as the oracle.
+function stripTiff(little = true): ArrayBuffer {
+  const bytes = new Uint8Array(168), data = new DataView(bytes.buffer);
+  const tags = [[256,4,1,2],[257,4,1,2],[258,3,3,134],[259,3,1,1],[262,3,1,2],[273,4,2,140],[277,3,1,3],[278,4,1,1],[279,4,2,148],[284,3,1,1]];
+  bytes.set(little ? [73,73,42,0] : [77,77,0,42]);data.setUint32(4,8,little);data.setUint16(8,tags.length,little);
+  tags.forEach(([tag,type,count,value],i)=>{const at=10+i*12;data.setUint16(at,tag,little);data.setUint16(at+2,type,little);data.setUint32(at+4,count,little);if(type===3&&count===1)data.setUint16(at+8,value,little);else data.setUint32(at+8,value,little);});
+  for(let i=0;i<3;i++)data.setUint16(134+i*2,8,little);
+  data.setUint32(140,156,little);data.setUint32(144,162,little);data.setUint32(148,6,little);data.setUint32(152,6,little);
+  bytes.set([255,0,0,0,255,0,0,0,255,255,255,255],156);return bytes.buffer;
+}
+check('TIFF independent multi-strip RGB fixture decodes both byte orders',()=>{
+  for(const little of [true,false]){const canvas=decodeTiff(stripTiff(little));assert(canvas.width===2&&canvas.height===2);assert(Array.from(canvas.getContext('2d')!.getImageData(0,0,2,2).data).join(',')==='255,0,0,255,0,255,0,255,0,0,255,255,255,255,255,255','Multi-strip pixels or byte order changed');}
+});
+check('TIFF damaged headers and directory offsets explain recovery',()=>{
+  const broken=[...Array.from({length:8},(_,length)=>stripTiff().slice(0,length)),stripTiff().slice(0,100)];
+  for(const at of [4,10+2*12+8]){const buffer=stripTiff();new DataView(buffer).setUint32(at,buffer.byteLength-1,true);broken.push(buffer);}
+  for(const buffer of broken){let error='';try{decodeTiff(buffer);}catch(caught){error=String(caught);}assert(/damaged|incomplete/i.test(error)&&/another copy|PNG/i.test(error),'No actionable damaged-file explanation: '+error);}
+});
+await asyncCheck('TIFF incomplete strip tables and pixel data are rejected without changing the document',async()=>{
+  resetLayers(24,16,null);baseCtx.fillStyle='#d92772';baseCtx.fillRect(2,3,8,6);const before=projectData();
+  const edits=[(v:DataView)=>v.setUint32(10+5*12+4,1,true),(v:DataView)=>v.setUint32(10+8*12+4,1,true),(v:DataView)=>v.setUint16(10+7*12+8,0,true),(v:DataView)=>v.setUint32(144,167,true),(v:DataView)=>v.setUint32(152,100,true)];
+  const broken=edits.map(edit=>{const buffer=stripTiff();edit(new DataView(buffer));return buffer;});broken.push(stripTiff().slice(0,167));
+  for(const buffer of broken){let error='';try{await importImage(new Blob([buffer],{type:'image/tiff'}));}catch(caught){error=String(caught);}assert(/damaged|incomplete/i.test(error),'Incomplete TIFF was accepted or exposed a raw exception: '+error);assert(projectData()===before,'Rejected TIFF changed the complete document');}
+});
 await asyncCheck('Projects round-trip layers, visibility, opacity and live fills; invalid projects leave artwork intact', async () => {
   resetLayers(48, 32); addLayer(); activeLayer().name = 'Dancing ink'; activeLayer().opacity = 0.65;
   const mask = blankMask(); mask.getContext('2d')!.fillRect(5, 5, 20, 10);
@@ -969,6 +1244,21 @@ await asyncCheck('Projects round-trip layers, visibility, opacity and live fills
   assert(W === 48 && H === 32 && layers.length === 2 && activeLayer().name === 'Dancing ink' && activeLayer().opacity === 0.65 && snapshotLive().fills.length === 1);
   const before = projectData(); let rejected = false; try { await loadProjectData('{"format":"RetroPaint","version":1,"width":-10}'); } catch { rejected = true; }
   assert(rejected && projectData() === before, 'A corrupt project damaged the drawing');
+});
+await asyncCheck('Project validation rejects missing active layers and fractional layer IDs atomically',async()=>{
+  resetLayers(24,16,null);baseCtx.fillStyle='#ff0000';baseCtx.fillRect(2,3,8,6);addLayer();baseCtx.fillStyle='#0000ff';baseCtx.fillRect(10,4,6,8);const valid=JSON.parse(projectData());
+  resetLayers(18,12,null);baseCtx.fillStyle='#00ff00';baseCtx.fillRect(1,1,12,8);const before=projectData();
+  const variants=[(p:typeof valid)=>{p.active=999999;},(p:typeof valid)=>{p.active+=.5;},(p:typeof valid)=>{p.layers[0].id+=.5;},(p:typeof valid)=>{p.layers[0].id=p.layers[1].id;}];
+  for(const change of variants){const invalid=structuredClone(valid);change(invalid);let rejected=false;try{await loadProjectData(JSON.stringify(invalid));}catch{rejected=true;}assert(rejected,'Invalid layer reference or ID was accepted');assert(projectData()===before,'Invalid layer metadata replaced unsaved artwork');}
+  await loadProjectData(JSON.stringify(valid));assert(W===24&&H===16&&layers.length===2,'Valid opening after rejection failed');
+});
+await asyncCheck('Project validation explains incomplete JSON without changing artwork',async()=>{
+  resetLayers(24,16,null);baseCtx.fillStyle='#f53674';baseCtx.fillRect(1,1,8,8);const before=projectData();
+  for(const source of ['', '{', before.slice(0,-12), before.replace('"width":24','"width":NaN')]){let error='';try{await loadProjectData(source);}catch(caught){error=String(caught);}assert(/project file.*damaged or incomplete/i.test(error)&&/another saved copy/i.test(error),'Raw or unactionable parser error: '+error);assert(projectData()===before,'Incomplete JSON changed the document');}
+});
+await asyncCheck('Project validation identifies a newer version and preserves the current document',async()=>{
+  resetLayers(24,16,null);const before=projectData(),source=JSON.parse(before);
+  for(const version of [14,999]){let error='';try{await loadProjectData(JSON.stringify({...source,version}));}catch(caught){error=String(caught);}assert(/newer RetroPaint version/i.test(error)&&/Update RetroPaint/i.test(error),'Future version was not explained: '+error);assert(projectData()===before,'Future project changed the current document');}
 });
 cancelSelection(); resetLayers(960, 640); state.shapeFill = 'none'; state.shapeOutline = 'brush'; state.liveArmed = false;
 
@@ -1069,7 +1359,7 @@ check('Manual Spiro produces an editable vector path at the selected ring size',
 });
 await asyncCheck('Project files preserve vector geometry, raster pieces, live ink, transforms and photo recipes',async()=>{
   objectTestReset();addVectorShape('ellipse',5,5,35,35);resizeObjects(70,45);const shape=selectedObjects()[0];state.tool='draw';state.liveArmed=true;state.conveyor=['#ff0000','#0000ff'];beginObjectStroke();beginStrokeGeneration();segment(45,70,100,70,5,0);finishObjectStroke();const stroke=selectedObjects()[0];const recipe=newPhotoRecipe();recipe.settings.brightness=12;activeLayer().photo=recipe;
-  const before=projectData(),saved=JSON.parse(before);assert(saved.version===9&&saved.layers[0].objects.length===2,'Project omitted the pieces');resetLayers(10,10);await loadProjectData(before);assert(W===160&&H===120&&state.drawingMode==='vector'&&activeLayer().photo?.settings.brightness===12,'Project lost its drawing mode or recipe');
+  const before=projectData(),saved=JSON.parse(before);assert(saved.version===10&&saved.layers[0].objects.length===2,'Project omitted the pieces');resetLayers(10,10);await loadProjectData(before);assert(W===160&&H===120&&state.drawingMode==='vector'&&activeLayer().photo?.settings.brightness===12,'Project lost its drawing mode or recipe');
   assert(activeLayer().objects?.[0].kind==='path'&&JSON.stringify(activeLayer().objects?.[0].matrix)===JSON.stringify(shape.matrix),'Vector transform changed');assert(activeLayer().objects?.[1].kind==='raster'&&activeLayer().objects?.[1].live?.strokes.length&&activeLayer().objects?.[1].id===stroke.id,'Live raster stroke did not survive');selectObjects([shape.id]);resizeObjects(100,50);assert(selectedObjects()[0].kind==='path','Reopened vector no longer edits');const exported=await imageBlob('png');assert(exported.size>0,'Objects cannot export');
   state.liveArmed=false;state.drawingMode='raster';clearObjectSelection();resetLayers(960,640);
 });
@@ -1180,6 +1470,17 @@ function closedCadMesh(mesh:CadMesh):void{
 await asyncCheck('CAD all eight primitives are closed positive-volume solids in millimetres',async()=>{
   for(const shape of ['box','sphere','cylinder','cone','torus','tube','pyramid','wedge'] as Primitive[]){const mesh=await solidMesh(primitive(shape));closedCadMesh(mesh);assert(mesh.bounds.min[2]>-0.001,shape+' starts below the bed');assert(mesh.bounds.max[0]-mesh.bounds.min[0]>10,shape+' has wrong units');if(shape==='box')assert(Math.abs(mesh.volume-8000)<0.001,'20 mm cube has wrong volume');}
 });
+await asyncCheck('CAD resized tubes keep the same cavity in display and precision feature history',async()=>{
+  for(const scale of [[2,1,1],[-2,1,1],[1,2,.5]] as [number,number,number][]){
+    const tube=primitive('tube');tube.scale=scale;
+    // A suppressed finish must return its source, including the original hole.
+    const source=await solidMesh(tube),precision=await solidMesh(cadBody({kind:'finish',mode:'chamfer',size:.2,edges:[],source:tube,feature:{suppressed:true}},'Suppressed finish'));
+    const expected=Math.PI*(100-64)*20*Math.abs(scale[0]*scale[1]*scale[2]);
+    closedCadMesh(source);closedCadMesh(precision);
+    assert(Math.abs(source.volume-expected)<expected*.002,'Display tube has an incorrect cavity');
+    assert(Math.abs(precision.volume-expected)<expected*.002,'Precision reconstruction changed the tube cavity: '+precision.volume+' versus '+expected);
+  }
+});
 await asyncCheck('CAD boolean cuts remove real volume, joins eliminate internal overlap and empty intersections fail safely',async()=>{
   const a=primitive('box'),b=primitive('box');b.position[0]=10;
   const joined=await solidMesh(combinedBody('union',[a,b])),cut=await solidMesh(combinedBody('subtract',[a,b])),overlap=await solidMesh(combinedBody('intersect',[a,b]));
@@ -1252,7 +1553,7 @@ await asyncCheck('CAD older face recipes acquire stable references before origin
   const cube=primitive('box'),plane=basePlane('xy');plane.origin=[0,0,20.02];const tool=cadBody({kind:'extrude',points:sketchPoints('circle',0,0,8,8),plane,height:-25.04,taper:1,twist:0},'Old hole');const legacy=combinedBody('subtract',[cube,tool]),prepared=await prepareFeatureHistory(legacy),next=editFeature(prepared,[0],item=>{assert(item.solid.kind==='primitive');item.solid.size[2]=40;});const mesh=await solidMesh(next);assert(featureAt(prepared,[1]).solid.feature?.attachment,'Earlier face sketches were not upgraded');assert(Math.abs(mesh.volume-(16000-Math.PI*16*25))<4,'The older hole did not follow its resized support');assert(!featureAt(legacy,[1]).solid.feature,'Upgrading mutated the saved source recipe');
 });
 await asyncCheck('CAD parametric history, dependencies and suppression survive project save and reopen',async()=>{
-  resetLayers(160,120);ensureCadLayer();const root=await parametricFixture();root.solid.feature={label:'Two drilled holes'};addCadBody(root);const saved=projectData();assert(JSON.parse(saved).version===9);resetLayers(10,10);await loadProjectData(saved);assert(currentBodies()[0].solid.feature?.label==='Two drilled holes'&&featureAt(currentBodies()[0],[0,1]).solid.feature?.attachment,'Project discarded feature metadata');const mesh=await solidMesh(currentBodies()[0]);assert(Math.abs(mesh.volume-(1200-Math.PI*25)*20)<3);const old=JSON.parse(saved);old.version=4;await loadProjectData(JSON.stringify(old));assert(featureTimeline(currentBodies()[0]).length===5,'Version 4 projects no longer open');resetLayers(960,640);
+  resetLayers(160,120);ensureCadLayer();const root=await parametricFixture();root.solid.feature={label:'Two drilled holes'};addCadBody(root);const saved=projectData();assert(JSON.parse(saved).version===10);resetLayers(10,10);await loadProjectData(saved);assert(currentBodies()[0].solid.feature?.label==='Two drilled holes'&&featureAt(currentBodies()[0],[0,1]).solid.feature?.attachment,'Project discarded feature metadata');const mesh=await solidMesh(currentBodies()[0]);assert(Math.abs(mesh.volume-(1200-Math.PI*25)*20)<3);const old=JSON.parse(saved);old.version=4;await loadProjectData(JSON.stringify(old));assert(featureTimeline(currentBodies()[0]).length===5,'Version 4 projects no longer open');resetLayers(960,640);
 });
 await asyncCheck('CAD a lost supporting face fails safely and leaves its original recipe intact',async()=>{
   const root=await parametricFixture(),before=JSON.stringify(root),bad=editFeature(root,[0,0],item=>{assert(item.solid.kind==='extrude');item.solid.points=[[-20,-15],[20,-15],[-20,15]];});let failed=false;try{await solidMesh(bad);}catch(error){failed=String(error).includes('supporting flat face');}assert(failed&&JSON.stringify(root)===before,'Lost face silently moved the hole or changed the original');
@@ -1348,7 +1649,7 @@ await asyncCheck('CAD invalid lofts and sweep paths fail safely without replacin
   const malformed=JSON.parse(saved);malformed.layers.find((l:{cad?:unknown})=>l.cad).cad.bodies=[cadBody(sweep,'Invalid')];let failed=false;try{await loadProjectData(JSON.stringify(malformed));}catch{failed=true;}assert(failed&&projectData()===saved,'Invalid saved sweep replaced the document');resetLayers(960,640);
 });
 await asyncCheck('CAD loft and sweep projects retain profiles, paths and settings and reopen as printable solids',async()=>{
-  resetLayers(160,120);ensureCadLayer();const loft=defaultForm('loft'),sweep=defaultForm('sweep');assert(loft.kind==='loft'&&sweep.kind==='sweep');loft.ruled=true;loft.profiles[0].name='Editable lower sketch';sweep.roll=25;sweep.path.name='Editable curved path';const a=cadBody(loft,'Loft'),b=cadBody(sweep,'Sweep');b.position[0]=50;replaceBodies([a,b]);const saved=projectData();assert(JSON.parse(saved).version===9);resetLayers(10,10);await loadProjectData(saved);const [first,second]=currentBodies();assert(first.solid.kind==='loft'&&first.solid.ruled&&first.solid.profiles[0].name==='Editable lower sketch','Loft profile or setting was baked');assert(second.solid.kind==='sweep'&&second.solid.roll===25&&second.solid.path.name==='Editable curved path','Sweep path or setting was baked');const result=await cadCompute(currentBodies(),'print');closedCadMesh(result.mesh);assert(result.stl!.byteLength>84);const old=JSON.parse(saved);old.version=7;await loadProjectData(JSON.stringify(old));assert(currentBodies().length===2,'Older projects stopped opening');resetLayers(960,640);
+  resetLayers(160,120);ensureCadLayer();const loft=defaultForm('loft'),sweep=defaultForm('sweep');assert(loft.kind==='loft'&&sweep.kind==='sweep');loft.ruled=true;loft.profiles[0].name='Editable lower sketch';sweep.roll=25;sweep.path.name='Editable curved path';const a=cadBody(loft,'Loft'),b=cadBody(sweep,'Sweep');b.position[0]=50;replaceBodies([a,b]);const saved=projectData();assert(JSON.parse(saved).version===10);resetLayers(10,10);await loadProjectData(saved);const [first,second]=currentBodies();assert(first.solid.kind==='loft'&&first.solid.ruled&&first.solid.profiles[0].name==='Editable lower sketch','Loft profile or setting was baked');assert(second.solid.kind==='sweep'&&second.solid.roll===25&&second.solid.path.name==='Editable curved path','Sweep path or setting was baked');const result=await cadCompute(currentBodies(),'print');closedCadMesh(result.mesh);assert(result.stl!.byteLength>84);const old=JSON.parse(saved);old.version=7;await loadProjectData(JSON.stringify(old));assert(currentBodies().length===2,'Older projects stopped opening');resetLayers(960,640);
 });
 
 await asyncCheck('CAD loft profile turns and plane offsets change the solid without baking sketches',async()=>{
@@ -1358,6 +1659,63 @@ await asyncCheck('CAD sweep rounded corner transitions generate closed solids',a
   const form=defaultForm('sweep');assert(form.kind==='sweep');form.path.smooth=false;form.path.points=[[0,0,0],[0,0,20],[20,0,20]];form.transition='round';const round=(await cadCompute([cadBody(form,'Round corner sweep')])).mesh;closedCadMesh(round);assert(round.volume>1000&&round.volume<1200,'Rounded corner sweep has unexpected volume: '+round.volume);
 });
 
+await asyncCheck('CAD binary STL imports keep real solid volume and support later editable cuts',async()=>{
+  const original=await solidMesh(primitive('box')),source=importStl(binaryStl(original),'Cube.stl'),before=JSON.stringify(source),mesh=await solidMesh(source);closedCadMesh(mesh);assert(Math.abs(mesh.volume-8000)<.01&&source.solid.kind==='mesh'&&source.solid.sourceName==='Cube.stl','STL import lost its volume or source');const cutter=primitive('cylinder',[6,6,30]),cut=combinedBody('subtract',[source,cutter]),result=await solidMesh(cut);closedCadMesh(result);assert(result.volume<7500&&result.volume>7400&&JSON.stringify(source)===before,'STL cuts changed the original source or ignored the cutter');
+});
+await asyncCheck('CAD ASCII STL imports repair winding and honour mm cm and inch units',async()=>{
+  const mesh=await solidMesh(primitive('box',[2,2,2])),ascii='solid test\n'+Array.from({length:mesh.indices.length/3},(_,face)=>'facet normal 0 0 0\nouter loop\n'+[0,1,2].map(k=>{const index=mesh.indices[face*3+(face%2?2-k:k)];return'vertex '+Array.from(mesh.positions.slice(index*3,index*3+3)).join(' ');}).join('\n')+'\nendloop\nendfacet').join('\n')+'\nendsolid test',bytes=new TextEncoder().encode(ascii).buffer;
+  for(const [unit,size]of [['mm',2],['cm',20],['in',50.8]] as const){const result=await solidMesh(importStl(bytes,'Ascii.stl',unit));closedCadMesh(result);assert(Math.abs(result.bounds.max[0]-result.bounds.min[0]-size)<.001&&Math.abs(result.volume-size**3)<.1,'STL units or inconsistent face winding were not handled');}
+});
+await asyncCheck('CAD STL imports preserve enclosed cavities and reject broken open surfaces',async()=>{
+  const cube=primitive('box'),hollow=shelledBody(cube,2,[]),original=await solidMesh(hollow),imported=await solidMesh(importStl(binaryStl(original),'Hollow.stl'));closedCadMesh(imported);assert(Math.abs(imported.volume-original.volume)<.02,'STL import filled the enclosed cavity');const bytes=binaryStl(await solidMesh(cube)),incomplete=bytes.slice(0,bytes.byteLength-50);new DataView(incomplete).setUint32(80,11,true);let failed=false;try{importStl(incomplete,'Broken.stl');}catch{failed=true;}assert(failed,'An open STL became a printable solid');
+});
+await asyncCheck('CAD STL winding repair preserves nested cavities islands and disconnected solids in binary and ASCII files',async()=>{
+  const hollow=shelledBody(primitive('box'),2,[]),island=primitive('box',[4,4,4]),outside=primitive('box',[4,4,4]);island.position=[0,0,10];outside.position=[40,0,10];
+  const original=await printMesh([hollow,island,outside]),bytes=binaryStl(original),count=original.triangles;
+  for(const mode of ['first','alternating','all','reordered'] as const){
+    const damaged=bytes.slice(0),view=new DataView(damaged);
+    for(let face=0;face<count;face++)if(mode==='all'||mode==='alternating'&&face%2===0||mode==='first'&&face===0)for(let k=0;k<3;k++){const a=84+face*50+24+k*4,b=a+12,x=view.getFloat32(a,true);view.setFloat32(a,view.getFloat32(b,true),true);view.setFloat32(b,x,true);}
+    if(mode==='reordered'){const copy=new Uint8Array(damaged.slice(0));for(let face=0;face<count;face++)new Uint8Array(damaged,84+face*50,50).set(copy.subarray(84+(count-1-face)*50,134+(count-1-face)*50));}
+    const ascii='solid nested\n'+Array.from({length:count},(_,face)=>'facet normal 0 0 0\nouter loop\n'+[0,1,2].map(j=>'vertex '+[0,1,2].map(k=>view.getFloat32(96+face*50+j*12+k*4,true)).join(' ')).join('\n')+'\nendloop\nendfacet').join('\n')+'\nendsolid nested';
+    for(const [format,input]of [['binary',damaged],['ASCII',new TextEncoder().encode(ascii).buffer]] as const){const imported=await solidMesh(importStl(input,'Nested.stl'));closedCadMesh(imported);assert(Math.abs(imported.volume-4032)<.03,`${format} ${mode} winding changed cavity or island volume: ${imported.volume}`);}
+  }
+});
+await asyncCheck('CAD imported repaired cavity meshes and later cuts retain original data and picture view through project reopening',async()=>{
+  resetLayers(160,120);const layer=ensureCadLayer(),bytes=binaryStl(await solidMesh(shelledBody(primitive('box'),2,[]))),view=new DataView(bytes);for(let k=0;k<3;k++){const x=view.getFloat32(108+k*4,true);view.setFloat32(108+k*4,view.getFloat32(120+k*4,true),true);view.setFloat32(120+k*4,x,true);}
+  const imported=importStl(bytes,'Repaired cavity.stl'),original=JSON.stringify(imported.solid),cutter=primitive('box',[4,4,40]);cutter.position=[0,0,10];addCadBody(combinedBody('subtract',[imported,cutter]));layer.cad!.view={position:[100,-150,100],target:[0,0,10],up:[0,0,1],projection:'orthographic',span:80};const placement=JSON.stringify(layer.cad!.view),saved=await projectDataAsync();resetLayers(10,10);await loadProjectData(saved);
+  const reopened=currentBodies()[0];assert(reopened.solid.kind==='boolean'&&JSON.stringify(reopened.solid.children[0].solid)===original,'Reopening lost the original imported mesh beneath a later cut');assert(JSON.stringify(activeLayer().cad!.view)===placement,'Reopening lost saved picture placement');const mesh=await printMesh([reopened]);closedCadMesh(mesh);assert(Math.abs(mesh.volume-3840)<.03,'Reopened imported cavity or later cut changed volume');resetLayers(960,640);
+});
+await asyncCheck('CAD complex joined cylinder and cube faces shell with exact walls and reopen with editable history',async()=>{
+  const cylinder=primitive('cylinder'),cube=primitive('box');cylinder.position=[15,0,10];const joined=combinedBody('union',[cylinder,cube]),before=JSON.stringify(joined),faces=await solidFaces(joined),top=faces.find(f=>f.ref.normal[2]>.99)!;
+  assert(top.indices.length>6,'Fixture did not expose the combined non-rectangular cap');const shell=shelledBody(joined,3,[top.ref]),mesh=await solidMesh(shell);closedCadMesh(mesh);assert(Math.abs(mesh.volume-6688.252)<3,'Complex shell did not remove the correct cavity: '+mesh.volume);assert(Math.abs(mesh.bounds.min[0]+10)<.001&&Math.abs(mesh.bounds.max[0]-25)<.001&&mesh.bounds.min[2]===0&&mesh.bounds.max[2]===20,'Shell changed exterior dimensions');assert(JSON.stringify(joined)===before,'Shell mutated its joined source');
+  const wasm=await initKernel(),solid=new wasm.Manifold(new wasm.Mesh({numProp:3,vertProperties:mesh.positions,triVerts:mesh.indices}));try{const xs=solid.rayCast([-20,0,10],[35,0,10]).map(h=>h.position[0]).sort((a,b)=>a-b),floor=solid.rayCast([0,0,-10],[0,0,30]).map(h=>h.position[2]).sort((a,b)=>a-b);assert(xs.length===4&&xs.every((x,i)=>Math.abs(x-[-10,-7,22,25][i])<.01),'Side walls are not 3mm: '+xs);assert(floor.length===2&&Math.abs(floor[0])<.001&&Math.abs(floor[1]-3)<.001,'Floor is not 3mm or the opening was capped: '+floor);}finally{solid.delete();}
+  const thinner=editFeature(shell,[],item=>{assert(item.solid.kind==='shell');item.solid.thickness=2;});assert((await solidMesh(thinner)).volume<mesh.volume-1000,'Wall thickness edit did not rebuild the complex shell');const off=editFeature(shell,[],item=>{item.solid.feature={suppressed:true};});assert(Math.abs((await solidMesh(off)).volume-13054.815)<4,'Suppression lost the joined source');
+  for(const overlap of [40/3,15]){const round=primitive('cylinder');round.position=[overlap,0,10];const reversed=combinedBody('union',[primitive('box'),round]),caps=(await solidFaces(reversed)).filter(f=>Math.abs(f.ref.normal[2])>.99);for(const openings of [caps.filter(f=>f.ref.normal[2]<0),caps]){const result=await solidMesh(shelledBody(reversed,3,openings.map(f=>f.ref)));closedCadMesh(result);assert(result.volume>0&&result.volume<(await solidMesh(reversed)).volume-1000,'Reversed join or opposite complex openings did not hollow');}}
+  resetLayers(160,120);ensureCadLayer();addCadBody(shell);const saved=await projectDataAsync();resetLayers(10,10);await loadProjectData(saved);const reopened=currentBodies()[0];assert(reopened.solid.kind==='shell'&&reopened.solid.source.solid.kind==='boolean'&&featureTimeline(reopened).length===4,'Shell lost its joined editable history');const printed=await cadCompute([reopened],'print');closedCadMesh(printed.mesh);assert(Math.abs(printed.mesh.volume-mesh.volume)<.01&&printed.stl!.byteLength===84+printed.mesh.triangles*50,'Reopened shell STL changed the cavity');resetLayers(960,640);
+});
+await asyncCheck('CAD adds a boss and recess beside an existing central hole in both kernels',async()=>{
+  const cube=primitive('box'),plane=basePlane('xy');plane.origin=[0,0,20];
+  const attach=async(support:typeof cube,points:V2[],height:number,through=false)=>{
+    const local=await solidMesh({...support,position:[0,0,0],rotation:[0,0,0],scale:[1,1,1]});
+    return cadBody({kind:'extrude',points,plane,height,taper:1,twist:0,feature:{attachment:captureAttachment(support,local.bounds,plane),through}},'Face feature');
+  };
+  const drilled=combinedBody('subtract',[cube,await attach(cube,sketchPoints('circle',0,0,6,6),-20,true)]);
+  const raised=combinedBody('union',[drilled,await attach(drilled,sketchPoints('rectangle',-8,-8,4,4),4)]);
+  const pocketed=combinedBody('subtract',[raised,await attach(raised,sketchPoints('rectangle',4,4,4,4),-3)]);
+  const mesh=await solidMesh(pocketed),expected=8000-Math.PI*9*20+64-48;closedCadMesh(mesh);assert(Math.abs(mesh.volume-expected)<1,'Repeated face features changed volume or position');
+  const precision=await solidMesh(cadBody({kind:'finish',mode:'chamfer',size:.2,edges:[],source:pocketed,feature:{suppressed:true}},'Precision history'));
+  closedCadMesh(precision);assert(Math.abs(precision.volume-expected)<1,'Precision reconstruction lost a face beside the existing hole');
+});
+await asyncCheck('CAD attached recess depths keep their requested endpoint in both solid kernels',async()=>{
+  const cube=primitive('box'),plane=basePlane('xy');plane.origin=[0,0,20];const sourceMesh=await solidMesh({...cube,position:[0,0,0]}),cut=cadBody({kind:'extrude',points:sketchPoints('rectangle',-5,-5,10,10),plane,height:-5,taper:1,twist:0,feature:{attachment:captureAttachment(cube,sourceMesh.bounds,plane)}},'Exact recess'),result=combinedBody('subtract',[cube,cut]);
+  const mesh=await solidMesh(result);closedCadMesh(mesh);assert(Math.abs(mesh.volume-7500)<.01,'Mesh kernel extended the recess beyond 5mm');const native=await solidFaces(result);assert(native.some(f=>f.ref.surface==='PLANE'&&Math.abs(f.ref.center[2]-.75)<1e-5),'Precision kernel extended the recess beyond 5mm');
+});
+await asyncCheck('CAD saved picture views survive edits duplication Undo and project round trips',async()=>{
+  resetLayers(160,120);const layer=ensureCadLayer();addCadBody(primitive('box'));layer.cad={...layer.cad!,view:{position:[100,-150,100],target:[0,0,10],up:[0,0,1],projection:'orthographic',span:80}};const expected=JSON.stringify(layer.cad.view);replaceBodies(currentBodies().map(item=>({...item,position:[10,0,10]})));assert(JSON.stringify(activeLayer().cad?.view)===expected,'Body edit lost the picture placement');duplicateLayer();assert(JSON.stringify(activeLayer().cad?.view)===expected,'Layer copy lost its picture view');const saved=projectData();resetLayers(10,10);await loadProjectData(saved);assert(JSON.stringify(activeLayer().cad?.view)===expected,'Project lost orthographic picture placement');const bad=JSON.parse(saved);bad.layers.find((l:{cad?:unknown})=>l.cad).cad.view.up=[0,0,0];let failed=false;try{await loadProjectData(JSON.stringify(bad));}catch{failed=true;}assert(failed&&JSON.stringify(activeLayer().cad?.view)===expected,'Invalid camera replaced the document');resetLayers(960,640);
+});
+check('CAD picture compositing respects background and foreground layers and preserves editable solid recipes',()=>{
+  resetLayers(160,120);activeLayer().canvas.getContext('2d')!.fillStyle='#ef4858';activeLayer().canvas.getContext('2d')!.fillRect(0,0,160,120);const cad=ensureCadLayer();addCadBody(primitive('box'));const source=JSON.stringify(cad.cad),c=cad.canvas.getContext('2d')!;c.fillStyle='#f8bf45';c.fillRect(40,30,80,60);addLayer();activeLayer().canvas.getContext('2d')!.fillStyle='#3455dd';activeLayer().canvas.getContext('2d')!.fillRect(60,45,40,30);const output=document.createElement('canvas');output.width=160;output.height=120;renderLayers(output.getContext('2d')!,0);const ctx=output.getContext('2d')!,at=(x:number,y:number)=>Array.from(ctx.getImageData(x,y,1,1).data);assert(at(5,5)[0]===239&&at(45,35)[0]===248&&at(80,60)[2]===221&&JSON.stringify(cad.cad)===source,'Layer compositing flattened geometry or ignored the sheet order');resetLayers(960,640);
+});
 const sketchLine=(points:V2[],edge:number)=>{const a=points[edge],b=points[(edge+1)%points.length];return{x:b[0]-a[0],y:b[1]-a[1],length:Math.hypot(b[0]-a[0],b[1]-a[1]),angle:Math.atan2(b[1]-a[1],b[0]-a[0])};};
 check('CAD length dimensions solve rectangles exactly and retain their square corners and centre',()=>{
   const seed=sketchPoints('rectangle',-10,-5,20,10),before=JSON.stringify(seed),solved=solveSketch(seed,[{id:'w',kind:'length',edge:0,value:36},{id:'h',kind:'length',edge:1,value:14},{id:'horizontal',kind:'horizontal',edge:0}],'rectangle');
@@ -1392,7 +1750,7 @@ await asyncCheck('CAD loft and sweep profile dimensions drive real precision geo
   const loft=defaultForm('loft'),sweep=defaultForm('sweep');assert(loft.kind==='loft'&&sweep.kind==='sweep');loft.ruled=true;loft.profiles[1].constraints=[{id:'diameter',kind:'diameter',value:24}];sweep.profile.constraints=[{id:'diameter',kind:'diameter',value:8}];sweep.path.points=[[0,0,0],[0,0,30]];const a=await solidMesh(cadBody(loft,'Dimensioned loft')),b=await solidMesh(cadBody(sweep,'Dimensioned sweep'));closedCadMesh(a);closedCadMesh(b);assert(Math.abs(a.volume-Math.PI*10*(100+120+144))<10&&Math.abs(b.volume-Math.PI*16*30)<1,'Profile dimensions did not reach the native kernel: '+a.volume+', '+b.volume);assert(binaryStl(b).byteLength===84+b.triangles*50);
 });
 await asyncCheck('CAD sketch constraints round trip through projects and malformed references fail safely',async()=>{
-  resetLayers(160,120);ensureCadLayer();const source=cadBody({kind:'extrude',points:sketchPoints('rectangle',0,0,20,10),plane:basePlane('xy'),height:5,taper:1,twist:0,feature:{sketch:'rectangle',constraints:[{id:'width',kind:'length',edge:0,value:30},{id:'h',kind:'horizontal',edge:0}]}},'Constrained pad');addCadBody(source);const saved=projectData();resetLayers(10,10);await loadProjectData(saved);assert(JSON.parse(saved).version===9&&currentBodies()[0].solid.feature?.constraints?.[0].id==='width','Saved dimensions were discarded');assert(Math.abs((await solidMesh(currentBodies()[0])).volume-1500)<.01,'Reopened solid ignored its dimensions');const before=projectData();for(const rule of [{id:'bad',kind:'length',edge:99,value:10},{id:'bad',kind:'parallel',edge:0,other:0},{id:'bad',kind:'diameter',value:10},{id:'bad',kind:'angle',edge:0,value:NaN}]){const invalid=JSON.parse(saved);invalid.layers.find((l:{cad?:unknown})=>l.cad).cad.bodies[0].solid.feature.constraints=[rule];let failed=false;try{await loadProjectData(JSON.stringify(invalid));}catch{failed=true;}assert(failed&&projectData()===before,'Invalid constraints replaced the artwork');}resetLayers(960,640);
+  resetLayers(160,120);ensureCadLayer();const source=cadBody({kind:'extrude',points:sketchPoints('rectangle',0,0,20,10),plane:basePlane('xy'),height:5,taper:1,twist:0,feature:{sketch:'rectangle',constraints:[{id:'width',kind:'length',edge:0,value:30},{id:'h',kind:'horizontal',edge:0}]}},'Constrained pad');addCadBody(source);const saved=projectData();resetLayers(10,10);await loadProjectData(saved);assert(JSON.parse(saved).version===10&&currentBodies()[0].solid.feature?.constraints?.[0].id==='width','Saved dimensions were discarded');assert(Math.abs((await solidMesh(currentBodies()[0])).volume-1500)<.01,'Reopened solid ignored its dimensions');const before=projectData();for(const rule of [{id:'bad',kind:'length',edge:99,value:10},{id:'bad',kind:'parallel',edge:0,other:0},{id:'bad',kind:'diameter',value:10},{id:'bad',kind:'angle',edge:0,value:NaN}]){const invalid=JSON.parse(saved);invalid.layers.find((l:{cad?:unknown})=>l.cad).cad.bodies[0].solid.feature.constraints=[rule];let failed=false;try{await loadProjectData(JSON.stringify(invalid));}catch{failed=true;}assert(failed&&projectData()===before,'Invalid constraints replaced the artwork');}resetLayers(960,640);
 });
 
 document.title = failures ? `${failures} FAIL — RetroPaint checks` : 'PASS — RetroPaint checks';

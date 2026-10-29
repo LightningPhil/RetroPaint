@@ -1,0 +1,515 @@
+{
+  "at": "2026-10-21T00:42:41.235838+00:00",
+  "case": "INK-005",
+  "status": "Plan before execution,not a result",
+  "fixture": "fixtures\\PATCH.png",
+  "fixture_sha256": "b4464813183d7122dfde28a33be00660dfe18e4aa255a92fd234bd8488199175",
+  "rows": [
+    {
+      "id": "v1-wheel",
+      "viewport": [
+        1280,
+        720
+      ],
+      "group": "wheel"
+    },
+    {
+      "id": "v1-channels",
+      "viewport": [
+        1280,
+        720
+      ],
+      "group": "channels"
+    },
+    {
+      "id": "v2-wheel",
+      "viewport": [
+        320,
+        568
+      ],
+      "group": "wheel"
+    },
+    {
+      "id": "v2-channels",
+      "viewport": [
+        320,
+        568
+      ],
+      "group": "channels"
+    },
+    {
+      "id": "v3-wheel",
+      "viewport": [
+        390,
+        844
+      ],
+      "group": "wheel"
+    },
+    {
+      "id": "v3-channels",
+      "viewport": [
+        390,
+        844
+      ],
+      "group": "channels"
+    },
+    {
+      "id": "v4-wheel",
+      "viewport": [
+        844,
+        390
+      ],
+      "group": "wheel"
+    },
+    {
+      "id": "v4-channels",
+      "viewport": [
+        844,
+        390
+      ],
+      "group": "channels"
+    }
+  ],
+  "operation_groups": {
+    "wheel": [
+      {
+        "id": "pointer-0",
+        "kind": "wheel-pointer",
+        "hue": 0,
+        "saturation": 0.8,
+        "expected_rgb": [
+          255,
+          51,
+          51
+        ],
+        "expected_hex": "#FF3333",
+        "point": [
+          100.5,
+          220.5
+        ]
+      },
+      {
+        "id": "pointer-60",
+        "kind": "wheel-pointer",
+        "hue": 60,
+        "saturation": 0.8,
+        "expected_rgb": [
+          255,
+          255,
+          51
+        ],
+        "expected_hex": "#FFFF33",
+        "point": [
+          205.5,
+          220.5
+        ]
+      },
+      {
+        "id": "pointer-120",
+        "kind": "wheel-pointer",
+        "hue": 120,
+        "saturation": 0.8,
+        "expected_rgb": [
+          51,
+          255,
+          51
+        ],
+        "expected_hex": "#33FF33",
+        "point": [
+          310.5,
+          220.5
+        ]
+      },
+      {
+        "id": "pointer-180",
+        "kind": "wheel-pointer",
+        "hue": 180,
+        "saturation": 0.8,
+        "expected_rgb": [
+          51,
+          255,
+          255
+        ],
+        "expected_hex": "#33FFFF",
+        "point": [
+          415.5,
+          220.5
+        ]
+      },
+      {
+        "id": "pointer-240",
+        "kind": "wheel-pointer",
+        "hue": 240,
+        "saturation": 0.8,
+        "expected_rgb": [
+          51,
+          51,
+          255
+        ],
+        "expected_hex": "#3333FF",
+        "point": [
+          520.5,
+          220.5
+        ]
+      },
+      {
+        "id": "pointer-300",
+        "kind": "wheel-pointer",
+        "hue": 300,
+        "saturation": 0.8,
+        "expected_rgb": [
+          255,
+          51,
+          255
+        ],
+        "expected_hex": "#FF33FF",
+        "point": [
+          625.5,
+          220.5
+        ]
+      },
+      {
+        "id": "pointer-centre",
+        "kind": "wheel-centre",
+        "expected_rgb": [
+          255,
+          255,
+          255
+        ],
+        "expected_hex": "#FFFFFF",
+        "point": [
+          730.5,
+          220.5
+        ]
+      },
+      {
+        "id": "brightness-0",
+        "kind": "brightness",
+        "brightness": 0,
+        "expected_rgb": [
+          0,
+          0,
+          0
+        ],
+        "expected_hex": "#000000",
+        "point": [
+          835.5,
+          220.5
+        ]
+      },
+      {
+        "id": "brightness-50",
+        "kind": "brightness",
+        "brightness": 50,
+        "expected_rgb": [
+          128,
+          128,
+          128
+        ],
+        "expected_hex": "#808080",
+        "point": [
+          100.5,
+          460.5
+        ]
+      },
+      {
+        "id": "brightness-100",
+        "kind": "brightness",
+        "brightness": 100,
+        "expected_rgb": [
+          255,
+          255,
+          255
+        ],
+        "expected_hex": "#FFFFFF",
+        "point": [
+          205.5,
+          460.5
+        ]
+      },
+      {
+        "id": "keyboard-same-yellow",
+        "kind": "wheel-keyboard",
+        "shift_right_presses": 6,
+        "expected_rgb": [
+          255,
+          255,
+          51
+        ],
+        "expected_hex": "#FFFF33",
+        "point": [
+          310.5,
+          460.5
+        ]
+      }
+    ],
+    "channels": [
+      {
+        "id": "rgb-0-0-0",
+        "kind": "rgb",
+        "expected_rgb": [
+          0,
+          0,
+          0
+        ],
+        "expected_hex": "#000000",
+        "point": [
+          100.5,
+          220.5
+        ]
+      },
+      {
+        "id": "rgb-0-0-255",
+        "kind": "rgb",
+        "expected_rgb": [
+          0,
+          0,
+          255
+        ],
+        "expected_hex": "#0000FF",
+        "point": [
+          205.5,
+          220.5
+        ]
+      },
+      {
+        "id": "rgb-0-255-0",
+        "kind": "rgb",
+        "expected_rgb": [
+          0,
+          255,
+          0
+        ],
+        "expected_hex": "#00FF00",
+        "point": [
+          310.5,
+          220.5
+        ]
+      },
+      {
+        "id": "rgb-0-255-255",
+        "kind": "rgb",
+        "expected_rgb": [
+          0,
+          255,
+          255
+        ],
+        "expected_hex": "#00FFFF",
+        "point": [
+          415.5,
+          220.5
+        ]
+      },
+      {
+        "id": "rgb-255-0-0",
+        "kind": "rgb",
+        "expected_rgb": [
+          255,
+          0,
+          0
+        ],
+        "expected_hex": "#FF0000",
+        "point": [
+          520.5,
+          220.5
+        ]
+      },
+      {
+        "id": "rgb-255-0-255",
+        "kind": "rgb",
+        "expected_rgb": [
+          255,
+          0,
+          255
+        ],
+        "expected_hex": "#FF00FF",
+        "point": [
+          625.5,
+          220.5
+        ]
+      },
+      {
+        "id": "rgb-255-255-0",
+        "kind": "rgb",
+        "expected_rgb": [
+          255,
+          255,
+          0
+        ],
+        "expected_hex": "#FFFF00",
+        "point": [
+          730.5,
+          220.5
+        ]
+      },
+      {
+        "id": "rgb-255-255-255",
+        "kind": "rgb",
+        "expected_rgb": [
+          255,
+          255,
+          255
+        ],
+        "expected_hex": "#FFFFFF",
+        "point": [
+          835.5,
+          220.5
+        ]
+      },
+      {
+        "id": "rgb-32-128-224",
+        "kind": "rgb",
+        "expected_rgb": [
+          32,
+          128,
+          224
+        ],
+        "expected_hex": "#2080E0",
+        "point": [
+          100.5,
+          460.5
+        ]
+      },
+      {
+        "id": "outside-R--1",
+        "kind": "rgb-outside",
+        "channel": "R",
+        "typed": -1,
+        "bound": 0,
+        "base_rgb": [
+          32,
+          128,
+          224
+        ],
+        "expected_rgb": [
+          0,
+          128,
+          224
+        ],
+        "expected_hex": "#0080E0",
+        "point": [
+          205.5,
+          460.5
+        ]
+      },
+      {
+        "id": "outside-R-256",
+        "kind": "rgb-outside",
+        "channel": "R",
+        "typed": 256,
+        "bound": 255,
+        "base_rgb": [
+          32,
+          128,
+          224
+        ],
+        "expected_rgb": [
+          255,
+          128,
+          224
+        ],
+        "expected_hex": "#FF80E0",
+        "point": [
+          310.5,
+          460.5
+        ]
+      },
+      {
+        "id": "outside-G--1",
+        "kind": "rgb-outside",
+        "channel": "G",
+        "typed": -1,
+        "bound": 0,
+        "base_rgb": [
+          32,
+          128,
+          224
+        ],
+        "expected_rgb": [
+          32,
+          0,
+          224
+        ],
+        "expected_hex": "#2000E0",
+        "point": [
+          415.5,
+          460.5
+        ]
+      },
+      {
+        "id": "outside-G-256",
+        "kind": "rgb-outside",
+        "channel": "G",
+        "typed": 256,
+        "bound": 255,
+        "base_rgb": [
+          32,
+          128,
+          224
+        ],
+        "expected_rgb": [
+          32,
+          255,
+          224
+        ],
+        "expected_hex": "#20FFE0",
+        "point": [
+          520.5,
+          460.5
+        ]
+      },
+      {
+        "id": "outside-B--1",
+        "kind": "rgb-outside",
+        "channel": "B",
+        "typed": -1,
+        "bound": 0,
+        "base_rgb": [
+          32,
+          128,
+          224
+        ],
+        "expected_rgb": [
+          32,
+          128,
+          0
+        ],
+        "expected_hex": "#208000",
+        "point": [
+          625.5,
+          460.5
+        ]
+      },
+      {
+        "id": "outside-B-256",
+        "kind": "rgb-outside",
+        "channel": "B",
+        "typed": 256,
+        "bound": 255,
+        "base_rgb": [
+          32,
+          128,
+          224
+        ],
+        "expected_rgb": [
+          32,
+          128,
+          255
+        ],
+        "expected_hex": "#2080FF",
+        "point": [
+          730.5,
+          460.5
+        ]
+      }
+    ]
+  },
+  "cancellations": [],
+  "size": 22,
+  "strength": 1,
+  "maximum_footprint_radius": 13,
+  "marker_percentage_tolerance": 0.05,
+  "wheel_hue_family_minimum_difference": 30,
+  "expected_downloads_per_row": 10,
+  "oracle": "All4 PATCH layouts in separate fresh wheel/channel workflows,8 total. Wheel: six native hue positions at80% radius,centre White,brightness0/50/100 andnative Shift+ArrowRight to exactly match pointer Yellow. Source hex/RGB/current preview and reopened values/HSV marker must agree with independently calculated Python colorsys/math. Before pointer selection the actual rendered seed wheel is captured; six60%-radius sectors must have their expected primary/secondary hue-family ordering by at least30 RGB units,not merely agree with app state. Pointer bounds/border measured from public DOM only. Channels: all8 RGB0/255 corners,exact32/128/224,and each channel-1/256 boundaries. An out-of-range draft may be refused and corrected or commit the bounded/clamped visible colour;it may never produce invalid/unbounded active state. Every such branch is recorded,actual reopened RGB/hex/preview must be coherent,bounded and equal declared clamped target before painting. Each known-clear native Marker core is exact declared RGB/alpha255,local radius13,with unaffected PATCH/older marks exact. Each separate Undo/Redo andwhole11/15-action source restoration/Redo prove material actions add no empty history entries. Actual saved project/PNG and fresh-context actual file input are exact.104 opaque marks/80 actual downloads across8 workflows,all hashed. DOM marker tolerance0.05 percentage points is predeclared;source/core/history equality exact. No app colour/history/paint/serializer function generates expected values,no synthetic DOM event,desktop/OS/existing browser/profile/physical device claim."
+}

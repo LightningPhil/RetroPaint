@@ -1,0 +1,29 @@
+{
+  "generator": "Independent Pillow/NumPy bounded luminance ramps",
+  "rows": [
+    {
+      "file": "AUTO-dark.png",
+      "dimensions": [
+        1024,
+        256
+      ],
+      "source_encoded_range": [
+        10,
+        110
+      ],
+      "sha256": "577488a2401889ee5471c0b5ef390aff799dc2c3ec9c274e471008f525397d14"
+    },
+    {
+      "file": "AUTO-bright.png",
+      "dimensions": [
+        1024,
+        256
+      ],
+      "source_encoded_range": [
+        145,
+        245
+      ],
+      "sha256": "a370cdbe4e760798dd3f86d1f112ae93b1ca110cee51bee25896361a7cbb8346"
+    }
+  ]
+}

@@ -12,10 +12,13 @@ import { state } from './state';
 import type { ObjectInk, ObjectMatrix, PaintObject } from './object-scene';
 import { emit } from './bus';
 import { play } from './audio';
-import { readCadLayer } from './cad-model';
+import { readCadLayer, type CadBody } from './cad-model';
+import { beginOpen, requireCurrentOpen } from './open-guard';
 
 const canvasFromImage = (image: ImageData) => { const canvas = document.createElement('canvas'); canvas.width = image.width; canvas.height = image.height; canvas.getContext('2d')!.putImageData(image, 0, 0); return canvas; };
 function saveLive(value:LiveSnapshot){return {strokes:value.strokes.filter(s=>!s.rainbow),fills:value.fills.map(fill=>({...fill})),sparkles:value.sparkles};}
+function hasOpenSCAD(item:CadBody):boolean {const s=item.solid;return item.script?.language==='openscad'||(s.kind==='boolean'&&s.children.some(hasOpenSCAD))||((s.kind==='finish'||s.kind==='shell')&&hasOpenSCAD(s.source));}
+function hasScript(item:CadBody):boolean {const s=item.solid;return !!item.script||(s.kind==='boolean'&&s.children.some(hasScript))||((s.kind==='finish'||s.kind==='shell')&&hasScript(s.source));}
 function saveObject(object:PaintObject):unknown {
   if(object.kind!=='raster')return object;
   const image=cloneObjectImage(object.image,object.live);return {...object,image,live:object.live?saveLive(object.live):undefined};
@@ -32,7 +35,7 @@ function projectDocument() {
       image: canvas,live:saveLive(layer.live),
     };
   });
-  return { format: 'RetroPaint', version: 9, drawingMode:state.drawingMode, width: W, height: H, crop:documentCrop(), active: activeLayerId, layers: saved };
+  return { format: 'RetroPaint', version: saved.some(layer=>layer.cad?.bodies.some(hasOpenSCAD))?13:saved.some(layer=>layer.cad?.bodies.some(hasScript))?12:saved.some(layer=>layer.objects?.some(object=>record(object).kind==='text'&&record(object).callout))?11:10, drawingMode:state.drawingMode, width: W, height: H, crop:documentCrop(), active: activeLayerId, layers: saved };
 }
 export function projectData():string {return JSON.stringify(projectDocument(),(_key,value:unknown)=>value instanceof HTMLCanvasElement?value.toDataURL():value);}
 function canvasDataUrl(canvas:HTMLCanvasElement):Promise<string> {
@@ -95,17 +98,26 @@ async function readObject(value:unknown,documentWidth:number,documentHeight:numb
     return {...base,kind:'raster',image:await image(o.image,width,height),live:o.live?await live(o.live,liveSize.width,liveSize.height):undefined,liveSize,origin,clip:o.clip?array(o.clip,1000).map(point):undefined,blend:o.blend==='destination-out'?'destination-out':undefined};
   }
   if(o.kind==='path')return {...base,kind:'path',lineWidth:number(o.lineWidth,0,10000),fill:objectInk(o.fill),stroke:objectInk(o.stroke),paths:array(o.paths,24).map(value=>{const p=record(value);const transform=p.transform?array(p.transform,6).map(v=>number(v)):undefined;if(transform&&transform.length!==6)throw new Error('Invalid path transform.');return {points:array(p.points,1_000_000).map(point),clip:p.clip?array(p.clip,1000).map(point):undefined,closed:Boolean(p.closed),svg:typeof p.svg==='string'?p.svg.slice(0,10000):undefined,transform:transform as ObjectMatrix|undefined};})};
-  if(o.kind==='text')return {...base,kind:'text',font:String(o.font).slice(0,300),size:number(o.size,1,10000),align:['left','center','right'].includes(String(o.align))?o.align as CanvasTextAlign:'left',color:String(o.color).slice(0,80),paper:o.paper?String(o.paper).slice(0,80):null,underline:Boolean(o.underline),strike:Boolean(o.strike),lines:array(o.lines,20000).map(value=>{const p=record(value);return {text:String(p.text).slice(0,20000),...point(p),width:number(p.width,0)};})};
+  if(o.kind==='text')return {...base,kind:'text',callout:o.callout?{text:typeof record(o.callout).text==='string'?String(record(o.callout).text).slice(0,20000):undefined,wrapWidth:record(o.callout).wrapWidth===undefined?undefined:number(record(o.callout).wrapWidth,20,4096),tip:point(record(o.callout).tip),border:Boolean(record(o.callout).border),rounded:Boolean(record(o.callout).rounded)}:undefined,font:String(o.font).slice(0,300),size:number(o.size,1,10000),align:['left','center','right'].includes(String(o.align))?o.align as CanvasTextAlign:'left',color:String(o.color).slice(0,80),paper:o.paper?String(o.paper).slice(0,80):null,underline:Boolean(o.underline),strike:Boolean(o.strike),lines:array(o.lines,20000).map(value=>{const p=record(value);return {text:String(p.text).slice(0,20000),...point(p),width:number(p.width,0)};})};
   if(o.kind==='stamp')return {...base,kind:'stamp',emoji:String(o.emoji).slice(0,100),flipH:Boolean(o.flipH),flipV:Boolean(o.flipV),angle:number(o.angle)};
   throw new Error('Unknown project piece.');
 }
-export async function loadProjectData(source: string): Promise<boolean> {
+export async function loadProjectData(source: string, isCurrent = beginOpen()): Promise<boolean> {
   if(source.length>100_000_000)throw new Error('This project is too large to open.');
-  const project = record(JSON.parse(source));
-  if (project.format !== 'RetroPaint' || ![1,2,3,4,5,6,7,8,9].includes(project.version as number)) throw new Error('Choose a RetroPaint project file.');
+  let parsed: unknown;
+  try { parsed = JSON.parse(source); }
+  catch { throw new Error('This project file is damaged or incomplete. Try another saved copy.'); }
+  const project = record(parsed);
+  if (project.format !== 'RetroPaint') throw new Error('Choose a RetroPaint project file.');
+  if (typeof project.version === 'number' && project.version > 13) throw new Error('This project was saved by a newer RetroPaint version. Update RetroPaint to open it.');
+  if (![1,2,3,4,5,6,7,8,9,10,11,12,13].includes(project.version as number)) throw new Error('Choose a RetroPaint project file.');
   const width = number(project.width, 1, 4096), height = number(project.height, 1, 4096); dimensions(width, height);
   if (!Number.isInteger(width) || !Number.isInteger(height)) throw new Error('Invalid project dimensions.');
   const data = array(project.layers, 16); if (!data.length) throw new Error('This project has no layers.');
+  const active = number(project.active, 1), ids = data.map(value => number(record(value).id, 1));
+  if (!Number.isInteger(active) || ids.some(id => !Number.isInteger(id))) throw new Error('Project layer IDs must be positive whole numbers.');
+  if (new Set(ids).size !== ids.length) throw new Error('Project layer IDs must be unique.');
+  if (!ids.includes(active)) throw new Error('This project refers to a missing active layer. Try another saved copy.');
   if (width * height * data.length > 64_000_000) throw new Error('This project has too many pixels across its layers.');
   let plannedPixels=width*height*data.length;
   for(const value of data){const layer=record(value);if(layer.objects)for(const value of array(layer.objects,10000)){const object=record(value);if(object.kind==='raster')plannedPixels+=number(object.width,1,4096)*number(object.height,1,4096);}}
@@ -116,17 +128,18 @@ export async function loadProjectData(source: string): Promise<boolean> {
     return { id: number(layer.id, 1), name: String(layer.name ?? 'Layer').slice(0, 60), visible: Boolean(layer.visible), opacity: number(layer.opacity, 0, 1), paper: typeof layer.paper === 'string' && /^#[\da-f]{6}$/i.test(layer.paper) ? layer.paper : null,
       image: canvas.getContext('2d')!.getImageData(0, 0, width, height), live: await live(layer.live, width, height),photo:readPhotoRecipe(layer.photo),cad:readCadLayer(layer.cad),objects:layer.objects?await Promise.all(array(layer.objects,10000).map(value=>readObject(value,width,height))):undefined };
   }));
-  if (new Set(snapshots.map(layer => layer.id)).size !== snapshots.length) throw new Error('Project layer IDs must be unique.');
   const cadIds=snapshots.flatMap(layer=>layer.cad?.bodies.map(b=>b.id)??[]);if(new Set(cadIds).size!==cadIds.length)throw new Error('3D piece IDs must be unique across layers.');
   let objectPixels=width*height*snapshots.length;
   for(const layer of snapshots){if(new Set(layer.objects?.map(o=>o.id)).size!==layer.objects?.length&&layer.objects)throw new Error('Project piece IDs must be unique within a layer.');for(const object of layer.objects??[])if(object.kind==='raster')objectPixels+=object.width*object.height;}
   if(objectPixels>128_000_000)throw new Error('This project has too many pixels in its editable pieces.');
   const solids=snapshots.flatMap(layer=>layer.cad?.bodies??[]);
   if(solids.length){const{cadCompute}=await import('./cad-engine');for(const solid of solids)await cadCompute([solid]);}
+  requireCurrentOpen(isCurrent);
   if (!editable()) return false;
-  settle(); pushHistory(); restoreLayers(snapshots, number(project.active, 1), width, height); setDocumentCrop(crop);state.drawingMode=project.drawingMode==='vector'?'vector':'raster';document.body.classList.toggle('vector-mode',state.drawingMode==='vector');const mode=document.getElementById('drawingMode') as HTMLSelectElement|null;if(mode)mode.value=state.drawingMode;artwork.markWork();emit('document-opened');message('Project opened with editable pieces, layers, photo adjustments and live ink.');return true;
+  settle(); pushHistory(); restoreLayers(snapshots, active, width, height); setDocumentCrop(crop);state.drawingMode=project.drawingMode==='vector'?'vector':'raster';document.body.classList.toggle('vector-mode',state.drawingMode==='vector');const mode=document.getElementById('drawingMode') as HTMLSelectElement|null;if(mode)mode.value=state.drawingMode;artwork.markWork();emit('document-opened');message('Project opened with editable pieces, layers, photo adjustments and live ink.');return true;
 }
 export async function openProjectFile(file: File): Promise<void> {
   if (file.size > 100_000_000) throw new Error('This project is too large to open.');
-  await loadProjectData(await file.text());
+  const isCurrent = beginOpen();
+  await loadProjectData(await file.text(), isCurrent);
 }

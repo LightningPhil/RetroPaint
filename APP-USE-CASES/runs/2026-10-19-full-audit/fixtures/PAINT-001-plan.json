@@ -1,0 +1,166 @@
+{
+  "at": "2026-10-20T16:50:46.651678+00:00",
+  "case": "PAINT-001",
+  "status": "Plan recorded before execution, not a test result",
+  "rows": [
+    {
+      "id": "p1",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 1,
+      "strength": 0.15
+    },
+    {
+      "id": "p2",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 22,
+      "strength": 1
+    },
+    {
+      "id": "p3",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 96,
+      "strength": 0.15
+    },
+    {
+      "id": "p4",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 1,
+      "strength": 1
+    },
+    {
+      "id": "p5",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 0.15
+    },
+    {
+      "id": "p6",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 96,
+      "strength": 1
+    },
+    {
+      "id": "p7",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 1
+    },
+    {
+      "id": "p8",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 1,
+      "strength": 0.15
+    },
+    {
+      "id": "p9",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 22,
+      "strength": 1
+    },
+    {
+      "id": "p10",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 96,
+      "strength": 0.15
+    },
+    {
+      "id": "p11",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 1,
+      "strength": 1
+    },
+    {
+      "id": "p12",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 0.15
+    },
+    {
+      "id": "p13",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 96,
+      "strength": 1
+    },
+    {
+      "id": "p14",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 1
+    }
+  ],
+  "pairwise_proof": [
+    {
+      "factors": [
+        "viewport",
+        "size"
+      ],
+      "pairs": 12
+    },
+    {
+      "factors": [
+        "viewport",
+        "strength"
+      ],
+      "pairs": 8
+    },
+    {
+      "factors": [
+        "size",
+        "strength"
+      ],
+      "pairs": 6
+    }
+  ],
+  "main_flow": "Marker22/full Strength at every viewport. Every row additionally runs slow curve, tap, fast curve, three Undo and three Redo, actual fresh saved file input.",
+  "stroke_geometry": {
+    "slow": "Quadratic from150,280 through400,160 to650,280;41 native points,15ms delay between points",
+    "fast": "Same quadratic shifted160px up;41 native points, no inserted delay",
+    "tap": [
+      800,
+      200
+    ]
+  },
+  "oracles": "Independent connectivity, centreline coverage and distance-to-segment bounds; round tap/caps; known red alpha contribution; actual cursor-overlay geometry at22px; exact gesture history/source data/fresh file. Mouse input only, no physical pen claim. AA geometry allowance2 paper pixels; full core colour/alpha blend tolerance2/255. Cursor outer stroke accounts for3 CSS-pixel outline, independently scaled from public canvas rectangle."
+}

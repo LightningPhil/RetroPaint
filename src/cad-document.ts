@@ -12,7 +12,8 @@ export function ensureCadLayer(create = false): Layer {
   if (existing) { switchLayer(existing.id); return existing; }
   if (!canAddLayer()) throw new Error('The layer stack is full. Remove a sheet before adding a 3D layer.');
   const name=`3D ${cadLayers().length + 1}`;
-  pushHistory(); addLayer({ units:'mm',bodies:[] }); const layer = activeLayer();
+  const view=cadLayers().find(l=>l.cad?.view)?.cad?.view;
+  pushHistory(); addLayer({ units:'mm',bodies:[],view:structuredClone(view) }); const layer = activeLayer();
   layer.name = name; layerChanged(); return layer;
 }
 export function currentBodies(): CadBody[] { return activeLayer().cad?.bodies ?? []; }
@@ -21,7 +22,7 @@ export function replaceBodies(next: CadBody[], history = true): void {
   const layer = activeLayer(); if (!layer.cad) throw new Error('Choose a 3D layer first.');
   if (next.length > 128) throw new Error('A 3D layer can hold up to 128 pieces. Add another 3D layer for more.');
   readCadLayer({units:'mm',bodies:next});
-  if (history) pushHistory(); layer.cad = { units: 'mm', bodies: next }; artwork.markWork(); layerChanged();
+  if (history) pushHistory(); layer.cad = { ...layer.cad, units: 'mm', bodies: next }; artwork.markWork(); layerChanged();
 }
 export function addBody(item: CadBody): void { replaceBodies([...currentBodies(), item]); selectBodies([item.id]); }
 export function selectBodies(ids: string[]): void { state.cad.selected = ids; emit('cad-selection'); }

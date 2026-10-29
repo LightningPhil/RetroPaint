@@ -1,0 +1,647 @@
+{
+  "at": "2026-10-21T10:41:00.829653+00:00",
+  "changed_files": [
+    {
+      "path": "src/cad-ui.ts",
+      "baseline_sha256": "11a2ae08414eb0b6329f584028c5a37c2e1237ad9d92ba4f8a5d1694ca45f42d",
+      "current_sha256": "7e57bfd41326b7b686dfa629f91cffa590abb8a3923b79a3eca195ad769afec5",
+      "change": "modified"
+    },
+    {
+      "path": "src/cad.css",
+      "baseline_sha256": "b983860366ddc06ef797cb50156bcc39d8b00e799f4a4c9c7b3b7338589475b5",
+      "current_sha256": "d7d56f31e8a20a3e37e0c7f3af17776ee8f2ce2aa410c7d9a83793fdbcaac372",
+      "change": "modified"
+    },
+    {
+      "path": "src/editor.css",
+      "baseline_sha256": "c2e843ccfcb989328800c26d4294a9a8e6c9dd87c83d023c13b7ba1cab966ce2",
+      "current_sha256": "bcccec2dd8b719a3251ec4e9f20eb8f7352ee0a6ce18d075c8310436fc126be5",
+      "change": "modified"
+    },
+    {
+      "path": "src/editor.ts",
+      "baseline_sha256": "e56a43e40a087ccce27204fa095c1116139639b5960227ba3ddbbda5acd7cce1",
+      "current_sha256": "06cf6f2b6700992eb7b39d6e3c35425fc375a2a917f276f8be408bc5aa678105",
+      "change": "modified"
+    },
+    {
+      "path": "src/effects.ts",
+      "baseline_sha256": "939d2e7067eb2591b210df319de120d94bf622dae44b35c8da57188731a94b2f",
+      "current_sha256": "64f8f83b73e432185b8392c063a30ee07d2f7bd6d429eb2c4b09b21fb4960585",
+      "change": "modified"
+    },
+    {
+      "path": "src/export.ts",
+      "baseline_sha256": "a4f3039b940105e874040f63b05c1f785adb4771011657fe088090b1b47eb90e",
+      "current_sha256": "cc891c1efb32f465e289f91dab00983c26d2e598431c9aa2b5f305b32b5559b1",
+      "change": "modified"
+    },
+    {
+      "path": "src/image-codecs.ts",
+      "baseline_sha256": "cd53a7dc387765dae76f86f1a59e97ffc58ad27ff07d76ad9e78bf97ff5d14df",
+      "current_sha256": "8d03d00c5da16248ca9592e67ee0cfeff615221caff87f2593f077a33843ce0c",
+      "change": "modified"
+    },
+    {
+      "path": "src/input.ts",
+      "baseline_sha256": "a936453ad00dbf25782530b229751af85861498e2cb9d2ef30f034dd611d8a39",
+      "current_sha256": "33b0981a6088e83df4a3a66f4bd276b0090a595cc5261fd44fb1718e512cfe13",
+      "change": "modified"
+    },
+    {
+      "path": "src/layer-ui.ts",
+      "baseline_sha256": "352c0931b1cfc3ca80926379a7c98194c32525a65a480a66f4e8f2fecbc4d4a6",
+      "current_sha256": "1c6a386037e8287563e234529a9ce7b1509ccf1393c05e69c45be40da9448bfb",
+      "change": "modified"
+    },
+    {
+      "path": "src/layers.css",
+      "baseline_sha256": "00dd909e925b15e65fd29ee5cef8033f4ddfce8ca4ba91980d96b055d30252de",
+      "current_sha256": "efda821b46f0f2e8618c0d43259eeea1b28b7327ecefac092dc980ea99b8b558",
+      "change": "modified"
+    },
+    {
+      "path": "src/paper-view.ts",
+      "baseline_sha256": "0d68969d3b7ba30846f8ec4b6876616f589c3c65f6eea0fe7be066bd8e3cdd38",
+      "current_sha256": "d0168cc94f88a27c669463350385eb5574016638ac1b027db3fd9c358c307e5f",
+      "change": "modified"
+    },
+    {
+      "path": "src/photo-engine.ts",
+      "baseline_sha256": "fe389b006e404e863354499c4a44ade44e405f4f643db6c59a095668f55cbc20",
+      "current_sha256": "684fa60a05a1393d2fad22f8b5d080114ca4f094ce20bf2ef7f81bff5fd12a34",
+      "change": "modified"
+    },
+    {
+      "path": "src/photo-ui.ts",
+      "baseline_sha256": "8f5442b83acfd6026f639c0e7395418be1a56a243e4643c87236da0d5b0cff5a",
+      "current_sha256": "326c3a3f4a5090fc16e0152f631d921c55eed5bcc0622981d3f66e78791c845f",
+      "change": "modified"
+    },
+    {
+      "path": "src/photo.css",
+      "baseline_sha256": "8f4a0408ac3b99248cadd2eac3ea56399a02373ef5dc059982b67723d2f70704",
+      "current_sha256": "6887c204b2904a5005924be0b4bb2f7a574e3b420e027c50064f5f880d425225",
+      "change": "modified"
+    },
+    {
+      "path": "src/polish.css",
+      "baseline_sha256": "cf7224e0d777daca8d95ef5468c0d5a3f3e156b0556ae3d459c88be9baeb014a",
+      "current_sha256": "e336b54eb3fc331fdd224b79b8e87cd1aee706b7562b65bfdceac8a38a0adfb0",
+      "change": "modified"
+    },
+    {
+      "path": "src/project.ts",
+      "baseline_sha256": "f374471b30df4c1e34e4f6899110d0b81e9dc0878dde5df168f99048cbc69437",
+      "current_sha256": "06051727479c2aeaa29190170942fd007be7c6f72c1db58886f5c1930acbca6c",
+      "change": "modified"
+    },
+    {
+      "path": "src/smudge.ts",
+      "baseline_sha256": "caa0b7675e820b03204ad3429c1cf653cdeaab01393a0b036acf32fb4e837c2b",
+      "current_sha256": "3fde49044a4efad92309953b424b5d6e2d351a3b6ddcbb9db181b5fc582699bb",
+      "change": "modified"
+    },
+    {
+      "path": "src/stroke-renderer.ts",
+      "baseline_sha256": "2b506b1ff6a8934fc698b0015d50c747d5cece9989da7f38a7be6c241f886798",
+      "current_sha256": "be8b9f1844051e58017922e8ea97ac00959cf9e09375899e32ea7e1717680dfc",
+      "change": "modified"
+    },
+    {
+      "path": "src/style.css",
+      "baseline_sha256": "7381fbfd148028b820776ce431a89859e0781cbf7e1f5d2e6021bf1ab15618c7",
+      "current_sha256": "161ceab60b96f925f18557fe79b977492e6e46ec2695c838b18d145f53cc95a6",
+      "change": "modified"
+    },
+    {
+      "path": "src/super-resolution.css",
+      "baseline_sha256": "decad9c9640acc5c3334634c6fb337eb9b217a1c4520ba4cd64b1b060d73f79e",
+      "current_sha256": "fde1ca7e823375a7e5e13c910799cbe6530130bfc786e7982b92f39d2084a6ca",
+      "change": "modified"
+    },
+    {
+      "path": "src/symmetry-mask.ts",
+      "baseline_sha256": "b1754226c6c8e805c3a9d16f9e0d9db92a0ae575713cac7ef1661557f2f0ced3",
+      "current_sha256": "56889c9e89c53193ce48cdd06758ba471ca34e77ca0c2f7dd2d0bc550dc03b5e",
+      "change": "modified"
+    },
+    {
+      "path": "src/ui.ts",
+      "baseline_sha256": "ab03dd1e5f5aee8d5459f146a629eab9a3d79edeb7e1e718cc8538ea84566b11",
+      "current_sha256": "4a5afae1ba918dac905a5c548843eee810fc642ac8692ba671e39a1562f29fbd",
+      "change": "modified"
+    },
+    {
+      "path": "tests/mobile.ts",
+      "baseline_sha256": "7b0135fd0c4d3db1b6d092c575c087d6c6903d0be9a3a1d5b1d431bf60d69080",
+      "current_sha256": "7aea693de3794ef4b9d93e6b1c4c081e52722540b758dd5d1bd03e05123380ef",
+      "change": "modified"
+    },
+    {
+      "path": "tests/painting.ts",
+      "baseline_sha256": "40b43f3d3a57a4dfc7e7330c34ce91e188a166a9eb973a7cc8714ceaad6622d6",
+      "current_sha256": "6d0e5976bfe81238fac370ea4a8909d9a14fc8c2b0dfd26f10c024e234301f3c",
+      "change": "modified"
+    },
+    {
+      "path": "package.json",
+      "baseline_sha256": null,
+      "current_sha256": "109a88cdbc075d4548a07ceb07651c33aa8be1bf9281e379aa57b3d60469d79e",
+      "change": "added"
+    },
+    {
+      "path": "package-lock.json",
+      "baseline_sha256": null,
+      "current_sha256": "edb20c32c6124f4bae795173dc598d2e3494e6a3bfa7a460e8a4cbdea6f6e462",
+      "change": "added"
+    },
+    {
+      "path": "src/new-picture.ts",
+      "baseline_sha256": null,
+      "current_sha256": "99e1d30d435c449aee06e608c3c9d4aabf6854044c9fac934e0996a9305f5025",
+      "change": "added"
+    },
+    {
+      "path": "tests/acceptance-driver.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "6309e4b078fd9170cc8cc4726a9aae0d5ba61402a316dd94a0ef5bac31400332",
+      "change": "added"
+    },
+    {
+      "path": "tests/alpha-representation-probe-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "57ced70aeaa7089009ca5cb7c374ec27b0cffdc3a2fff0f1079f2b6bd6a99ba4",
+      "change": "added"
+    },
+    {
+      "path": "tests/biro-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "1b884a1e74d36f9551fe8a21de3da5a5a25c4cfa1c88dd7f6daa74ae146451bd",
+      "change": "added"
+    },
+    {
+      "path": "tests/cad-layer-handoff-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "78add72858eb71ed86a4d17e2132f2cd61680761f07a8aca53e2884991d57f97",
+      "change": "added"
+    },
+    {
+      "path": "tests/cadmix-fixture-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "c12eace2606e06f0859654d65e688729ddb0170f62e7859e2a34924353e242e0",
+      "change": "added"
+    },
+    {
+      "path": "tests/calligraphy-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "60ec265e45e65a2d194e9ce5cbddc00f30bf573b36aec181af42def4a2e93bd2",
+      "change": "added"
+    },
+    {
+      "path": "tests/classic-brush-boundary-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "18c84a585e5b1748692dd8fa28d36edf4c1f43ea50aee0b7104abcd82ba7937f",
+      "change": "added"
+    },
+    {
+      "path": "tests/classic-brush-main-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "3a99fe29e0e7d3e4b0028633249f000cea387e74b005fbb74e88ad6a235879b7",
+      "change": "added"
+    },
+    {
+      "path": "tests/classic-brush-sequence-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "a37744bb37875cd97ff6af7c7d541716bcdb45f947d7696b4ddb48489b9da0df",
+      "change": "added"
+    },
+    {
+      "path": "tests/clear-mix-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "f07fb2459d2748635aaa8c33df52e66571e35ffb46cc086f5da16f71c7eb4a5b",
+      "change": "added"
+    },
+    {
+      "path": "tests/controlled-render-time.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "300393aed9faaa1b090d30cd6bf7590512612c027e22fe264ba08b108530bc99",
+      "change": "added"
+    },
+    {
+      "path": "tests/desk-preferences-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "0bb3707f6593ac0556fe49cfa4547a388c678a0386f2fe325c95d0156505d5d3",
+      "change": "added"
+    },
+    {
+      "path": "tests/eraser-calibration-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "0d168b97a95ea53f7d5ee8e478496a50799570a8e5d063fc3b4336b3df43b389",
+      "change": "added"
+    },
+    {
+      "path": "tests/eraser-fixture-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "138565892371c4c7808a8bb602b678d478ae4b0a625f803eb26fe93aa8d94b29",
+      "change": "added"
+    },
+    {
+      "path": "tests/eraser-repeat-alpha-probe.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "4f30ce0f03799c1331e7618e912e0c8b3bf3499da951ac3102cdc976d2f45f9b",
+      "change": "added"
+    },
+    {
+      "path": "tests/fast-pointer-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "f29985eb04f6107231e5abd345f4bee36e81667311df721659413d74f4d70455",
+      "change": "added"
+    },
+    {
+      "path": "tests/glitter-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "8b98ec86f4e581eb16bacf959e1aedb39f8b6f068048b1e496c308d1b8e03cac",
+      "change": "added"
+    },
+    {
+      "path": "tests/headless-tab-focus-probe.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "a4aea77c24052da9179e57bf39279ded53bffbd725940d69794f4205203b8cc9",
+      "change": "added"
+    },
+    {
+      "path": "tests/headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "0cb59f4f2cec079af08a5f12875b1da2ee6f3ef17a3573064fdbb9030481b085",
+      "change": "added"
+    },
+    {
+      "path": "tests/hex-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "43bc820f9a354ed4a58872ea51fcd6a367e6a2d4948580031b310faadfb88674",
+      "change": "added"
+    },
+    {
+      "path": "tests/hole-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "227c0e2dafd8081a9585c84578e061ba88e36ef7111bd0f2fcf16cd2b48afc48",
+      "change": "added"
+    },
+    {
+      "path": "tests/hole-fixture-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "05a9f6b777b599e5302fcc16b62c7ded9f6b65bce4772712c47b4ef7b8414a61",
+      "change": "added"
+    },
+    {
+      "path": "tests/image-chooser-cancel-probe-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "3023f69d7a4042effdd8ab0187304a6844fbb46e935bb5a76bcd1499c8657e8c",
+      "change": "added"
+    },
+    {
+      "path": "tests/image-open-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "e248c658a81f30c9dc7c147ca95efa467a20baf81ed7c8c9002b0837ae79d681",
+      "change": "added"
+    },
+    {
+      "path": "tests/invert-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "b054b4c17adf7a2704d409f7c28b9a49dc3e4b2fbabba9987b796b7fd1164b60",
+      "change": "added"
+    },
+    {
+      "path": "tests/invert-before-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "704e9553ac70865543326b7a87c4752e7d83b1711813d0b5c28e478223201f72",
+      "change": "added"
+    },
+    {
+      "path": "tests/layer-alpha-export-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "b1de5a3eb8a3401fea60d6735d1063d5d34a4e31b45413c1d6c460659026ac8f",
+      "change": "added"
+    },
+    {
+      "path": "tests/layer-duplicate-fixture-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "9a74fe7995a2f7ebed271e0901a8967bc1c9ffd37d1e85c391fca7525098b3c9",
+      "change": "added"
+    },
+    {
+      "path": "tests/layer-duplicate-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "ce3101d351ca747fbea77760d90a4b57a23e4bc75e5346bc65ca99321a2f6d2e",
+      "change": "added"
+    },
+    {
+      "path": "tests/layer-limits-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "7891c216300958dca8efa366c70628d27f2661206cab5af1968c62198125a6a6",
+      "change": "added"
+    },
+    {
+      "path": "tests/layer-merge-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "2e4154ab96e541a27a3e79e21f8a9351c6fffecab1bf4ce7c1a54999c8ac5e28",
+      "change": "added"
+    },
+    {
+      "path": "tests/layer-properties-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "0adfc3f016b8a7e91beca3f359978e205b3e12d2f6b5aaba89cad1ad6276dfe8",
+      "change": "added"
+    },
+    {
+      "path": "tests/layer-reorder-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "f3df86f431e6b01576e01a48ac614bee5a18e93ceb454a030a43072e832e7627",
+      "change": "added"
+    },
+    {
+      "path": "tests/layer-stack-basics-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "0283aa0b54bf5f1dc7ad5e12789adaacff74c1e1c82f7dc84e50d313a02521b0",
+      "change": "added"
+    },
+    {
+      "path": "tests/layer-thumbnails-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "b0fa2a5730939caa50d04938714128661d2b70de38c4d121dea3e145b77f1398",
+      "change": "added"
+    },
+    {
+      "path": "tests/layer-visibility-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "290bfd3235ee27b8288a50ac5c6398b6344cf8e17c64e30ee43aa91c3482ab7c",
+      "change": "added"
+    },
+    {
+      "path": "tests/local-filter-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "c11c8548e55b0afb9d38c1f6fb6d9a34112a0c267566b80692e314bb8a9a9956",
+      "change": "added"
+    },
+    {
+      "path": "tests/marker-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "149537e218e496f861bcb38af589d29f735ec653e653e10c4a20433fd4ed14dc",
+      "change": "added"
+    },
+    {
+      "path": "tests/mix-fixture-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "0aecc85bddbf5089885abf218ac45eb642a3a3e248488327f5dfc9b36522b0dc",
+      "change": "added"
+    },
+    {
+      "path": "tests/native-tab-focus-probe-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "8b559153389c302711bf83f9ba7467c001c3551299ea04ba52517d07d830211b",
+      "change": "added"
+    },
+    {
+      "path": "tests/neon-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "f9afb3ae544de9840ffc4ec753a2c1608b0e43f74a83e83ab89b42353067deb4",
+      "change": "added"
+    },
+    {
+      "path": "tests/new-picture-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "d2a8cdbc379c990c0ab1e881f1891a64274e1aa38bb61f19682e22f94ee65356",
+      "change": "added"
+    },
+    {
+      "path": "tests/new-picture-before-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "79e658217425c16a7700eeea68abf478cf41fc5d336fc26c26b3f8be59a94198",
+      "change": "added"
+    },
+    {
+      "path": "tests/paper-view-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "f0a046d0782864a8f3de2b1a1ef852f669f8d1239aa9d7dc5658835adf9cd176",
+      "change": "added"
+    },
+    {
+      "path": "tests/pencil-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "2b84c103d5486b99df77ba20906859befa04790a1216528bae684c98ca70ae9c",
+      "change": "added"
+    },
+    {
+      "path": "tests/pencil-boundary-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "90e2d7ea220764840e8f9ba4dc80ebc06db0e0b11fc246c352522f1d6fc4b61c",
+      "change": "added"
+    },
+    {
+      "path": "tests/photo-auto-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "c336035eb05e39da74ba316ec1b9a3f5579023436326288081932aaf21eff262",
+      "change": "added"
+    },
+    {
+      "path": "tests/photo-fullsize-grid-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "43e07f72c5b6b3e102c0d73d700fc15e7aa3c1b0d8ea15a8890d78cd49a58a59",
+      "change": "added"
+    },
+    {
+      "path": "tests/photo-fullsize-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "7bac92f414cd5a7857732babaf5df91e2780c1335cd361e420c9656032ac6c05",
+      "change": "added"
+    },
+    {
+      "path": "tests/photo-histogram-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "dbc9fe6e6bfa8077b21d367548a579191d10c66b83a7789a40ca8ca3f9f5f235",
+      "change": "added"
+    },
+    {
+      "path": "tests/photo-layer-palette-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "19cf69c32ccc3551e6375c30458664cd126524cf2019fa457c0f5a5726514f37",
+      "change": "added"
+    },
+    {
+      "path": "tests/photo-looks-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "f8c2679376a660b8e91155d5314051c19168ff748a8f3e0b422bb093d8dc6184",
+      "change": "added"
+    },
+    {
+      "path": "tests/photo-project-recipe-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "eef6c64fe5fa3ae4fd12202406ab94ca382a6e3f4ed8a7c5baa4e2e9460528c4",
+      "change": "added"
+    },
+    {
+      "path": "tests/photo-reset-acceptance.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "a5ac7408ac63684f3de6427db4b5151d27b7f6115febbb882f19296fc259401b",
+      "change": "added"
+    },
+    {
+      "path": "tests/photo-tone-regions-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "9773dea57cd53b5252e735debd2b445a264957781dacd8efeff2ef09fe7fed7e",
+      "change": "added"
+    },
+    {
+      "path": "tests/picker-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "58aa23fb38106bc5dd70f99af247467a33869760977bcf7b0ce8b3bd89e6e33c",
+      "change": "added"
+    },
+    {
+      "path": "tests/pointer-end-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "822eb4ff6bc7f7e38ec9c31d67b32dfc45a4edc229d9c6080fe3a13eac8438a2",
+      "change": "added"
+    },
+    {
+      "path": "tests/poster-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "045155d3afad631a3683756b0526ee30e817ea9a9561e43de94ca5887fd1c91b",
+      "change": "added"
+    },
+    {
+      "path": "tests/project-roundtrip-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "825db19932f22ac5615ab957ba1f670f810be8d3085ac18582e7814f59abcd80",
+      "change": "added"
+    },
+    {
+      "path": "tests/rainbow-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "fd3f37705984e8c61a8e410814aceff69dc74ff26eae0339471cbdc3f9bae424",
+      "change": "added"
+    },
+    {
+      "path": "tests/scrub-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "2cd3dd92e9e2bed7d96cfa4a4fd1306878844d231d8d4d54c5db3b323d203fbf",
+      "change": "added"
+    },
+    {
+      "path": "tests/secondary-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "a91e5a6d37d41ca272bfc045e31a2c6a27108d6d3fdddfdb6de8dc2e96942198",
+      "change": "added"
+    },
+    {
+      "path": "tests/shortcuts-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "b2db30db1e320936c3b93096133ea485cfde242c6808fe9ffda97bec5020b0f0",
+      "change": "added"
+    },
+    {
+      "path": "tests/size-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "55eca6564233d42d6055c49533d2895d3b0f0a88ba1586dfca4c36e50f337c85",
+      "change": "added"
+    },
+    {
+      "path": "tests/smudge-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "d0ba061ec16871aadc746630a5c05fd6635d99f45377d457f0288854b44482b0",
+      "change": "added"
+    },
+    {
+      "path": "tests/smudge-fixture-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "3fbd7c3f55220ae3275c0bb3e1d0e2189ae18da3ae01602cd67556fbd00bd31e",
+      "change": "added"
+    },
+    {
+      "path": "tests/solids-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "120fbe563ff0429d6ffdaab83cc03c0889ce92b5b3779d4ea62a6b197b30f296",
+      "change": "added"
+    },
+    {
+      "path": "tests/sound-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "ee338b7b60b8a3ac9c5a0f4ff6c824fd362903d122f84efcc1d4ede23b588166",
+      "change": "added"
+    },
+    {
+      "path": "tests/spray-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "a9d368c65ba758a10e4ffc19104da14538bd98076f9fb88826af55b926c436a9",
+      "change": "added"
+    },
+    {
+      "path": "tests/spray-color-probe-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "3d1de925138b19acf8fc25e137d3f4ffc8a0ca7043fd4566ff3d19d1b774639e",
+      "change": "added"
+    },
+    {
+      "path": "tests/spray-native-blur-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "ea6cf9b6464fc0c46bff28d171f5350c1b182933718cd095801c9791ed9cb8bc",
+      "change": "added"
+    },
+    {
+      "path": "tests/spray-pigment-trace-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "41d8569ba55507157c9097794ff2a4aafeb61508526e22f51815b932b4e8f5fa",
+      "change": "added"
+    },
+    {
+      "path": "tests/spray-sequence-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "d42a0fae4ce1a6446fd0deb83c731b70e3179f35ea7f68e4fe878f94ce3934af",
+      "change": "added"
+    },
+    {
+      "path": "tests/strength-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "0406ef59b0eff54add5e6d31acbe3f0115503edb338d8d7804faee5899d5cdd9",
+      "change": "added"
+    },
+    {
+      "path": "tests/target-awareness-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "825f9092f650fff19627cf047a5a63c8670cde8b1a8dcf016edc1561bc723f02",
+      "change": "added"
+    },
+    {
+      "path": "tests/target-fixture-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "bbbb12df079c64fa79e528256cb9c0eaab62cf27b32b4f593634e90c30d35473",
+      "change": "added"
+    },
+    {
+      "path": "tests/unavailable-actions-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "568c1d972d9afdf6e4db9c516745c7498f47d80c1d736a3d09117c545d4e4253",
+      "change": "added"
+    },
+    {
+      "path": "tests/watercolor-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "2d4f61c260908e6b350a7fccb03f39c36835d8fefc5bcf744eb00ab7522ae850",
+      "change": "added"
+    },
+    {
+      "path": "tests/wheel-rgb-acceptance-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "68e3766d6e8d380172bffbc850a1e66fe7c9ee65056e845c5934211efad1cce7",
+      "change": "added"
+    },
+    {
+      "path": "tests/workspace-mode-headless.mjs",
+      "baseline_sha256": null,
+      "current_sha256": "2c718b8a06c4f63e802750d8fb4367d99000d976b8902c4abde8c8cd29a82ddb",
+      "change": "added"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+"""Independent public event, clipping, component, source/history/retry oracle."""
+from pathlib import Path
+from datetime import datetime,timezone
+from copy import deepcopy
+from PIL import Image
+import numpy as np
+import json,hashlib,base64,io,argparse
+root=Path(__file__).resolve().parent;parser=argparse.ArgumentParser();parser.add_argument('--folder',default='PAINT-019-first');parser.add_argument('--continuation-folder');parser.add_argument('--prefix',action='store_true');parser.add_argument('--observe',action='store_true');args=parser.parse_args();base=root/'headless'/args.folder;following=root/'headless'/args.continuation_folder if args.continuation_folder else None;read=lambda p:json.loads(p.read_text(encoding='utf-8'));plan=read(root/'fixtures/PAINT-019-plan.json');rgba=lambda p:np.asarray(Image.open(p).convert('RGBA'));decode=lambda layer:rgba(io.BytesIO(base64.b64decode(layer['image'].split(',',1)[1])));yy,xx=np.mgrid[:640,:960];failures=[];records=[];downloads=[]
+def folder_for(row):
+    choices=[folder/row['id'] for folder in [base,following] if folder is not None and (folder/row['id']/'native-input.json').exists() and (folder/row['id']/'fresh/events.json').exists() and len([e for e in read(folder/row['id']/'fresh/events.json') if e['action']=='download'])==2];assert len(choices)<=1;return choices[0] if choices else None
+rows=[row for row in plan['rows'] if folder_for(row) is not None];assert rows and (args.prefix or len(rows)==24)
+if not args.prefix:
+    ui=read(base/'PAINT-019-ui.json');assert not ui['errors'];executed=ui['rows'];assert hashlib.sha256((base/'executed-harness.mjs').read_bytes()).hexdigest()==ui['harness_sha256']
+    if following:
+        next_ui=read(following/'PAINT-019-ui.json');assert ui['status']=='Fail' and len(ui['rows'])==20 and 'data-applicator' in ui['error'] and next_ui['status']=='Pass' and not next_ui['errors'] and ui['origin']==next_ui['origin'];assert hashlib.sha256((following/'executed-harness.mjs').read_bytes()).hexdigest()==next_ui['harness_sha256'];executed+=next_ui['rows']
+    else:assert ui['status']=='Pass'
+    assert [r['id'] for r in executed]==[r['id'] for r in plan['rows']]
+def require(ok,name,detail=None):
+    if not bool(ok):failures.append(dict(row=current,name=name,detail=detail))
+for row in rows:
+    current=row['id'];folder=folder_for(row);doc=lambda label:read(folder/(label+'.retropaint'));image=lambda label:rgba(folder/(label+'.png'));before=doc('before');ended=doc('ended');after=doc('next');assert before['width']==960 and before['height']==640 and len(before['layers'])==1;layer=before['layers'][0];assert layer['paper'].lower()=='#ffffff' and layer['visible'] and layer['opacity']==1 and not layer.get('objects') and not layer.get('cad') and not layer.get('photo') and not layer.get('live',{}).get('strokes');source=decode(layer);assert (source==255).all();first=decode(ended['layers'][0]);second=decode(after['layers'][0]);expected=deepcopy(before);expected['layers'][0]['image']=ended['layers'][0]['image'];require(ended==expected,'First gesture changes only active paint source');expected=deepcopy(ended);expected['layers'][0]['image']=after['layers'][0]['image'];require(after==expected,'Next gesture changes only active paint source');require((first[:,:,3]==255).all() and (second[:,:,3]==255).all(),'Opaque Paper alpha stays exact')
+    changed=np.any(first!=source,axis=2);distance=np.hypot(xx-np.clip(xx,400,1040),yy-360);require(changed.any() and not changed[distance>plan['maximum_footprint_radius']].any(),'First source mark stays inside declared clipped path/footprint',int(changed[distance>plan['maximum_footprint_radius']].sum()));require(changed[:,959].any(),'Actual saved stroke reaches clipped rightmost source column');missing=[x for x in range(400,960) if not changed[336:385,x].any()];require(not missing,'Saved stroke remains continuous through edge',missing);require(not (first[:,:,1]>first[:,:,0]).any() and not (first[:,:,2]>first[:,:,0]).any(),'Selected Red pigment has no unrelated coloured contamination')
+    diff=np.any(second!=first,axis=2);distance_next=np.hypot(xx-np.clip(xx,200,280),yy-160);require(diff.any() and not diff[distance_next>24].any(),'New gesture stays local without a false connector',int(diff[distance_next>24].sum()));require(all(diff[136:185,x].any() for x in range(200,281)),'Next distinct mark is continuous');require(np.array_equal(second[336:385,389:960],first[336:385,389:960]),'Next gesture preserves original clipped stroke')
+    end_image=image('ended');stop=rgba(folder/'stop-ack-public.png');labels=['stop-later-public','post-stop-hover-public','cleanup-public'];deltas=[int(np.any(rgba(folder/(label+'.png'))!=stop,axis=2).sum()) for label in labels];require(all(n==0 for n in deltas) and np.array_equal(stop,end_image),'Termination freezes source through wait/hover/cleanup/save',deltas)
+    for label in ['before','ended','next','next-undone','ended-undone','ended-redone','next-redone','fresh/reopened']:require(np.array_equal(image(label),decode(doc(label)['layers'][0])),'Actual PNG equals independent raw opaque source '+label)
+    for label,wanted,reference in [('next-undone',ended,'ended'),('ended-undone',before,'before'),('ended-redone',ended,'ended'),('next-redone',after,'next'),('fresh/reopened',after,'next')]:require(doc(label)==wanted and np.array_equal(image(label),image(reference)),'Complete history/fresh source and RGBA '+label)
+    events=read(folder/'native-input.json');life=read(folder/'native-lifecycle.json');assert all(e['trusted'] for e in events+life);gesture=[e for e in events if e['phase']=='first'];down=[e for e in gesture if e['type']=='pointerdown'];moves=[e for e in gesture if e['type']=='pointermove' and e['buttons']];assert len(down)==1 and len(moves)>=16 and np.linalg.norm(np.array(down[0]['source'])-plan['first_points'][0])<.01
+    # Chrome touch coordinates are quantized; source path is checked within one CSS-independent source pixel.
+    for actual,wanted in zip(moves[:16],plan['first_points'][1:]):assert np.linalg.norm(np.array(actual['source'])-wanted)<1
+    stops=[e for e in gesture if e['type']==('pointerup' if row['mode']=='release-outside' else 'pointercancel' if row['mode']=='touch-cancel' else 'lostpointercapture')]
+    if row['mode']=='native-blur':assert any(e['type']=='blur' and e['trusted'] and e['timeStamp']>down[0]['timeStamp'] for e in life) and not any(e['type'] in ['pointerup','pointercancel'] for e in gesture)
+    else:assert len(stops)==1;require(stops[0]['source'][0]>=960 or row['mode']=='lost-capture','Outside termination is delivered after crossing source edge',stops[0]['source'])
+    next_input=[e for e in events if e['phase']=='next'];assert len([e for e in next_input if e['type']=='pointerdown'])==len([e for e in next_input if e['type']=='pointerup'])==1
+    for file in [folder/'events.json',folder/'fresh/events.json']:
+        for e in read(file):
+            if e['action']=='download':data=Path(e['path']).read_bytes();assert len(data)==e['bytes'] and hashlib.sha256(data).hexdigest()==e['sha256'];downloads.append(e)
+    records.append(dict(id=current,applicator=row['applicator'],mode=row['mode'],viewport=row['viewport'],first_changed_pixels=int(changed.sum()),next_changed_pixels=int(diff.sum()),missing_stroke_columns=len(missing),post_ack_changed_pixels=deltas,actual_downloads=16))
+assert len(downloads)==16*len(rows)
+report=dict(at=datetime.now(timezone.utc).isoformat(),case='PAINT-019',status='Fail' if failures else 'Completed prefix only' if args.prefix else 'Pass',rows=records,actual_downloads_verified=len(downloads),failures=failures,oracle=plan['oracle'],scope='Completed prefix; no case Pass.' if args.prefix else 'All24 planned real workflows/384 actual downloads; native platform events with no physical device/OS input certification.')
+(root/('evidence/PAINT-019-'+args.folder+('-prefix' if args.prefix else '-independent')+'.json')).write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8');print(json.dumps(dict(case='PAINT-019',status=report['status'],rows=len(rows),actual_downloads=len(downloads),failed_requirements=len(failures),failures=failures[:10])))
+if failures and not args.observe:raise SystemExit(1)

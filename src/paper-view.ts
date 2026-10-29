@@ -14,28 +14,48 @@ export function initPaperView(compact: MediaQueryList): void {
   slot.append(controls);
   const readout = document.createElement('output'); readout.id = 'zoomReadout'; readout.setAttribute('aria-label', 'Picture size and zoom'); slot.append(readout);
   let zoom = 1, x = 0, y = 0, moving = false, space = false;
+  const sourceScale = () => {
+    const rectangle = view.getBoundingClientRect();
+    return view.width >= view.height ? rectangle.width / view.width : rectangle.height / view.height;
+  };
+  const actualZoom = () => zoom / Math.max(0.000001, sourceScale());
+  const minimumZoom = () => Math.min(0.125, actualZoom());
+  const maximumZoom = () => Math.max(32, actualZoom());
   let pointer: { id: number; x: number; y: number } | null = null;
   const draw = () => {
-    const scaledWidth = stage.offsetWidth * zoom, scaledHeight = stage.offsetHeight * zoom;
+    // Layout rounds very thin content to fractions of a CSS pixel. Correct
+    // each axis so a one-pixel-high/wide picture keeps its source aspect.
+    const style = getComputedStyle(view);
+    const fittedX = Math.max(0.000001, parseFloat(style.width) / view.width);
+    const fittedY = Math.max(0.000001, parseFloat(style.height) / view.height);
+    const fitted = Math.min(fittedX, fittedY), scaleX = zoom * fitted / fittedX, scaleY = zoom * fitted / fittedY;
+    const scaledWidth = stage.offsetWidth * scaleX, scaledHeight = stage.offsetHeight * scaleY;
     const left = stage.offsetLeft + (stage.offsetWidth - scaledWidth) / 2, top = stage.offsetTop + (stage.offsetHeight - scaledHeight) / 2;
-    x = scaledWidth > slot.clientWidth ? Math.max(slot.clientWidth - scaledWidth - left, Math.min(-left, x)) : 0;
-    y = scaledHeight > slot.clientHeight ? Math.max(slot.clientHeight - scaledHeight - top, Math.min(-top, y)) : Math.min(0, slot.clientHeight - scaledHeight - top);
-    stage.style.transform = `translate(${x}px,${y}px) scale(${zoom})`;
+    const reach = Math.max(56, (document.getElementById('workspaceBar')?.getBoundingClientRect().height ?? 0) + 8);
+    const panWithin = (value: number, span: number, space: number, origin: number) => {
+      const visible = Math.min(32, span, space);
+      const minimum = Math.max(visible - span - origin, Math.min(0, space - span - origin) - reach);
+      const maximum = Math.min(space - visible - origin, Math.max(0, -origin) + reach);
+      return Math.max(minimum, Math.min(maximum, value));
+    };
+    x = panWithin(x, scaledWidth, slot.clientWidth, left);
+    y = panWithin(y, scaledHeight, slot.clientHeight, top);
+    stage.style.transform = `translate(${x}px,${y}px) scale(${scaleX},${scaleY})`;
     controls.style.top = `${Math.max(4, top + y - 56)}px`;
     const frame=displayFrame(view.width,view.height);
-    state.paperScale = stage.clientWidth * zoom / frame.width;
+    state.paperScale = sourceScale();
     readout.value = `${frame.width} × ${frame.height} · ${Math.round(state.paperScale * 100)}%`;
-    smaller.disabled = zoom <= 0.125; larger.disabled = zoom >= 32;
+    smaller.disabled = zoom <= minimumZoom() + 1e-9; larger.disabled = zoom >= maximumZoom() - 1e-9;
     pan.classList.toggle('active', moving); pan.setAttribute('aria-pressed', String(moving)); slot.classList.toggle('moving-paper', moving || space);
     view.style.imageRendering = state.paperScale >= 3 ? 'pixelated' : 'auto';
   };
-  const scale = (factor: number) => { zoom = Math.max(0.125, Math.min(32, factor)); draw(); };
+  const scale = (factor: number) => { zoom = Math.max(minimumZoom(), Math.min(maximumZoom(), factor)); draw(); };
   smaller.addEventListener('click', () => scale(zoom / 1.5)); larger.addEventListener('click', () => scale(zoom * 1.5));
   pan.addEventListener('click', () => { moving = !moving; draw(); });
   const reset = () => { zoom = 1; x = y = 0; moving = false; draw(); };
   fit.addEventListener('click', reset);
   document.getElementById('viewZoomOut')!.addEventListener('click', () => smaller.click()); document.getElementById('viewZoomIn')!.addEventListener('click', () => larger.click());
-  document.getElementById('viewFit')!.addEventListener('click', reset); document.getElementById('viewActual')!.addEventListener('click', () => scale(displayFrame(view.width,view.height).width / Math.max(1, stage.clientWidth)));
+  document.getElementById('viewFit')!.addEventListener('click', reset); document.getElementById('viewActual')!.addEventListener('click', () => scale(actualZoom()));
   slot.addEventListener('wheel', event => { if (!event.ctrlKey && !event.metaKey) return; event.preventDefault(); scale(zoom * (event.deltaY < 0 ? 1.2 : 1 / 1.2)); }, { passive: false });
   const canMove = () => moving || space;
   view.addEventListener('pointerdown', event => {

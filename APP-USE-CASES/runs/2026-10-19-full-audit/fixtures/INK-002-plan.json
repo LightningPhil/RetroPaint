@@ -1,0 +1,82 @@
+{
+  "at": "2026-10-21T00:10:33.457330+00:00",
+  "case": "INK-002",
+  "status": "Before execution; fixture verification does not establish case Pass",
+  "fixture": "headless\\MIX-final\\MIX-enriched.retropaint",
+  "fixture_sha256": "f8c43d9484467068f974b40c00f9e4a968c6cb180f7b89dbddf4dc7830cb9280",
+  "rows": [
+    {
+      "id": "v1",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "id": "v2",
+      "viewport": [
+        320,
+        568
+      ]
+    },
+    {
+      "id": "v3",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "v4",
+      "viewport": [
+        844,
+        390
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "composite-edge",
+      "sample": [
+        101.5,
+        140.5
+      ],
+      "mark": [
+        650.5,
+        300.5
+      ],
+      "hide_character": false
+    },
+    {
+      "id": "plain-backdrop",
+      "sample": [
+        600.5,
+        220.5
+      ],
+      "mark": [
+        750.5,
+        300.5
+      ],
+      "hide_character": false
+    },
+    {
+      "id": "hidden-character",
+      "sample": [
+        150.5,
+        140.5
+      ],
+      "mark": [
+        850.5,
+        300.5
+      ],
+      "hide_character": true
+    }
+  ],
+  "display_phase_ms": 10000,
+  "size": 22,
+  "strength": 1,
+  "target_layer_name": "Borrowed swatches",
+  "expected_downloads_per_row": 34,
+  "maximum_mark_radius": 13,
+  "oracle": "Full genuine MIX-enriched with separate Paper/Backdrop/Character50%/editable Caption,actual photo exposure0.5 and retained live Water/conveyor. Add only a separate clear Borrowed swatches layer through real controls. Across4 layouts choose Pick colour,hover the known Character/Backdrop boundary,plain Backdrop and hidden-Character patch. Only completed-art display phase10000 is controlled for repeatable live pixels; no timing/age/performance claim. Independently decode actual before PNG via Pillow and take its observed visible pixel RGB,not an app picker/material function. Real sample and current-ink RGB must agree with that independent visible pixel. Sampling must leave complete saved source/RGBA exact and create no history action; the next real Marker tap has exact sampled core RGB,local footprint,preserved previous source/objects/photo/live definitions and one complete Undo/Redo. Hidden Character would change the same sampled region when visible,but its hidden contents must not affect current RGB. Inspect magnified UI PNG against independently sampled source7x7. Optional observational native Canvas drawImage/fillText metadata delegates every original call unchanged; it records actual preview source/destination rectangles/text,never supplies expected pixels or calls app rendering/input/serializer routines. Inner5x5 magnifier cell centres must match nearest visible source pixels,centre highlight/text correspond to sample. Real control save/project/PNG and separate fresh saved-file input in every layout;34 actual downloads per row/136 total, all hashes checked. No desktop,user browser/profile or physical device/AT access."
+}

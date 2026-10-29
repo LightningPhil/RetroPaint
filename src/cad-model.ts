@@ -24,6 +24,7 @@ export type CadForm =
   | { kind: 'loft'; profiles: CadProfile[]; ruled: boolean }
   | { kind: 'sweep'; profile: CadProfile; path: CadPath; transition: 'right' | 'round'; roll: number };
 export type CadSolid = (
+  | { kind: 'mesh'; positions: number[]; indices: number[]; sourceName: string }
   | { kind: 'primitive'; shape: Primitive; size: V3; wall: number }
   | { kind: 'extrude'; points: V2[]; plane: Workplane; height: number; taper: number; twist: number }
   | { kind: 'revolve'; points: V2[]; degrees: number; plane: Workplane }
@@ -31,11 +32,14 @@ export type CadSolid = (
   | { kind: 'boolean'; operation: 'union' | 'subtract' | 'intersect' | 'hull'; children: CadBody[] }
   | { kind: 'finish'; mode: 'fillet' | 'chamfer'; size: number; edges: CadEdgeRef[]; source: CadBody }
   | { kind: 'shell'; thickness: number; faces: CadFaceRef[]; source: CadBody }) & { feature?: CadFeature };
+export interface CadScriptFile {path:string;data:string}
 export interface CadBody {
+  script?: {language:'retrocad-1'|'openscad';source:string;entry?:string;files?:CadScriptFile[]};
   id: string; name: string; color: string; visible: boolean; locked: boolean;
   position: V3; rotation: V3; scale: V3; solid: CadSolid;
 }
-export interface CadLayer { units: 'mm'; bodies: CadBody[] }
+export interface CadView { position: V3; target: V3; up: V3; projection: 'perspective'|'orthographic'; span: number }
+export interface CadLayer { units: 'mm'; bodies: CadBody[]; view?: CadView }
 export interface CadMesh { positions: Float32Array; indices: Uint32Array; volume: number; bounds: { min: V3; max: V3 }; triangles: number }
 export const PALETTE = ['#f8bf45', '#57bfca', '#ee839b', '#9f89dc', '#7cbf8a', '#ee9464'];
 export const XY: Workplane = { origin: [0, 0, 0], u: [1, 0, 0], v: [0, 1, 0], normal: [0, 0, 1] };
@@ -89,7 +93,10 @@ export function readCadLayer(value: unknown): CadLayer | undefined {
   const readBody = (value: unknown, depth: number): CadBody => {
     if (++count > 2048 || depth > 64) throw new Error('This CAD scene is too complex to open.');
     const b = rec(value), s = rec(b.solid); let solid: CadSolid;
-    if (s.kind === 'primitive') {
+    if(s.kind==='mesh'){
+      if(!Array.isArray(s.positions)||s.positions.length<12||s.positions.length>600000||s.positions.length%3||!Array.isArray(s.indices)||s.indices.length<12||s.indices.length>600000||s.indices.length%3||typeof s.sourceName!=='string')throw new Error('An imported STL needs a bounded triangle mesh.');
+      const positions=s.positions.map(v=>n(v)),indices=s.indices.map(v=>{const index=n(v,0,positions.length/3-1);if(!Number.isInteger(index))throw new Error('Invalid STL triangle index.');return index;});solid={kind:'mesh',positions,indices,sourceName:s.sourceName.slice(0,120)};
+    }else if (s.kind === 'primitive') {
       if (!['box','sphere','cylinder','cone','torus','tube','pyramid','wedge'].includes(String(s.shape))) throw new Error('Unknown CAD primitive.');
       solid = { kind: 'primitive', shape: s.shape as Primitive, size: vec(s.size, 0.1, 2000), wall: n(s.wall, 0.1, 1000) };
     } else if (s.kind === 'extrude') {const height=n(s.height,-2000,2000);if(Math.abs(height)<.05)throw new Error('CAD extrusions need at least 0.05 mm of depth.');solid = { kind: 'extrude', points: points(s.points), plane: plane(s.plane), height, taper: n(s.taper, 0.01, 5), twist: n(s.twist, -720, 720) };}
@@ -128,11 +135,25 @@ export function readCadLayer(value: unknown): CadLayer | undefined {
     }
     const scale = vec(b.scale, -100, 100); if (scale.some(v => Math.abs(v) < 0.001)) throw new Error('CAD solids cannot have zero size.');
     if(typeof b.id!=='string'||!b.id.length||b.id.length>80)throw new Error('Invalid CAD piece ID.');
-    return { id: b.id, name: String(b.name??'Piece').slice(0, 60), color: /^#[\da-f]{6}$/i.test(String(b.color)) ? String(b.color) : PALETTE[0], visible: Boolean(b.visible), locked: Boolean(b.locked), position: vec(b.position), rotation: vec(b.rotation, -36000, 36000), scale, solid };
+    let script:CadBody['script'];if(b.script!==undefined){
+      const value=rec(b.script);if(!['retrocad-1','openscad'].includes(String(value.language))||typeof value.source!=='string'||value.source.length>(value.language==='openscad'?2000000:50000))throw new Error('Invalid solid script.');
+      script={language:value.language as 'retrocad-1'|'openscad',source:value.source};
+      if(value.language==='openscad'){
+        const path=(p:unknown):string=>{if(typeof p!=='string'||p.length>500||!p.length||p.split('/').some(s=>!s||s==='.'||s==='..')||/[\\:\x00-\x1f]/.test(p))throw new Error('OpenSCAD files need safe relative paths within the project folder.');return p;};
+        if(new TextEncoder().encode(value.source).length>2000000)throw new Error('Keep scripts below 2 MB.');
+        script.entry=path(value.entry??'main.scad');let size=0;const names=new Set<string>();
+        if(value.files!==undefined&&(!Array.isArray(value.files)||value.files.length>2000))throw new Error('Use at most 2,000 project files.');
+        script.files=((value.files??[]) as unknown[]).map(file=>{const f=rec(file),name=path(f.path);if(names.has(name))throw new Error('Duplicate OpenSCAD project path.');names.add(name);if(typeof f.data!=='string'||(f.data.length%4!==0||!/^[A-Za-z0-9+/]*={0,2}$/.test(f.data)))throw new Error('Invalid OpenSCAD dependency data.');size+=f.data.length*3/4-(f.data.endsWith('==')?2:f.data.endsWith('=')?1:0);if(size>20000000)throw new Error('OpenSCAD project dependencies must be smaller than 20 MB.');return{path:name,data:f.data};});
+        names.add(script.entry);for(const name of names){const parts=name.split('/');parts.pop();while(parts.length){if(names.has(parts.join('/')))throw new Error('An OpenSCAD project path cannot be both a file and a folder: '+parts.join('/'));parts.pop();}}
+      }
+    }
+    return { id: b.id, name: String(b.name??'Piece').slice(0, 60), color: /^#[\da-f]{6}$/i.test(String(b.color)) ? String(b.color) : PALETTE[0], visible: Boolean(b.visible), locked: Boolean(b.locked), position: vec(b.position), rotation: vec(b.rotation, -36000, 36000), scale, solid, ...(script?{script}:{}) };
   };
   if (data.units !== 'mm' || !Array.isArray(data.bodies) || data.bodies.length > 128) throw new Error('Invalid CAD layer.');
   const bodies = data.bodies.map(b => readBody(b, 0));
   if (new Set(bodies.map(b => b.id)).size !== bodies.length) throw new Error('CAD body IDs must be unique.');
-  return { units: 'mm', bodies };
+  let view:CadView|undefined;
+  if(data.view!==undefined){const v=rec(data.view);if(v.projection!=='perspective'&&v.projection!=='orthographic')throw new Error('Invalid CAD picture projection.');const position=vec(v.position,-30000,30000),target=vec(v.target),up=vec(v.up,-1,1),direction=position.map((n,i)=>n-target[i]) as V3,cross=[direction[1]*up[2]-direction[2]*up[1],direction[2]*up[0]-direction[0]*up[2],direction[0]*up[1]-direction[1]*up[0]];if(Math.hypot(...direction)<.01||Math.abs(Math.hypot(...up)-1)>.001||Math.hypot(...cross)<1e-10)throw new Error('Invalid CAD picture camera.');view={position,target,up,projection:v.projection,span:n(v.span,.01,30000)};}
+  return { units: 'mm', bodies, view };
 }
 export function cadInputs(s:CadSolid):CadBody[]{return s.kind==='boolean'?s.children:s.kind==='finish'||s.kind==='shell'?[s.source]:[];}

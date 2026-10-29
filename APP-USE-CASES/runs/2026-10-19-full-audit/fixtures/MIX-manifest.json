@@ -1,0 +1,48 @@
+{
+  "at": "2026-10-20T13:58:45.455543+00:00",
+  "decoder": "Pillow 12.3.0",
+  "status": "Verified fixture; not an acceptance case result",
+  "source": "Entirely real public UI creation and actual saved-file fresh-context reopen",
+  "basic_file": "headless/MIX-final/MIX-basic.retropaint",
+  "enriched_file": "headless/MIX-final/MIX-enriched.retropaint",
+  "layers": [
+    {
+      "id": 1,
+      "name": "Paper",
+      "opacity": 1,
+      "raw_rgba_sha256": "6e82634c3a3bf02821e0265561d869d08cdffaaccef31f2a3b29f78a47a97eb5"
+    },
+    {
+      "id": 2,
+      "name": "Backdrop",
+      "opacity": 1,
+      "raw_rgba_sha256": "b3c35b50bff57bfd20fbfef84548959804658c8507863fbf0fa6e5694765e8ca"
+    },
+    {
+      "id": 3,
+      "name": "Character",
+      "opacity": 0.5,
+      "raw_rgba_sha256": "9a37561dfb58c73daa19a00bab6802f36c6b0ed41a6b696693e90775b029579e"
+    },
+    {
+      "id": 4,
+      "name": "Caption",
+      "opacity": 1,
+      "raw_rgba_sha256": "54f980b5b3be8ce80cb6490c527e38d681deade50f239f2cb7d23cf9d0108c37"
+    }
+  ],
+  "white_paper_blue_backdrop_red_green_character_verified": true,
+  "editable_text_and_stamp_preserved": true,
+  "live_water_mask_bounds": [
+    82,
+    402,
+    517,
+    437
+  ],
+  "live_conveyor_point_count": 207,
+  "photo_exposure": 0.5,
+  "complete_fresh_project_reopen_exact": true,
+  "actual_downloads_verified": 6,
+  "composition_note": "Live export pixels are time-dependent. Later acceptance workflows must compare at controlled display time or explicitly measure static/live scopes; arbitrary-time PNG equality is not assumed.",
+  "setup_notes": "Earlier fixture attempts are retained as failed setup: New layer is unavailable while the Layer options page is shown; Shape fill is inside More shapes & fill. Corrected producer uses the actual Back to layers and More shapes controls. Caption uses the centred Place default; an occluded attempted paper click did not set its anchor. MIX does not prescribe caption coordinates; this fixture certifies text content/editability, not the separate text-positioning case."
+}

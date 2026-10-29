@@ -1,0 +1,31 @@
+{
+  "at": "2026-10-20T16:22:39.902152+00:00",
+  "project": "F:\\WebDev\\RetroPaint\\APP-USE-CASES\\runs\\2026-10-19-full-audit\\headless\\TARGET-fixture\\fresh\\fixture.retropaint",
+  "sha256": "9f0419d7dcf606c2a10fc512917e3745f036a2ce82b5795ceb21443604d2c685",
+  "all_original_MIX_layer_fields_pixels_live_objects_photo_exact": true,
+  "only_added_sheet": {
+    "id": 5,
+    "position_in_stack": 3,
+    "name": "3D 1"
+  },
+  "independent_cube_STL": {
+    "triangles": 12,
+    "closed_oriented": true,
+    "volume_mm3": 8000.0,
+    "bounds_mm": [
+      [
+        -10,
+        -10,
+        0
+      ],
+      [
+        10,
+        10,
+        20
+      ]
+    ]
+  },
+  "actual_fresh_input_data_and_rgba_exact": true,
+  "actual_downloads_verified": 6,
+  "scope": "Fixture preparation only, no acceptance Pass inferred. Actual primitive UI and native file workflows; independent elementary STL math/Pillow."
+}

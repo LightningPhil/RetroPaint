@@ -1,0 +1,209 @@
+{
+  "at": "2026-10-20T17:26:21.968959+00:00",
+  "case": "PAINT-003",
+  "status": "Plan, not a result",
+  "rows": [
+    {
+      "id": "p1",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 1,
+      "strength": 0.15
+    },
+    {
+      "id": "p2",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 22,
+      "strength": 1
+    },
+    {
+      "id": "p3",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 96,
+      "strength": 0.15
+    },
+    {
+      "id": "p4",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 1,
+      "strength": 1
+    },
+    {
+      "id": "p5",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 0.15
+    },
+    {
+      "id": "p6",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 96,
+      "strength": 1
+    },
+    {
+      "id": "p7",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 1
+    },
+    {
+      "id": "p8",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 1,
+      "strength": 0.15
+    },
+    {
+      "id": "p9",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 22,
+      "strength": 1
+    },
+    {
+      "id": "p10",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 96,
+      "strength": 0.15
+    },
+    {
+      "id": "p11",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 1,
+      "strength": 1
+    },
+    {
+      "id": "p12",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 0.15
+    },
+    {
+      "id": "p13",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 96,
+      "strength": 1
+    },
+    {
+      "id": "p14",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 1
+    }
+  ],
+  "pairwise_proof": [
+    {
+      "factors": [
+        "viewport",
+        "size"
+      ],
+      "pairs": 12
+    },
+    {
+      "factors": [
+        "viewport",
+        "strength"
+      ],
+      "pairs": 8
+    },
+    {
+      "factors": [
+        "size",
+        "strength"
+      ],
+      "pairs": 6
+    }
+  ],
+  "boundary_geometry": {
+    "slow": "Quadratic from150,280 through400,160 to650,280;41 native points,15ms delay between points",
+    "fast": "Same quadratic shifted160px up;41 native points, no inserted delay",
+    "tap": [
+      800,
+      200
+    ]
+  },
+  "direction_main_at_every_viewport": "For size22/full rows, start another blank PLAY context. Execute all four declared directions in Red, switch to Blue without changing existing data, repeat all four at y+290. Undo/Redo each and actual fresh-file input.",
+  "direction_paths": {
+    "horizontal": [
+      [
+        80,
+        180
+      ],
+      [
+        240,
+        180
+      ]
+    ],
+    "vertical": [
+      [
+        350,
+        90
+      ],
+      [
+        350,
+        250
+      ]
+    ],
+    "descending": [
+      [
+        470,
+        90
+      ],
+      [
+        630,
+        250
+      ]
+    ],
+    "ascending": [
+      [
+        740,
+        250
+      ],
+      [
+        900,
+        90
+      ]
+    ]
+  },
+  "additional_short_and_sharp": "Separate blank PLAY context at size22/full per viewport. Two-point short stroke800,200 to801,200; sharp path100,420 through200,520 and300,420 to400,520; each Undo/Redo and fresh input.",
+  "oracles": "Independent8-connected deltas, unchanged pixels outside the independently specified paths and nib tube max(4,.6*size)+4px for boundary curves/tap. Dense curve samples may use a4px neighbourhood, accounting for the documented calligraphy smoothing; all marks must remain connected. Direction paths use .6*size+4px tube, with the broad diagonal middle width at least2x the parallel diagonal middle width at22/full. Red/Blue known channel dominance, exact selection-only source data, each gesture Undo/Redo and fresh actual files/decoded RGBA. Short/sharp use22px radius around the declared path, with8px neighbourhood for sharp smoothing. No tolerance changes after execution. Actual native mouse only."
+}

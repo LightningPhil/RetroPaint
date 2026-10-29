@@ -1,0 +1,201 @@
+{
+  "at": "2026-10-21T00:25:01.047584+00:00",
+  "case": "INK-003",
+  "status": "Pre-execution plan,not a result",
+  "fixture": "fixtures\\PATCH.png",
+  "fixture_sha256": "b4464813183d7122dfde28a33be00660dfe18e4aa255a92fd234bd8488199175",
+  "rows": [
+    {
+      "id": "v1",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "id": "v2",
+      "viewport": [
+        320,
+        568
+      ]
+    },
+    {
+      "id": "v3",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "v4",
+      "viewport": [
+        844,
+        390
+      ]
+    }
+  ],
+  "right_points": [
+    [
+      240.5,
+      500.5
+    ],
+    [
+      245.5,
+      500.5
+    ],
+    [
+      250.5,
+      500.5
+    ],
+    [
+      255.5,
+      500.5
+    ],
+    [
+      260.5,
+      500.5
+    ],
+    [
+      265.5,
+      500.5
+    ],
+    [
+      270.5,
+      500.5
+    ],
+    [
+      275.5,
+      500.5
+    ],
+    [
+      280.5,
+      500.5
+    ],
+    [
+      285.5,
+      500.5
+    ],
+    [
+      290.5,
+      500.5
+    ],
+    [
+      295.5,
+      500.5
+    ],
+    [
+      300.5,
+      500.5
+    ],
+    [
+      305.5,
+      500.5
+    ],
+    [
+      310.5,
+      500.5
+    ],
+    [
+      315.5,
+      500.5
+    ],
+    [
+      320.5,
+      500.5
+    ]
+  ],
+  "sample": [
+    150.5,
+    340.5
+  ],
+  "left_points": [
+    [
+      560.5,
+      500.5
+    ],
+    [
+      565.5,
+      500.5
+    ],
+    [
+      570.5,
+      500.5
+    ],
+    [
+      575.5,
+      500.5
+    ],
+    [
+      580.5,
+      500.5
+    ],
+    [
+      585.5,
+      500.5
+    ],
+    [
+      590.5,
+      500.5
+    ],
+    [
+      595.5,
+      500.5
+    ],
+    [
+      600.5,
+      500.5
+    ],
+    [
+      605.5,
+      500.5
+    ],
+    [
+      610.5,
+      500.5
+    ],
+    [
+      615.5,
+      500.5
+    ],
+    [
+      620.5,
+      500.5
+    ],
+    [
+      625.5,
+      500.5
+    ],
+    [
+      630.5,
+      500.5
+    ],
+    [
+      635.5,
+      500.5
+    ],
+    [
+      640.5,
+      500.5
+    ]
+  ],
+  "primary_rgb": [
+    229,
+    57,
+    53
+  ],
+  "initial_secondary_rgb": [
+    30,
+    136,
+    229
+  ],
+  "sampled_secondary_rgb": [
+    0,
+    255,
+    0
+  ],
+  "size": 22,
+  "strength": 1,
+  "maximum_footprint_radius": 13,
+  "expected_downloads_per_row": 24,
+  "oracle": "Fresh actual PATCH image input at4 layouts; Pillow verifies all sourceRGBA including partial alpha/clear regions exactly. Set secondary Blue through actual Blue palette selection followed by Swap colours (default secondary White),then choose primary Red; no native OS colour-dialog automation or direct value/event injection. Native right-button drag must create only Blue on its declared clear segment while visible primary remains Red/secondary Blue. Native right Pick colour samples exact Green patch,updates only secondary to0,255,0,leaves primaryRed/sourceRGBA unchanged and paints no dot. Single Undo after sampling removes the preceding Blue mark,not an empty sample history step;Redo is exact. Actual Swap colours shows Green primary/Red secondary with unchanged complete source;single Undo/Redo here also proves no empty swap edit. Native left drag then paints Green only on the separate known clear segment while the Blue/original PATCH remain exact;own Undo/Redo and actual fresh saved-file input are exact. Native contextmenu events must be trusted and defaultPrevented after the application handler for both right operations. Every pointer target is public/preflighted with actual Zoom out if needed,never a forced hidden click. Actual24 downloads/layout96 total independently hashed/decoded. No app picker/input/history/serializer call,synthetic DOM event,desktop/existing browser/profile/physical input claim."
+}

@@ -1,0 +1,46 @@
+import { play } from './audio';
+import { W, H } from './canvas';
+import { renderFullPicture } from './layers';
+import { outputFrame } from './document-frame';
+import { encodeBmp, encodeGif, encodeTiff } from './image-codecs';
+import { emit } from './bus';
+
+let exporting=false;
+
+export function download(blob: Blob, filename: string): void {
+  const link = document.createElement('a'), url = URL.createObjectURL(blob);
+  link.download = filename; link.href = url; link.click(); window.setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+export async function exportCanvas():Promise<HTMLCanvasElement>{
+  const frame=outputFrame(W,H),source=await renderFullPicture(performance.now()),canvas=document.createElement('canvas');
+  canvas.width=frame.width;canvas.height=frame.height;canvas.getContext('2d')!.drawImage(source,frame.x,frame.y,frame.width,frame.height,0,0,frame.width,frame.height);return canvas;
+}
+export async function imageBlob(format: string): Promise<Blob> {
+  const canvas = await exportCanvas(), ctx = canvas.getContext('2d')!;
+  if (format === 'jpeg' || format === 'bmp') { ctx.globalCompositeOperation = 'destination-over'; ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+  if (['bmp', 'gif', 'tiff'].includes(format)) {
+    const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    return format === 'bmp' ? encodeBmp(image) : format === 'gif' ? encodeGif(image) : encodeTiff(image);
+  }
+  const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, `image/${format}`, 0.95));
+  if (!blob || blob.type !== `image/${format}`) throw new Error(`Your browser cannot save ${format.toUpperCase()}. Choose PNG.`);
+  return blob;
+}
+export async function exportImage(format = 'png', name = 'retropaint'): Promise<void> {
+  if(exporting)return;exporting=true;emit('export-state',true);
+  try{
+  const extension = format === 'jpeg' ? 'jpg' : format === 'tiff' ? 'tif' : format;
+  const filename=`${name.replace(/[<>:"/\\|?*]/g, '-').replace(/\.(png|jpg|jpeg|bmp|gif|tiff?|webp)$/i, '') || 'retropaint'}.${extension}`;
+  download(await imageBlob(format),filename);play('save');emit('file-exported',filename);
+  }finally{exporting=false;emit('export-state',false);}
+}
+export async function printImage(): Promise<void> {
+  const canvas=await exportCanvas();
+  const frame = document.createElement('iframe'); frame.hidden = true;
+  frame.srcdoc = `<html><head><title>RetroPaint picture</title><style>@page{margin:12mm}body{margin:0}img{display:block;max-width:100%;max-height:95vh;object-fit:contain}</style></head><body><img src="${canvas.toDataURL()}" alt="RetroPaint picture"></body></html>`;
+  frame.addEventListener('load', () => {
+    const window = frame.contentWindow!; window.addEventListener('afterprint', () => frame.remove(), { once: true }); window.focus(); window.print();
+  }); document.body.append(frame);
+}
+
+export async function exportPng(): Promise<void> { await exportImage('png'); }

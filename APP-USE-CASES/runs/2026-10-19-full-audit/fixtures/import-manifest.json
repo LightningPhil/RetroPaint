@@ -1,0 +1,128 @@
+{
+  "images": [
+    {
+      "file": "ORIENT-exif6.jpg",
+      "sha256": "d010732b4c3c4ab820bc4c80499499578e96dbb1b54b75b45b567dd4540dc0c1",
+      "decoded_size": [
+        640,
+        960
+      ],
+      "decoded_rgba_sha256": "c2b15fc51c5ecb7cccbb76971da17550806fcbbd37bcc530dfb35991de12d0ac"
+    },
+    {
+      "file": "ORIENT-L.tif",
+      "sha256": "fea886d2275e0ec1c87914a0738dc16819dcc797ce48dbc0ab7c7e57e1aeb549",
+      "decoded_size": [
+        960,
+        640
+      ],
+      "decoded_rgba_sha256": "76a3c6bceb6882e82a4149a34549eb95592cbbddae393d7778a1222150f80a2a"
+    },
+    {
+      "file": "ORIENT-RGB.tif",
+      "sha256": "4aa05a7c3b0cccb7c86affbd276816cbecbd8a797d37fe84fbcccffe023f75ab",
+      "decoded_size": [
+        960,
+        640
+      ],
+      "decoded_rgba_sha256": "ec643685162839991fbac1e55fed177cf8d4abb07aca79fb176be17b4e038acd"
+    },
+    {
+      "file": "ORIENT-RGBA.tif",
+      "sha256": "555c0e2826181fba4d7e450f9e7fe76d922d1b56b127ecf98c46f7bd46edb2c6",
+      "decoded_size": [
+        960,
+        640
+      ],
+      "decoded_rgba_sha256": "ec643685162839991fbac1e55fed177cf8d4abb07aca79fb176be17b4e038acd"
+    },
+    {
+      "file": "ORIENT.bmp",
+      "sha256": "1161d0022df4e3481c0a38e1e2f75f23195e35c2558c518eec8047345d2b8411",
+      "decoded_size": [
+        960,
+        640
+      ],
+      "decoded_rgba_sha256": "ec643685162839991fbac1e55fed177cf8d4abb07aca79fb176be17b4e038acd"
+    },
+    {
+      "file": "ORIENT.gif",
+      "sha256": "c75b6d333803d69d5efd4526eda728cb7a5e98617e513dcc66caead0bdad7abb",
+      "decoded_size": [
+        960,
+        640
+      ],
+      "decoded_rgba_sha256": "ec643685162839991fbac1e55fed177cf8d4abb07aca79fb176be17b4e038acd"
+    },
+    {
+      "file": "ORIENT.jpg",
+      "sha256": "3a802433a1e3547845753db14a6578cc3c244295eda97de4b06b3ed3d845cd63",
+      "decoded_size": [
+        960,
+        640
+      ],
+      "decoded_rgba_sha256": "b9104db36b06043ac820a636083e002ec5618d574321487742703960b8d9b494"
+    },
+    {
+      "file": "ORIENT.png",
+      "sha256": "49a22a71a196bd2469561ff05d38a5a84c098d118a917fc02e73ca68bd43bbf7",
+      "decoded_size": [
+        960,
+        640
+      ],
+      "decoded_rgba_sha256": "ec643685162839991fbac1e55fed177cf8d4abb07aca79fb176be17b4e038acd"
+    },
+    {
+      "file": "ORIENT.webp",
+      "sha256": "065838695e9f9950deb96877122e42cdb47dbafc17852817a261518095bb91c8",
+      "decoded_size": [
+        960,
+        640
+      ],
+      "decoded_rgba_sha256": "d73a5954b1ab29e9a28a42516b549a65ffd73725738092f2ff3537beee93cbf6"
+    }
+  ],
+  "user_supplied_photographs": [
+    {
+      "file": "Laukka sunset.jpg",
+      "sha256": "35417dd62dfd4bf37bfc191864ff8766f7a41b5280dbf4a4c3ced50d82e08b2c",
+      "size": [
+        3896,
+        2586
+      ],
+      "mode": "RGB",
+      "exif_orientation": null
+    },
+    {
+      "file": "Nacelle Amplifier.png",
+      "sha256": "d4fa9045bf36627e135cba3d6556dc604b3678ef082b3517d7a64e53b0d1d132",
+      "size": [
+        1328,
+        910
+      ],
+      "mode": "RGBA",
+      "exif_orientation": null
+    },
+    {
+      "file": "Phil - Smart Portrait.jpg",
+      "sha256": "3af24fcb426f05d86493ee5b62d9e587b83455c0956025f8ecd2f5f8853f752b",
+      "size": [
+        757,
+        757
+      ],
+      "mode": "RGB",
+      "exif_orientation": 1
+    },
+    {
+      "file": "Sunset.jpg",
+      "sha256": "f5064ad036ce49d162a508d7d3371b401aac60e422aa9aa16f2b623cd7c70ae0",
+      "size": [
+        4031,
+        2267
+      ],
+      "mode": "RGB",
+      "exif_orientation": 1
+    }
+  ],
+  "encoder": "Pillow 12.3.0"
+}

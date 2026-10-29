@@ -15,6 +15,7 @@ import { motorOn } from './spiro';
 import { state } from './state';
 import { hasText } from './text-tool';
 import { layers } from './layers';
+import { beginOpen } from './open-guard';
 
 const fixture=location.pathname.includes('/tests/')||new URLSearchParams(location.search).has('layout-preview');
 const store=new RecoveryStore(fixture?`RetroPaintDraftUiChecks-${innerWidth}x${innerHeight}`:undefined);
@@ -69,10 +70,10 @@ async function openRecovery():Promise<void> {
   catch{message('This browser cannot access local drafts. Save project keeps an editable file on your device.');}
 }
 async function resume(id:string,button:HTMLButtonElement):Promise<void> {
-  if(!editable())return;button.disabled=true;
+  if(!editable())return;button.disabled=true;const isCurrent=beginOpen();
   try{
     const draft=await store.read(id);if(!draft)throw new Error('This draft is no longer available.');
-    if(!await loadProjectData(draft.data))return;rememberId();saved=dirty;offered=false;banner.hidden=true;
+    if(!await loadProjectData(draft.data,isCurrent))return;rememberId();saved=dirty;offered=false;banner.hidden=true;
     (document.getElementById('fileName') as HTMLInputElement).value=draft.name;statusText('Draft restored','Draft restored. Further edits will be saved in this browser.');
     if(dialog.open)dialog.close();message('Draft restored, including editable pieces and photo adjustments. Undo returns to your previous picture.');
   }catch(error){message(error instanceof Error?error.message:String(error));}

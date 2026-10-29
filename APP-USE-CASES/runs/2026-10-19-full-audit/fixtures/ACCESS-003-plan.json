@@ -1,0 +1,37 @@
+{
+  "at": "2026-10-20T18:22:12.909911+00:00",
+  "case": "ACCESS-003",
+  "status": "Full native plan before execution, supplementing retained D-018/D-019 failures",
+  "fixture": "fixtures/PATCH.png",
+  "fixture_sha256": "b4464813183d7122dfde28a33be00660dfe18e4aa255a92fd234bd8488199175",
+  "viewports": [
+    [
+      1280,
+      720
+    ],
+    [
+      320,
+      568
+    ],
+    [
+      390,
+      844
+    ],
+    [
+      844,
+      390
+    ]
+  ],
+  "source_point": [
+    450,
+    140
+  ],
+  "ink": [
+    253,
+    216,
+    53,
+    255
+  ],
+  "flow": "Actual PATCH chooser input. Two native Ctrl-wheel events over reachable paper; Move paper drag toward the known Blue patch, then Space drag. Native Ctrl-wheel over Size and an open Colour wheel dialog. A Yellow22px full-strength tap at450,140. Actual pixels and Fit controls, exact Undo/Redo and actual fresh project input.",
+  "oracle": "Independent PATCH pixels/alpha and source dimensions960x640. All view/pan/wheel-only document data and decoded PNGs exact. Both pan modes change actual public paper placement without edits. Native paper wheel changes view scale; wheel over slider/modal leaves paper rectangle/readout stable at the same window/device scale. Actual-pixel public width/height960/640 within0.1 CSSpx and exact100% readout. Yellow centre equals253/216/53 and affected cells stay in circle radius11+2px, all other source cells exact. One tap Undo/Redo and actual fresh source/RGBA exact. Trusted mouse/keys only, no physical touch/pen claim."
+}

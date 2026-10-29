@@ -2,9 +2,13 @@ import { bus, emit } from './bus';
 import { H, W } from './canvas';
 import { previewColor } from './materials';
 import { pasteImage } from './selection';
-import { state } from './state';
-import { addPaintObject, objectId } from './objects';
-import type { TextObject } from './object-scene';
+import { state, vectorDrawingEnabled } from './state';
+import { addPaintObject, objectId, selectedObjects, replaceSelectedText } from './objects';
+import { drawObject, type TextObject } from './object-scene';
+import { fitCallout } from './callout';
+import { activeLayer, addLayer, canAddLayer, layers, switchLayer } from './layers';
+import { pushHistory } from './history';
+import { message } from './editor';
 
 export interface TextOptions {
   text: string; font: string; size: number; width: number;
@@ -14,6 +18,21 @@ export interface TextOptions {
 export const textOptions: TextOptions = { text: '', font: 'Trebuchet MS', size: 36, width: 360, bold: false, italic: false, underline: false, strike: false, align: 'left', opaque: false };
 let anchor: { x: number; y: number } | null = null;
 let cached: HTMLCanvasElement | null = null, signature = '';
+let editing:TextObject|null=null;
+let calloutPreview:TextObject|null=null,calloutSignature='';
+export const calloutOptions={enabled:false,color:'#000000',paper:'#ffffff',border:true,rounded:true};
+export function calloutEnabled():boolean{return state.workspaceMode==='advanced'&&calloutOptions.enabled;}
+function calloutObject():TextObject {
+  const layout:Partial<TextObject>={id:editing?.id??objectId(),name:'Label',opacity:editing?.opacity??state.opacity};
+  makeTextBitmap(textOptions,calloutOptions.color,calloutOptions.paper,layout);layout.paper=calloutOptions.paper;
+  const object=fitCallout(layout as TextObject,calloutOptions.border,calloutOptions.rounded,editing?.callout?.tip);
+  object.callout!.text=textOptions.text.slice(0,20000);object.callout!.wrapWidth=Math.max(20,Math.min(4096,textOptions.width));
+  const p=anchor?{...anchor}:{x:Math.max(0,(W-object.width)/2),y:Math.max(0,(H-object.height)/2)};
+  p.x=Math.max(0,Math.min(W-object.width,p.x));p.y=Math.max(0,Math.min(H-object.height,p.y));
+  const mx=Math.min(10,W/2),my=Math.min(10,H/2);
+  if(!editing)object.callout!.tip={x:Math.max(mx,Math.min(W-mx,p.x+object.width+70<W-mx?p.x+object.width+70:p.x-70))-p.x,y:Math.max(my,Math.min(H-my,p.y+object.height+70))-p.y};
+  object.matrix=editing?.matrix??[1,0,0,1,p.x,p.y];object.name=textOptions.text.trim().slice(0,60);return object;
+}
 
 export function makeTextBitmap(options: TextOptions, ink = previewColor(state.ink), paper = state.secondaryInk, layout?:Partial<TextObject>): HTMLCanvasElement {
   const canvas = document.createElement('canvas'), ctx = canvas.getContext('2d')!;
@@ -54,10 +73,19 @@ function bitmap(): HTMLCanvasElement {
 }
 export function beginText(x: number, y: number): void { anchor = { x, y }; emit('text-anchor'); }
 export function hasText(): boolean { return Boolean(textOptions.text.trim()); }
-export function cancelText(): void { anchor = null; textOptions.text = ''; cached = null; emit('text'); }
+export function cancelText(): void { editing=null;anchor = null; textOptions.text = ''; cached = null; emit('text'); }
 export function placeText(): void {
   if (!hasText()) return;
-  if(state.drawingMode==='vector'){
+  if(calloutEnabled()){
+    const support=[...layers].reverse().find(layer=>layer.cad&&layers.indexOf(layer)>=layers.indexOf(activeLayer()));
+    if(!editing&&support&&!canAddLayer()){message('Make room for a paint layer before adding a label.');return;}
+    const object=calloutObject();
+    if(editing){if(activeLayer().objects?.some(o=>o.id===editing!.id))replaceSelectedText(object);else{cancelText();return;}}
+    else if(support){pushHistory();switchLayer(support.id);addLayer();activeLayer().name='Annotations';addPaintObject(object,false);}
+    else addPaintObject(object);
+    cancelText();state.tool='scissors';emit('tool-request');message('Label added. Blue handles move the arrow tip or the box; Select → Edit label changes its words and style.');return;
+  }
+  if(vectorDrawingEnabled()){
     const object:Partial<TextObject>={id:objectId(),name:'Text',opacity:state.opacity};makeTextBitmap(textOptions,previewColor(state.ink),state.secondaryInk,object);
     const p=anchor??{x:Math.max(0,(W-object.width!)/2),y:Math.max(0,(H-object.height!)/2)};object.matrix=[1,0,0,1,p.x,p.y];addPaintObject(object as TextObject);
     anchor=null;textOptions.text='';cached=null;emit('text');state.tool='scissors';emit('tool-request');return;
@@ -73,10 +101,31 @@ export function placeText(): void {
 }
 export function renderTextPreview(ctx: CanvasRenderingContext2D): void {
   if (state.tool !== 'text' || !hasText()) return;
+  if(calloutEnabled()){
+    if(!editing){const key=JSON.stringify([textOptions,calloutOptions,anchor,state.opacity,W,H]);if(!calloutPreview||key!==calloutSignature){calloutPreview=calloutObject();calloutSignature=key;}drawObject(ctx,calloutPreview,performance.now());}return;
+  }
   const image = bitmap(), p = anchor ?? { x: Math.max(0, (W - image.width) / 2), y: Math.max(0, (H - image.height) / 2) };
   ctx.save(); ctx.globalAlpha = state.opacity; ctx.drawImage(image, p.x, p.y); ctx.restore();
 }
 export function bindText(): void {
+  const field=<T extends HTMLElement=HTMLInputElement>(id:string)=>document.getElementById(id) as T;
+  const refreshCallout=()=>{field('calloutSettings').hidden=!calloutEnabled();field('textOpaque').parentElement!.hidden=calloutEnabled();};
+  field<HTMLSelectElement>('textType').addEventListener('change',()=>{calloutOptions.enabled=field<HTMLSelectElement>('textType').value==='callout';editing=null;refreshCallout();});
+  for(const [id,key] of [['calloutInk','color'],['calloutPaper','paper']] as const)field<HTMLInputElement>(id).addEventListener('input',()=>{calloutOptions[key]=field<HTMLInputElement>(id).value;});
+  field<HTMLInputElement>('calloutBorder').addEventListener('change',()=>{calloutOptions.border=field<HTMLInputElement>('calloutBorder').checked;});
+  field<HTMLSelectElement>('calloutCorners').addEventListener('change',()=>{calloutOptions.rounded=field<HTMLSelectElement>('calloutCorners').value==='rounded';});
+  const edit=document.createElement('button');edit.type='button';edit.className='choice';edit.textContent='Edit label';edit.id='editCallout';edit.hidden=true;field('selectionDrawer').append(edit);
+  bus.addEventListener('objects',()=>{const picked=selectedObjects();edit.hidden=state.workspaceMode!=='advanced'||picked.length!==1||picked[0].kind!=='text'||!picked[0].callout;});
+  bus.addEventListener('advanced-mode',refreshCallout);
+  edit.addEventListener('click',()=>{
+    const object=selectedObjects()[0];if(object?.kind!=='text'||!object.callout)return;
+    document.querySelector<HTMLButtonElement>('[data-tool="text"]')!.click();editing=object;calloutOptions.enabled=true;
+    Object.assign(calloutOptions,{color:object.color,paper:object.paper??'#ffffff',border:object.callout.border,rounded:object.callout.rounded});
+    Object.assign(textOptions,{text:object.callout.text??object.lines.map(l=>l.text).join('\n'),size:object.size,font:object.font.match(/"([^"]+)"/)?.[1]??'Arial',width:object.callout.wrapWidth??Math.max(360,object.width),bold:object.font.includes('bold'),italic:object.font.includes('italic'),underline:object.underline,strike:object.strike,align:object.align});
+    for(const [id,value] of [['textType','callout'],['textContent',textOptions.text],['textSize',textOptions.size],['textFont',textOptions.font],['textWidth',textOptions.width],['textAlign',textOptions.align],['calloutInk',calloutOptions.color],['calloutPaper',calloutOptions.paper],['calloutCorners',calloutOptions.rounded?'rounded':'square']] as const)field<HTMLInputElement>(id).value=String(value);
+    field<HTMLInputElement>('calloutBorder').checked=calloutOptions.border;
+    document.querySelectorAll<HTMLButtonElement>('[data-text-style]').forEach(button=>{const on=textOptions[button.dataset.textStyle as 'bold'];button.classList.toggle('active',on);button.setAttribute('aria-pressed',String(on));});refreshCallout();
+  });
   const content = document.getElementById('textContent') as HTMLTextAreaElement;
   content.addEventListener('input', () => { textOptions.text = content.value; });
   for (const [id, key] of [['textFont', 'font'], ['textSize', 'size'], ['textWidth', 'width'], ['textAlign', 'align']] as const) {

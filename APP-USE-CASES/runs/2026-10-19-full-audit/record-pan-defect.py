@@ -1,0 +1,9 @@
+from pathlib import Path
+from datetime import datetime,timezone
+import json,hashlib
+root=Path(__file__).resolve().parent;read=lambda file:json.loads((root/file).read_text(encoding='utf-8'));results=read('results.json');ui=read('headless/PAINT-006-fixed-core/PAINT-006-ui.json');before=read('headless/PAPER-pan-regression-before/report.json');after=read('headless/PAPER-pan-regression-after/report.json');assert ui['status']=='Fail' and len(ui['rows'])==1 and 'workspaceIdle' in ui['error'];assert before['status']=='Fail' and after['status']=='Pass' and len(after['suites'])==4
+assert all(s['failed']==1 for s in before['suites']) and all(s['passed']==1 and s['failed']==0 and not s['errors'] for s in after['suites']);assert hashlib.sha256((root/'backups/artwork-before-acceptance-audit.retropaint').read_bytes()).hexdigest()=='612e2d0b4db85c61a4722de26aff3810fa2c4b17e5c5dc49391ca349e1fcfa28'
+for case in ['PAINT-006','ACCESS-003']:
+    results['cases'][case]['evidence_paths']+='; headless/PAINT-006-fixed-core/PAINT-006-ui.json; headless/PAINT-006-fixed-core/320x568/failure-ui.png; headless/PAPER-pan-regression-before/report.json; headless/PAPER-pan-regression-after/report.json'
+    results['cases'][case]['defect_or_blocker']+=' D-019: fitted paper could not move lower source cells clear of the floating status controls. Focused before fails all four layouts; bounded pan repair passes all four. Same source coordinates are now exposed by real Move paper input, with original failed/interrupted portrait attempt excluded. Complete latest-source reruns pending.'
+results['updated_at']=datetime.now(timezone.utc).isoformat();(root/'results.json').write_text(json.dumps(results,indent=2,ensure_ascii=False)+'\n',encoding='utf-8');print('Recorded D-019 and exact native/focused before/after evidence; acceptance cases remain pending.')

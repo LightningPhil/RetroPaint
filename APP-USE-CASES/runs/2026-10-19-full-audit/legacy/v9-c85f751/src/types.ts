@@ -1,0 +1,74 @@
+export interface Pt {
+  x: number;
+  y: number;
+  w: number;
+}
+
+export type ToolId =
+  | 'draw'
+  | 'spray'
+  | 'shapes'
+  | 'bucket'
+  | 'sponge'
+  | 'scissors'
+  | 'eraser'
+  | 'stamp'
+  | 'spiro'
+  | 'text'
+  | 'picker';
+
+export type Applicator =
+  | 'marker'
+  | 'biro'
+  | 'callig'
+  | 'gouache'
+  | 'watercolor'
+  | 'mist'
+  | 'splatter'
+  | 'confetti'
+  | 'pencil'
+  | 'brush'
+  | 'oil'
+  | 'crayon'
+  | 'natural';
+
+export type SymmetryMode = 'off' | 'v' | 'h' | '4' | '6' | '8' | '10' | '12';
+export type ShapeKind = 'line' | 'rect' | 'circle' | 'poly' | 'spline' | 'ellipse' | 'roundRect' | 'triangle' | 'rightTriangle' | 'diamond' | 'pentagon' | 'hexagon' | 'star4' | 'star5' | 'star6' | 'heart' | 'lightning' | 'arrowRight' | 'arrowLeft' | 'arrowUp' | 'arrowDown' | 'callout' | 'ovalCallout' | 'cloud' | 'polygon';
+export type EraserMode = 'scrub' | 'blackhole' | 'pixelate' | 'invert' | 'emboss';
+export type StatorShape = 'circle' | 'oval' | 'square' | 'cross';
+export type Drive = 'manual' | 'auto';
+export type BlendMode = 'snap' | 'ooze';
+
+export interface LiveSpec {
+  kind: 'conveyor' | 'rainbow-time' | 'texture' | 'neon' | 'solid' | 'rainbow' | 'glitter';
+  colors: string[];
+  speed: number;
+  mode: BlendMode;
+  along: boolean;
+  texture: 'water' | 'static' | null;
+}
+
+export interface Spark {
+  x: number;
+  y: number;
+  phase: number;
+  size: number;
+  color: string;
+}
+
+export interface GradientLine {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  from: string;
+  to: string;
+  preset: string | null;
+}
+
+export interface GearDef {
+  id: string;
+  color: string;
+  teeth: number;
+  holes: number;
+}

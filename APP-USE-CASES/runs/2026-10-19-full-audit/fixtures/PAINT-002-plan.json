@@ -1,0 +1,172 @@
+{
+  "at": "2026-10-20T17:19:43.861038+00:00",
+  "case": "PAINT-002",
+  "status": "Plan recorded before execution, not a result",
+  "rows": [
+    {
+      "id": "p1",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 1,
+      "strength": 0.15
+    },
+    {
+      "id": "p2",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 22,
+      "strength": 1
+    },
+    {
+      "id": "p3",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 96,
+      "strength": 0.15
+    },
+    {
+      "id": "p4",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 1,
+      "strength": 1
+    },
+    {
+      "id": "p5",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 0.15
+    },
+    {
+      "id": "p6",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 96,
+      "strength": 1
+    },
+    {
+      "id": "p7",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 1
+    },
+    {
+      "id": "p8",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 1,
+      "strength": 0.15
+    },
+    {
+      "id": "p9",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 22,
+      "strength": 1
+    },
+    {
+      "id": "p10",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 96,
+      "strength": 0.15
+    },
+    {
+      "id": "p11",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 1,
+      "strength": 1
+    },
+    {
+      "id": "p12",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 0.15
+    },
+    {
+      "id": "p13",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 96,
+      "strength": 1
+    },
+    {
+      "id": "p14",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 1
+    }
+  ],
+  "pairwise_proof": [
+    {
+      "factors": [
+        "viewport",
+        "size"
+      ],
+      "pairs": 12
+    },
+    {
+      "factors": [
+        "viewport",
+        "strength"
+      ],
+      "pairs": 8
+    },
+    {
+      "factors": [
+        "size",
+        "strength"
+      ],
+      "pairs": 6
+    }
+  ],
+  "input": "Actual trusted mouse, Black palette colour, all four layouts, size1/22/96 and Strength15/100%. No physical pen claim.",
+  "geometry": {
+    "marker_curve": "Quadratic150,280 through400,160 to650,280;41 points",
+    "slow_biro": "Same curve shifted160px up;41 points,15ms between samples",
+    "fast_biro": "Same curve shifted200px down;41 points, no inserted delay",
+    "tap": [
+      800,
+      200
+    ],
+    "returned_biro_tap": [
+      800,
+      480
+    ]
+  },
+  "main_and_failure": "Compare Marker with Biro at the same public size and Strength. Selecting Biro preserves the Marker. Switch to Spray/Fine Mist, then return with Brushes and verify the Biro label and actual fine tap. Undo and Redo all five gestures separately; actual saved project opens in a fresh context.",
+  "oracle": "Independent8-connectivity, dense centreline coverage, no pixels farther than max(1.5,size*.15)+2px from the declared Biro path/taps. Standard22 and96 Biro area must be below40% of its same-size Marker; this character comparison excludes the minimum1px setting. All core colour comparisons use known Black#1A1A1A over white within2/255. At least10 total green-channel deficit for each minimum tap. Selection-only saved projects must remain byte/data equivalent. Each gesture history state and fresh source data/RGBA exact. Tolerances and geometry are fixed before execution."
+}

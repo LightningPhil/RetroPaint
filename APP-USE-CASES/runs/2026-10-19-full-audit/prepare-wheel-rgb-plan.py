@@ -1,0 +1,20 @@
+from pathlib import Path
+from datetime import datetime,timezone
+from itertools import product
+from PIL import Image
+import json,hashlib,colorsys,numpy as np
+root=Path(__file__).resolve().parent;file=root/'fixtures/INK-005-plan.json';assert not file.exists();fixture=root/'fixtures/PATCH.png';source=np.asarray(Image.open(fixture).convert('RGBA'));wheel=[];channels=[]
+for angle in range(0,360,60):wheel.append(dict(id='pointer-'+str(angle),kind='wheel-pointer',hue=angle,saturation=.8,expected_rgb=[int(c*255+.5) for c in colorsys.hsv_to_rgb(angle/360,.8,1)]))
+wheel.append(dict(id='pointer-centre',kind='wheel-centre',expected_rgb=[255,255,255]))
+for brightness in [0,50,100]:wheel.append(dict(id='brightness-'+str(brightness),kind='brightness',brightness=brightness,expected_rgb=[int(255*brightness/100+.5)]*3))
+wheel.append(dict(id='keyboard-same-yellow',kind='wheel-keyboard',shift_right_presses=6,expected_rgb=[255,255,51]))
+for values in [*product([0,255],repeat=3),(32,128,224)]:channels.append(dict(id='rgb-'+'-'.join(map(str,values)),kind='rgb',expected_rgb=list(values)))
+for index,channel in enumerate(['R','G','B']):
+    for value in [-1,256]:
+        pigment=[32,128,224];pigment[index]=max(0,min(255,value));channels.append(dict(id=f'outside-{channel}-{value}',kind='rgb-outside',channel=channel,typed=value,bound=max(0,min(255,value)),base_rgb=[32,128,224],expected_rgb=pigment))
+for operations in [wheel,channels]:
+    for i,op in enumerate(operations):
+        op['expected_hex']='#'+''.join(f'{n:02X}' for n in op['expected_rgb']);op['point']=[100.5+105*(i%8),220.5+240*(i//8)];x,y=map(int,op['point']);assert not source[y-13:y+14,x-13:x+14,3].any()
+rows=[dict(id=f'v{i+1}-{group}',viewport=viewport,group=group) for i,viewport in enumerate([[1280,720],[320,568],[390,844],[844,390]]) for group in ['wheel','channels']]
+plan=dict(at=datetime.now(timezone.utc).isoformat(),case='INK-005',status='Plan before execution,not a result',fixture=str(fixture.relative_to(root)),fixture_sha256=hashlib.sha256(fixture.read_bytes()).hexdigest(),rows=rows,operation_groups=dict(wheel=wheel,channels=channels),cancellations=[],size=22,strength=1,maximum_footprint_radius=13,marker_percentage_tolerance=.05,wheel_hue_family_minimum_difference=30,expected_downloads_per_row=10,oracle='All4 PATCH layouts in separate fresh wheel/channel workflows,8 total. Wheel: six native hue positions at80% radius,centre White,brightness0/50/100 andnative Shift+ArrowRight to exactly match pointer Yellow. Source hex/RGB/current preview and reopened values/HSV marker must agree with independently calculated Python colorsys/math. Before pointer selection the actual rendered seed wheel is captured; six60%-radius sectors must have their expected primary/secondary hue-family ordering by at least30 RGB units,not merely agree with app state. Pointer bounds/border measured from public DOM only. Channels: all8 RGB0/255 corners,exact32/128/224,and each channel-1/256 boundaries. An out-of-range draft may be refused and corrected or commit the bounded/clamped visible colour;it may never produce invalid/unbounded active state. Every such branch is recorded,actual reopened RGB/hex/preview must be coherent,bounded and equal declared clamped target before painting. Each known-clear native Marker core is exact declared RGB/alpha255,local radius13,with unaffected PATCH/older marks exact. Each separate Undo/Redo andwhole11/15-action source restoration/Redo prove material actions add no empty history entries. Actual saved project/PNG and fresh-context actual file input are exact.104 opaque marks/80 actual downloads across8 workflows,all hashed. DOM marker tolerance0.05 percentage points is predeclared;source/core/history equality exact. No app colour/history/paint/serializer function generates expected values,no synthetic DOM event,desktop/OS/existing browser/profile/physical device claim.')
+file.write_text(json.dumps(plan,indent=2)+'\n',encoding='utf-8');print('Prepared8 workflows:44 wheel/60 channel marks,24 outside-channel paths;80 actual downloads expected.')

@@ -1,0 +1,80 @@
+{
+  "at": "2026-10-20T11:18:16.667087+00:00",
+  "generator": "make-tonal-alpha.py",
+  "decoder": "Pillow 12.3.0",
+  "file": "TONAL-alpha.png",
+  "size": [
+    1024,
+    256
+  ],
+  "sha256": "3ce74189ea17940483d3460879d752768ef44a1dc4bd34d600d894bc7b47b041",
+  "ramp": "Four columns per neutral value 0..255, rows 16..143 inclusive",
+  "patches": [
+    {
+      "value": 32,
+      "box": [
+        32,
+        160,
+        215,
+        223
+      ],
+      "centre": [
+        123,
+        192
+      ]
+    },
+    {
+      "value": 64,
+      "box": [
+        224,
+        160,
+        407,
+        223
+      ],
+      "centre": [
+        315,
+        192
+      ]
+    },
+    {
+      "value": 128,
+      "box": [
+        416,
+        160,
+        599,
+        223
+      ],
+      "centre": [
+        507,
+        192
+      ]
+    },
+    {
+      "value": 192,
+      "box": [
+        608,
+        160,
+        791,
+        223
+      ],
+      "centre": [
+        699,
+        192
+      ]
+    },
+    {
+      "value": 224,
+      "box": [
+        800,
+        160,
+        983,
+        223
+      ],
+      "centre": [
+        891,
+        192
+      ]
+    }
+  ],
+  "transparent_padding": "Rows 0..15 and 224..255, plus non-patch portions below row 143; RGBA zero"
+}

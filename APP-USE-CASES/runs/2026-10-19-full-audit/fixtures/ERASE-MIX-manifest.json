@@ -1,0 +1,30 @@
+{
+  "at": "2026-10-20T22:16:12.042859+00:00",
+  "status": "Verified native MIX eraser fixture only; not a PAINT-014 result",
+  "fixture": "headless\\ERASE-producer\\ERASE-MIX.retropaint",
+  "sha256": "e1140ada0def0049f37b7209a82ad32a36d6354b11179420a6fdda8c5ebc94ae",
+  "source_fixture": "headless/MIX-final/MIX-basic.retropaint",
+  "source_input_and_all_unrelated_layers_exact": true,
+  "only_native_Rectangle_on_Paper_and_mode_active_target_changed": true,
+  "paper_id": 1,
+  "character_id": 3,
+  "backdrop_id": 2,
+  "defined_Paper_colour": "#ffffff",
+  "known_Red_core": [
+    105,
+    105,
+    195,
+    175
+  ],
+  "known_Blue_guide_RGBA": [
+    30,
+    136,
+    229,
+    255
+  ],
+  "Character_opacity": 0.5,
+  "full_Caption_text_stamp_source_preserved": true,
+  "complete_actual_fresh_source_RGBA_exact": true,
+  "actual_downloads_verified": 6,
+  "visibility_note": "All four original layers remain visible. The new Paper Red mark is correctly covered by the opaque Blue Backdrop; later Paper-isolation variants must use actual eye controls before their recorded before state."
+}

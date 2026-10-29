@@ -1,0 +1,22 @@
+from pathlib import Path
+from datetime import datetime,timezone
+import json,hashlib,re
+root=Path(__file__).resolve().parent;repo=root.parents[2];read=lambda p:json.loads((root/p).read_text(encoding='utf-8'))
+results=read('results.json');reg=read('headless/20261020-smudge-alpha-final/report.json');art=read('evidence/ARTWORK-smudge-alpha-verification.json');manifest=read('production-smudge-alpha-snapshot.json');pinned=read('evidence/build-smudge-alpha-source.json');expected={'painting':240,'layout-1280x720':68,'layout-320x568':69,'layout-390x844':69,'layout-844x390':69}
+assert reg['status']=='Pass' and len(reg['suites'])==5 and {s['name'] for s in reg['suites']}==set(expected)
+for suite in reg['suites']:assert suite['status']=='Pass' and suite['passed']==expected[suite['name']] and suite['failed']==0 and not suite['errors']
+before=read('headless/SMUDGE-regression-before/report.json');after=read('headless/SMUDGE-regression-after/report.json');assert before['status']=='Fail' and before['suites'][0]['failed']==4 and after['status']=='Pass' and after['suites'][0]['passed']==4
+assert art['actual_downloads_byte_exact_to_original'] and art['rendered_rgba_save_reopen_and_previous_build_exact'] and manifest['source_files']==pinned['source_files'];checked=[]
+for item in manifest['source_files']:
+    name=item['path'].replace('\\','/')
+    if name=='index.html' or name.startswith('src/'):assert hashlib.sha256((repo/name).read_bytes()).hexdigest()==item['sha256'];checked.append(name)
+assert len(checked)==112
+for item in reg['source_files']:
+    name=item['path'].replace('\\','/')
+    if name in checked or name in ['tests/painting.ts','tests/mobile.ts']:assert hashlib.sha256((repo/name).read_bytes()).hexdigest()==item['sha256']
+for item in manifest['build_files']:assert hashlib.sha256((Path(manifest['build_directory'])/item['path']).read_bytes()).hexdigest()==item['sha256']
+log=(root/'evidence/build-smudge-alpha.log').read_text(encoding='utf-8');assert '110 modules transformed' in log and 'built in 35.41s' in log;at=datetime.now(timezone.utc).isoformat()
+consistency=dict(at=at,unchanged_application_files=112,manifest='production-smudge-alpha-snapshot.json',pinned_before_build_source='evidence/build-smudge-alpha-source.json',latest_complete_regressions='headless/20261020-smudge-alpha-final/report.json',app_source_and_entry_html_exact=True,scope='All112 current app/entry files, painting/mobile check sources and every immutable build asset agree with source-pinned complete run/build. Later acceptance JS/Python is separate.')
+(root/'evidence/application-source-consistency-smudge-alpha.json').write_text(json.dumps(consistency,indent=2)+'\n',encoding='utf-8');s=results['supplementary_checks'];s['browser_regressions']=dict(status='Pass',count=240,evidence='headless/20261020-smudge-alpha-final/report.json',scope='Full painting/components, not counted among349 acceptance cases.');s['desktop_layout']=dict(status='Pass',count=68,evidence='headless/20261020-smudge-alpha-final/layout-1280x720.txt')
+for width,height in [(320,568),(390,844),(844,390)]:s[f'phone_{width}_layout']=dict(status='Pass',count=69,evidence=f'headless/20261020-smudge-alpha-final/layout-{width}x{height}.txt',scope='Full headless suite; physical input/AT not certified.')
+s['headless_execution']=dict(status='Pass',browser=reg['browser'],evidence='headless/20261020-smudge-alpha-final/report.json',scope='Own headless browser only, no user browser/profile, desktop or artwork-tab access.');s['production_build']=dict(status='Pass',evidence='production-smudge-alpha-snapshot.json; evidence/build-smudge-alpha.log; evidence/build-smudge-alpha-source.json',notes='TypeScript/Vite success,110 modules,35.41s; existing externalized-module/chunk-size warnings retained. Immutable8104 with pre-build source hashes.');s['artwork_production_roundtrip']=dict(status='Pass',evidence='evidence/ARTWORK-smudge-alpha-verification.json',scope='Both actual editable files byte-identical original; four downloads/two fresh contexts. All save/reopen/previous-build RGBA exact, independent composition within1/255.');s['source_consistency']=dict(status='Pass',count=112,evidence='evidence/application-source-consistency-smudge-alpha.json');results['updated_at']=at;(root/'results.json').write_text(json.dumps(results,indent=2,ensure_ascii=False)+'\n',encoding='utf-8');print('Recorded full240/68/69/69/69,112-file pinned source/build and exact original artwork roundtrip. PAINT013 remains Fail until every native after workflow is independently verified.')

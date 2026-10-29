@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#dceee5">
+  <title>RetroPaint</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+</head>
+<body>
+  <header id="topBar">
+    <div id="wordmark"><span>Retro</span><span>Paint</span></div>
+    <button type="button" id="saveBtn" class="action-btn">SAVE</button>
+    <button type="button" id="undoBtn" class="action-btn panic">UNDO</button>
+    <label id="sizeControl">🖌 Size <input id="brushSize" type="range" min="1" max="96" step="1" value="22"></label>
+    <label id="opacityControl">◐ Strength <input id="opacity" type="range" min="0.15" max="1" step="0.05" value="1"></label>
+    <button type="button" id="clearBtn" class="action-btn">CLEAR</button>
+    <button type="button" id="studioBtn" class="action-btn" aria-controls="studioDrawer" aria-expanded="false">🧰 MORE</button>
+  </header>
+
+  <aside id="toolBin">
+    <button type="button" class="tool-btn active" data-tool="draw"><span>🖌️</span>Brushes</button>
+    <button type="button" class="tool-btn" data-tool="shapes"><span>🟦</span>Shapes</button>
+    <button type="button" class="tool-btn" data-tool="bucket"><span>🪣</span>Bucket</button>
+    <button type="button" class="tool-btn magic" data-tool="spray"><span>💨</span>Spray</button>
+    <button type="button" class="tool-btn" data-tool="sponge"><span>🧽</span>Smudge</button>
+    <button type="button" class="tool-btn destructive" data-tool="scissors"><span>▧</span>Select</button>
+    <button type="button" class="tool-btn destructive" data-tool="eraser"><span>🌪️</span>Eraser</button>
+    <button type="button" class="tool-btn" data-tool="stamp"><span>🦋</span>Stamps</button>
+    <button type="button" class="tool-btn magic" id="symBtn"><span>❄️</span>Symmetry</button>
+    <button type="button" class="tool-btn magic" data-tool="spiro"><span>⚙️</span>Spiro</button>
+    <button type="button" class="tool-btn" data-tool="text"><span>🔤</span>Text</button>
+    <button type="button" class="tool-btn" data-tool="picker"><span>💉</span>Pick colour</button>
+    <button type="button" id="layersToggle" class="tool-btn advanced-tool" aria-controls="layersPanel" aria-expanded="false" title="Layers (L)" hidden><span aria-hidden="true">▱</span><span class="layer-toggle-label">Layers<small id="activeLayerName">Paper</small></span><span id="layerCount">1</span></button>
+  </aside>
+
+  <div id="canvasSlot">
+    <div id="stage">
+
+    </div>
+    <aside id="layersPanel" aria-labelledby="layersTitle" hidden>
+      <div class="layers-heading"><strong id="layersTitle">Layers</strong><button type="button" id="closeLayers" class="layer-icon-button" aria-label="Close layers">✕</button></div>
+      <button type="button" class="choice" id="addLayer">＋ New layer</button>
+      <p id="layersHint" class="hint">Add a clear sheet to draw on top of your picture.</p>
+      <div id="layerList" aria-label="Layers, top to bottom"></div>
+      <p class="layer-order-hint">Drag the dots to change what’s on top.</p>
+      <details id="layerOptions">
+        <summary>Layer options</summary>
+        <div class="layer-options-body">
+          <label class="layer-field">Name <input id="layerName" maxlength="60" autocomplete="off"></label>
+          <label class="layer-field" for="layerOpacity">Opacity <output id="layerOpacityValue" for="layerOpacity">100%</output></label>
+          <input id="layerOpacity" aria-label="Layer opacity" type="range" min="0" max="1" step="0.05" value="1">
+          <div class="layer-options-actions"><button type="button" class="choice" id="duplicateLayer">Duplicate</button><button type="button" class="choice" id="deleteLayer">Remove layer</button><button type="button" class="choice" id="layerUp">Move up ↑</button><button type="button" class="choice" id="layerDown">Move down ↓</button><button type="button" class="choice" id="mergeLayer">Combine with below</button></div>
+          <label class="selection-toggle"><input type="checkbox" id="transparentLayer"> Erase to clear</label>
+          <p class="hint">Undo brings removed layers back. Combining layers keeps the current frame of live ink.</p>
+        </div>
+      </details>
+    </aside>
+  </div>
+
+  <footer id="bottomTray">
+    <button type="button" id="paletteToggle" class="action-btn" aria-expanded="false" aria-controls="trayContents"><span id="currentInk" aria-hidden="true"></span><span>Colours &amp; ink</span><span class="palette-chevron" aria-hidden="true">⌃</span></button>
+    <div id="trayContents">
+    <div class="tray-tabs" id="materialTabs">
+      <button type="button" class="tray-tab active" data-target="tray-solids">🎨 Colours</button>
+      <button type="button" class="tray-tab" data-target="tray-textures">🧱 Textures</button>
+      <button type="button" class="tray-tab" data-target="tray-gradients" hidden>🌅 Gradients</button>
+      <button type="button" class="tray-tab" data-target="tray-live">🪄 Live ink</button>
+    </div>
+    <div id="tray-solids" class="tray-grid"></div>
+    <div id="tray-textures" class="tray-grid panel"></div>
+    <div id="tray-gradients" class="tray-grid panel">
+      <label class="grad-toggle"><input id="gradToggle" type="checkbox" role="switch"><span class="switch" aria-hidden="true"></span> Drag a gradient</label>
+      <button type="button" id="gradFrom" class="chip">Start</button>
+      <button type="button" id="gradTo" class="chip">End</button>
+      <div id="gradPresets" class="tray-grid"></div>
+    </div>
+    <div id="tray-live" class="tray-grid panel">
+      <div id="beltPicks" class="belt-picks"></div>
+      <div id="beltTrack" class="belt-track">
+        <button type="button" class="belt-slot" data-slot="0"></button>
+        <button type="button" class="belt-slot" data-slot="1"></button>
+        <button type="button" class="belt-slot" data-slot="2"></button>
+        <button type="button" class="belt-slot" data-slot="3"></button>
+        <button type="button" class="belt-slot" data-slot="4"></button>
+        <button type="button" class="belt-slot" data-slot="5"></button>
+        <button type="button" class="belt-slot" data-slot="6"></button>
+        <button type="button" class="belt-slot" data-slot="7"></button>
+      </div>
+      <button type="button" id="addBeltBtn" class="action-btn">Add color</button>
+      <button type="button" id="clearBeltBtn" class="action-btn">Clear</button>
+      <label class="speed-label">Speed <input id="beltSpeed" class="speed" type="range" min="-8" max="8" step="1" value="3" aria-label="Belt speed"></label>
+      <button type="button" id="beltMode" class="choice">OOZE</button>
+    </div>
+    </div>
+  </footer>
+
+  <div id="penDrawer" class="drawer">
+    <strong>Brushes &amp; pens</strong>
+    <div class="row">
+      <button type="button" class="choice active" data-applicator="marker">Squeaky Marker</button>
+      <button type="button" class="choice" data-applicator="biro">Biro</button>
+      <button type="button" class="choice" data-applicator="callig">Calligraphy</button>
+      <button type="button" class="choice" data-applicator="gouache">Poster Paint</button>
+      <button type="button" class="choice" data-applicator="watercolor">Watercolor</button>
+      <button type="button" class="choice" data-applicator="pencil">Pencil</button>
+      <button type="button" class="choice" data-applicator="brush">Classic Brush</button>
+      <button type="button" class="choice" data-applicator="oil">Oil Brush</button>
+      <button type="button" class="choice" data-applicator="crayon">Crayon</button>
+      <button type="button" class="choice" data-applicator="natural">Natural Pencil</button>
+    </div>
+  </div>
+
+  <div id="sprayDrawer" class="drawer">
+    <strong>Spray can</strong>
+    <div class="row">
+      <button type="button" class="choice active" data-applicator="mist">Fine Mist</button>
+      <button type="button" class="choice" data-applicator="splatter">Splatter</button>
+      <button type="button" class="choice" data-applicator="confetti">Confetti</button>
+    </div>
+  </div>
+
+  <div id="shapesDrawer" class="drawer">
+    <strong>Shape</strong>
+    <div class="row">
+      <button type="button" class="choice active" data-shape="line">Line</button>
+      <button type="button" class="choice" data-shape="rect">Rectangle</button>
+      <button type="button" class="choice" data-shape="circle">Circle</button>
+      <button type="button" class="choice" data-shape="poly">Polyline</button>
+      <button type="button" class="choice" data-shape="spline">Spline</button>
+      <button type="button" class="choice" data-shape="ellipse">Oval</button>
+      <button type="button" class="choice" data-shape="roundRect">Round rectangle</button>
+      <button type="button" class="choice" data-shape="polygon">Polygon</button>
+      <button type="button" class="choice" data-shape="triangle">Triangle</button>
+      <button type="button" class="choice" data-shape="rightTriangle">Right triangle</button>
+      <button type="button" class="choice" data-shape="diamond">Diamond</button>
+      <button type="button" class="choice" data-shape="pentagon">Pentagon</button>
+      <button type="button" class="choice" data-shape="hexagon">Hexagon</button>
+      <button type="button" class="choice" data-shape="star4">4-point star</button>
+      <button type="button" class="choice" data-shape="star5">5-point star</button>
+      <button type="button" class="choice" data-shape="star6">6-point star</button>
+      <button type="button" class="choice" data-shape="heart">Heart</button>
+      <button type="button" class="choice" data-shape="lightning">Lightning</button>
+      <button type="button" class="choice" data-shape="arrowRight">Right arrow</button>
+      <button type="button" class="choice" data-shape="arrowLeft">Left arrow</button>
+      <button type="button" class="choice" data-shape="arrowUp">Up arrow</button>
+      <button type="button" class="choice" data-shape="arrowDown">Down arrow</button>
+      <button type="button" class="choice" data-shape="callout">Speech bubble</button>
+      <button type="button" class="choice" data-shape="ovalCallout">Oval bubble</button>
+      <button type="button" class="choice" data-shape="cloud">Thought bubble</button>
+    </div>
+    <div class="row compact-fields">
+      <label>Outline <select id="shapeOutline"><option value="brush">Current brush</option><option value="solid">Solid line</option><option value="none">No outline</option></select></label>
+      <label>Fill <select id="shapeFill"><option value="none">No fill</option><option value="primary">Ink colour</option><option value="secondary">Second colour</option></select></label>
+    </div>
+    <button type="button" id="finishPath" class="choice">Finish path</button>
+    <p class="hint">Polyline &amp; spline: tap to add points. Tap Finish or press Enter. Tap the first point to close. Escape cancels.</p>
+  </div>
+
+  <div id="selectionDrawer" class="drawer">
+    <strong>Select &amp; move</strong>
+    <div class="row">
+      <button type="button" class="choice active" data-select="rect">Rectangle</button>
+      <button type="button" class="choice" data-select="lasso">Lasso</button>
+      <button type="button" class="choice" data-select="wand">Colour wand</button>
+    </div>
+    <label class="selection-toggle"><input id="transparentSelection" type="checkbox"> ▧ Transparent white paper</label>
+    <div class="row selection-actions">
+      <button type="button" class="choice" id="copySelection">Copy</button>
+      <button type="button" class="choice" id="cutSelection">Cut</button>
+      <button type="button" class="choice" id="pasteSelection">Paste</button>
+      <button type="button" class="choice" id="doneSelection">Place</button>
+      <button type="button" class="choice" id="cancelSelection">Cancel</button>
+      <button type="button" class="choice" id="selectAll">Select all</button>
+      <button type="button" class="choice" id="invertSelection">Invert selection</button>
+      <button type="button" class="choice" id="deleteSelection">Delete</button>
+    </div>
+    <div class="row selection-transforms">
+      <button type="button" class="choice" id="selectionFlipH">Flip ↔</button>
+      <button type="button" class="choice" id="selectionFlipV">Flip ↕</button>
+      <button type="button" class="choice" id="selectionRotate">Turn 90°</button>
+      <button type="button" class="choice" id="cropSelection">Crop</button>
+    </div>
+    <p class="hint">Drag corner handles to resize; hold Shift to keep proportions. More → Image has exact sizes and angles.</p>
+    <p class="hint">Draw around a piece, then drag it. Copy keeps the original. Transparent skips white paper when you place it.</p>
+  </div>
+
+  <div id="eraserDrawer" class="drawer">
+    <strong>Eraser</strong>
+    <div class="row">
+      <button type="button" class="choice active" data-eraser="scrub">Scrub</button>
+      <button type="button" class="choice" data-eraser="blackhole">Black Hole</button>
+      <button type="button" class="choice" data-eraser="pixelate">Pixelate</button>
+      <button type="button" class="choice" data-eraser="invert">Invert</button>
+      <button type="button" class="choice" data-eraser="emboss">Emboss</button>
+    </div>
+  </div>
+
+  <div id="symDrawer" class="drawer">
+    <strong>Symmetry</strong>
+    <div class="row">
+      <button type="button" class="choice" data-sym="v">Vertical</button>
+      <button type="button" class="choice" data-sym="h">Horizontal</button>
+      <button type="button" class="choice" data-sym="4">4-way</button>
+      <button type="button" class="choice active" data-sym="8">8-way</button>
+      <button type="button" class="choice" data-sym="6">6-way</button>
+      <button type="button" class="choice" data-sym="10">10-way</button>
+      <button type="button" class="choice" data-sym="12">12-way</button>
+      <button type="button" class="choice" data-sym="off">Off</button>
+      <button type="button" class="choice" id="symmetryMask" aria-pressed="false">Mask</button>
+    </div>
+  </div>
+
+  <div id="stampDrawer" class="drawer">
+    <strong>Stamps</strong>
+    <div class="tray-tabs" id="stampTabs"></div>
+    <div id="stampGrid" class="stamp-grid"></div>
+    <div class="stamp-controls">
+      <label>Size <input id="stampScale" type="range" min="0.4" max="2.6" step="0.1" value="1"></label>
+      <button type="button" id="spinMode" class="choice">Rotate: Fixed</button>
+      <button type="button" id="flipH" class="choice">Flip sideways</button>
+      <button type="button" id="flipV" class="choice">Upside down</button>
+    </div>
+  </div>
+
+  <div id="spiroDrawer" class="drawer">
+    <strong>Spiro kit</strong>
+    <label class="teeth-field" id="ringField">↔ Ring radius <input id="ringSize" type="number" min="0.5" step="1" value="200" aria-label="Spiro ring radius in pixels"> px</label>
+    <label class="teeth-field" id="outerField">Outer teeth <input id="outerTeeth" type="number" min="40" max="180" value="96"></label>
+    <div id="outerChoices" class="row"></div>
+    <label class="teeth-field" id="innerField">Inner teeth <input id="innerTeeth" type="number" min="10" max="170" value="36"></label>
+    <div id="gearBox" class="gear-box"></div>
+    <div class="row" id="driveChoices">
+      <button type="button" class="choice active" data-drive="manual">Manual</button>
+      <button type="button" class="choice" data-drive="auto">Auto</button>
+    </div>
+    <div class="row" id="statorChoices">
+      <button type="button" class="choice active" data-stator="circle">Ring</button>
+      <button type="button" class="choice" data-stator="oval">Oval</button>
+      <button type="button" class="choice" data-stator="square">Square</button>
+      <button type="button" class="choice" data-stator="cross">Cross</button>
+    </div>
+    <div id="spiroActions" class="row">
+      <button type="button" id="windBtn" class="choice">Wind the key</button>
+      <button type="button" id="spiroReset" class="choice">Reset kit</button>
+    </div>
+    <p class="hint">Drag the ring to move it. Drag its yellow handle to resize. Pick a gear, then turn it or wind the key!</p>
+  </div>
+
+
+  <div id="textDrawer" class="drawer">
+    <strong>Say it with text</strong>
+    <textarea id="textContent" rows="3" placeholder="Your words here…" aria-label="Text to paint"></textarea>
+    <div class="row compact-fields">
+      <label>Font <select id="textFont"><option>Trebuchet MS</option><option>Arial</option><option>Georgia</option><option>Courier New</option><option>Comic Sans MS</option><option>Impact</option></select></label>
+      <label>Size <input id="textSize" type="number" min="6" max="300" value="36"></label>
+      <label>Box width <input id="textWidth" type="number" min="20" max="4096" value="360"></label>
+    </div>
+    <div class="row text-styles">
+      <button type="button" class="choice" data-text-style="bold" aria-pressed="false"><b>B</b></button>
+      <button type="button" class="choice" data-text-style="italic" aria-pressed="false"><i>I</i></button>
+      <button type="button" class="choice" data-text-style="underline" aria-pressed="false"><u>U</u></button>
+      <button type="button" class="choice" data-text-style="strike" aria-pressed="false"><s>S</s></button>
+      <select id="textAlign" aria-label="Text alignment"><option value="left">Left</option><option value="center">Centre</option><option value="right">Right</option></select>
+    </div>
+    <label class="selection-toggle"><input type="checkbox" id="textOpaque"> Fill text box with second colour</label>
+    <div class="row"><button type="button" class="choice" id="placeText">Place text</button><button type="button" class="choice" id="cancelText">Cancel</button></div>
+    <p class="hint">Tap the paper to position your words. Place text makes a movable selection, ready to resize or turn.</p>
+  </div>
+
+  <div id="pickerDrawer" class="drawer">
+    <strong>Pick a colour</strong>
+    <p class="hint">Tap the picture to borrow a colour. Right-click picks the second colour.</p>
+    <div class="row compact-fields"><label>Second colour <input id="secondaryColour" type="color" value="#ffffff"></label><button type="button" class="choice" id="swapColours">Swap colours</button></div>
+    <p class="hint">Right-click while painting uses your second colour. Pick a colour first to tint Neon or Glitter.</p>
+  </div>
+
+  <div id="studioDrawer" class="drawer">
+    <div class="studio-heading"><strong>Paint toolbox</strong><label class="advanced-switch"><input id="advancedMode" type="checkbox" role="switch"> Advanced mode</label></div>
+    <label class="drawing-mode-field">Draw with <select id="drawingMode" aria-label="Vectors or raster"><option value="raster">Raster · pixels</option><option value="vector">Vectors · editable pieces</option></select></label>
+    <button type="button" class="choice" id="openCad">🧊 3D workshop · build &amp; print</button>
+    <div class="tray-tabs studio-tabs" role="tablist" aria-label="Paint toolbox">
+      <button type="button" class="tray-tab active" data-studio="file" role="tab" aria-selected="true">📁 File</button>
+      <button type="button" class="tray-tab" data-studio="image" role="tab" aria-selected="false">🖼 Image</button>
+      <button type="button" class="tray-tab" data-studio="layers" role="tab" aria-selected="false">✨ Advanced</button>
+      <button type="button" class="tray-tab" data-studio="view" role="tab" aria-selected="false">🔍 View</button>
+    </div>
+    <div class="studio-panel" data-studio-panel="file">
+      <div class="row"><button type="button" class="choice" id="newPicture">New picture</button><button type="button" class="choice" id="openPicture">Open image</button><button type="button" class="choice" id="insertPicture">Insert image</button><button type="button" class="choice" id="pasteExternal">Paste</button><button type="button" class="choice" id="redoBtn">Redo ↷</button></div>
+      <div class="row compact-fields"><label>Name <input id="fileName" value="retropaint" maxlength="100"></label><label>Format <select id="fileFormat"><option value="png">PNG</option><option value="jpeg">JPEG</option><option value="webp">WebP</option><option value="bmp">BMP</option><option value="gif">GIF</option><option value="tiff">TIFF</option></select></label></div>
+      <div class="row"><button type="button" class="choice" id="saveAs">Save as</button><button type="button" class="choice" id="printPicture">Print</button><button type="button" class="choice" id="saveProject">Save project</button><button type="button" class="choice" id="openProject">Open project</button></div>
+      <p class="hint">Drop an image onto the paper, or paste a screenshot. Projects keep layers and live ink. Image files capture the current frame.</p>
+    </div>
+    <div class="studio-panel" data-studio-panel="image" hidden>
+      <p id="imageDimensions" class="hint"></p>
+      <label class="selection-toggle"><input id="editSelection" type="checkbox"> Transform the selection</label>
+      <div class="row compact-fields"><label>Width <input id="imageWidth" type="number" min="1" max="4096" value="960"></label><label>Height <input id="imageHeight" type="number" min="1" max="4096" value="640"></label><label>Units <select id="resizeUnit"><option value="pixels">Pixels</option><option value="percent">Percent</option></select></label></div>
+      <label class="selection-toggle"><input id="keepAspect" type="checkbox" checked> Keep proportions</label>
+      <label class="selection-toggle"><input id="smoothResize" type="checkbox" checked> Smooth edges when resizing</label>
+      <div class="row"><button type="button" class="choice" id="resizePicture">Resize image</button><button type="button" class="choice" id="resizeCanvas">Paper size</button><button type="button" class="choice" id="cropPicture">Crop to selection</button></div>
+      <div class="row compact-fields"><label>Turn ° <input id="rotateAngle" type="number" min="-360" max="360" value="90"></label><button type="button" class="choice" id="rotatePicture">Rotate</button><button type="button" class="choice" id="flipPictureH">Flip ↔</button><button type="button" class="choice" id="flipPictureV">Flip ↕</button></div>
+      <div class="row compact-fields"><label>Skew X ° <input id="skewX" type="number" min="-80" max="80" value="0"></label><label>Skew Y ° <input id="skewY" type="number" min="-80" max="80" value="0"></label><button type="button" class="choice" id="skewPicture">Skew</button></div>
+      <div class="row"><button type="button" class="choice" id="invertColours">Invert colours</button><button type="button" class="choice" id="removeBackground">Remove edge background</button></div>
+      <label class="compact-fields">Bucket / wand tolerance <input id="fillTolerance" type="range" min="0" max="200" value="48"></label>
+      <p class="hint">Background removal clears colours connected to the top-left corner, using this tolerance. Best for flat backgrounds.</p>
+    </div>
+    <div class="studio-panel" data-studio-panel="layers" hidden>
+      <p class="hint">Advanced mode adds Layers and Photo lab to the main tool palette. Turning it off keeps your artwork and saved adjustments.</p>
+      <button type="button" class="choice" id="openLayers">Open layers</button>
+      <button type="button" class="choice" id="openSuperResolution">✨ Super resolution · 2× / 4×</button>
+      <p class="hint">Make a larger, enhanced copy with on-device AI. Compare the result before saving; your original stays untouched.</p>
+    </div>
+    <div class="studio-panel" data-studio-panel="view" hidden>
+      <div class="row"><button type="button" class="choice" id="viewZoomOut">Zoom −</button><button type="button" class="choice" id="viewZoomIn">Zoom ＋</button><button type="button" class="choice" id="viewFit">Fit picture</button><button type="button" class="choice" id="viewActual">Actual pixels</button></div>
+      <label class="selection-toggle"><input type="checkbox" id="pixelGrid"> Pixel grid (zoom in to see)</label>
+      <label class="selection-toggle"><input type="checkbox" id="rulers"> Show rulers</label>
+      <div class="row"><button type="button" class="choice" id="fullScreen">Full screen</button></div>
+      <p class="hint">Ctrl + wheel zooms. Move paper pans, or hold Space while dragging. Shift constrains shapes and selection sizes.</p>
+      <p class="hint">Ctrl/Cmd: Z undo · Y or Shift+Z redo · A select all · C/X/V clipboard · O open · S save · P print. Delete removes a selection. Escape cancels. Enter places it.</p>
+    </div>
+  </div>
+  <div id="editorStatus" role="status" aria-live="polite"></div>
+  <input type="file" id="imageInput" accept="image/*,.bmp,.tif,.tiff" hidden>
+  <input type="file" id="projectInput" accept=".retropaint,.json" hidden>
+  <div id="gearGhost" hidden></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

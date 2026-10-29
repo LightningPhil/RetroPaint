@@ -1,0 +1,176 @@
+{
+  "generator": "audit_support.py fixture_files",
+  "images": [
+    {
+      "file": "COLOUR.png",
+      "bytes": 1481,
+      "sha256": "725294617cd29bae9cb4e6c4a9c87b479de19d8543a7486650edda184aa7500f",
+      "size": [
+        880,
+        240
+      ],
+      "mode": "RGBA",
+      "format": "PNG"
+    },
+    {
+      "file": "DETAIL.png",
+      "bytes": 209705,
+      "sha256": "97b89aa10e0e5cbaf6c7744123fc64c4c84e7a1768908ec6c643639ca86727c0",
+      "size": [
+        1024,
+        768
+      ],
+      "mode": "RGBA",
+      "format": "PNG"
+    },
+    {
+      "file": "FILL-closed.png",
+      "bytes": 946,
+      "sha256": "7910ea179e0f0694a967e300de5e431d3ab18cd2d1c32c49f846a39207efb0a4",
+      "size": [
+        320,
+        240
+      ],
+      "mode": "RGBA",
+      "format": "PNG"
+    },
+    {
+      "file": "FILL-gap.png",
+      "bytes": 947,
+      "sha256": "ecae4ce18eb87c0030fe21c9b01fe25e2a01eb4121efb4b55843cde7b2532a01",
+      "size": [
+        320,
+        240
+      ],
+      "mode": "RGBA",
+      "format": "PNG"
+    },
+    {
+      "file": "GEOMETRY.png",
+      "bytes": 5572,
+      "sha256": "ccf9e63c6650303b93a817cbe5ad08efcbe975acac33c19b0e71c7bfbec892ab",
+      "size": [
+        960,
+        640
+      ],
+      "mode": "RGBA",
+      "format": "PNG"
+    },
+    {
+      "file": "PATCH-grey.tif",
+      "bytes": 614522,
+      "sha256": "fbffe632fb13e2316213c97d43400e969238c51a606cd379823832aa09563b54",
+      "size": [
+        960,
+        640
+      ],
+      "mode": "L",
+      "format": "TIFF"
+    },
+    {
+      "file": "PATCH-rgb.tif",
+      "bytes": 1843340,
+      "sha256": "4af44dcddb3f0604907e70490a720e2b98c1330ef6e57cf183113ea89d6f5a9d",
+      "size": [
+        960,
+        640
+      ],
+      "mode": "RGB",
+      "format": "TIFF"
+    },
+    {
+      "file": "PATCH-rgba.tif",
+      "bytes": 2457754,
+      "sha256": "0f650d94a509f8190149436e46402fca699714f9de92c15de50ad91b158da63c",
+      "size": [
+        960,
+        640
+      ],
+      "mode": "RGBA",
+      "format": "TIFF"
+    },
+    {
+      "file": "PATCH.bmp",
+      "bytes": 1843254,
+      "sha256": "a86c3f9ddb90f2c3558d31afc3cf5822987084adb4c74508f524b6ecb7105c42",
+      "size": [
+        960,
+        640
+      ],
+      "mode": "RGB",
+      "format": "BMP"
+    },
+    {
+      "file": "PATCH.gif",
+      "bytes": 2648,
+      "sha256": "515aaa708a581d2db5a2e0c8b6ddcce0707a8279bc6ec542c77f11ac1598e681",
+      "size": [
+        960,
+        640
+      ],
+      "mode": "P",
+      "format": "GIF"
+    },
+    {
+      "file": "PATCH.jpg",
+      "bytes": 13649,
+      "sha256": "cb19d9da3bbb3a68e8702245a895e8de6b1473137dc39b877b60504acd3e47dd",
+      "size": [
+        960,
+        640
+      ],
+      "mode": "RGB",
+      "format": "JPEG"
+    },
+    {
+      "file": "PATCH.png",
+      "bytes": 2862,
+      "sha256": "b4464813183d7122dfde28a33be00660dfe18e4aa255a92fd234bd8488199175",
+      "size": [
+        960,
+        640
+      ],
+      "mode": "RGBA",
+      "format": "PNG"
+    },
+    {
+      "file": "PATCH.webp",
+      "bytes": 200,
+      "sha256": "61a267eda7074f1a555da0a50c8bb6ef6efb19222bdeecfaa845c93a834897b6",
+      "size": [
+        960,
+        640
+      ],
+      "mode": "RGBA",
+      "format": "WEBP"
+    },
+    {
+      "file": "PIXEL.png",
+      "bytes": 214,
+      "sha256": "c8b1fb11ea07eb68d88812d96040a9047eabf112c23d5972600766137dac7b5e",
+      "size": [
+        32,
+        32
+      ],
+      "mode": "RGBA",
+      "format": "PNG"
+    },
+    {
+      "file": "TONAL.png",
+      "bytes": 1721,
+      "sha256": "609274642889ab40e6e30d8ff8650f007efcf2776b5f3c8e576f2bfd3ae46c51",
+      "size": [
+        1024,
+        256
+      ],
+      "mode": "RGBA",
+      "format": "PNG"
+    }
+  ],
+  "limitations": [
+    "Natural photograph not included",
+    "Legacy project fixtures not yet collected",
+    "Lens distortion variants not yet generated",
+    "Limit and fault injection fixtures are prepared per test"
+  ]
+}

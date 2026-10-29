@@ -1,0 +1,182 @@
+{
+  "at": "2026-10-20T15:59:36.345599+00:00",
+  "cases": [
+    "LAYER-013",
+    "LAYER-014"
+  ],
+  "status": "Plan recorded before execution; not a test result",
+  "levels": {
+    "viewport": [
+      [
+        1280,
+        720
+      ],
+      [
+        320,
+        568
+      ],
+      [
+        390,
+        844
+      ],
+      [
+        844,
+        390
+      ]
+    ],
+    "projection": [
+      "perspective",
+      "orthographic"
+    ],
+    "photo": [
+      false,
+      true
+    ],
+    "crop": [
+      false,
+      true
+    ]
+  },
+  "rows": [
+    {
+      "id": "v1",
+      "viewport": [
+        1280,
+        720
+      ],
+      "projection": "perspective",
+      "photo": false,
+      "crop": false,
+      "fixture": "perspective-plain-full"
+    },
+    {
+      "id": "v2",
+      "viewport": [
+        1280,
+        720
+      ],
+      "projection": "orthographic",
+      "photo": true,
+      "crop": true,
+      "fixture": "orthographic-photo-crop"
+    },
+    {
+      "id": "v3",
+      "viewport": [
+        320,
+        568
+      ],
+      "projection": "perspective",
+      "photo": false,
+      "crop": true,
+      "fixture": "perspective-plain-crop"
+    },
+    {
+      "id": "v4",
+      "viewport": [
+        320,
+        568
+      ],
+      "projection": "orthographic",
+      "photo": true,
+      "crop": false,
+      "fixture": "orthographic-photo-full"
+    },
+    {
+      "id": "v5",
+      "viewport": [
+        390,
+        844
+      ],
+      "projection": "perspective",
+      "photo": true,
+      "crop": false,
+      "fixture": "perspective-photo-full"
+    },
+    {
+      "id": "v6",
+      "viewport": [
+        390,
+        844
+      ],
+      "projection": "orthographic",
+      "photo": false,
+      "crop": true,
+      "fixture": "orthographic-plain-crop"
+    },
+    {
+      "id": "v7",
+      "viewport": [
+        844,
+        390
+      ],
+      "projection": "perspective",
+      "photo": true,
+      "crop": true,
+      "fixture": "perspective-photo-crop"
+    },
+    {
+      "id": "v8",
+      "viewport": [
+        844,
+        390
+      ],
+      "projection": "orthographic",
+      "photo": false,
+      "crop": false,
+      "fixture": "orthographic-plain-full"
+    }
+  ],
+  "pairwise_proof": [
+    {
+      "factors": [
+        "viewport",
+        "projection"
+      ],
+      "required_pairs": 8,
+      "executed_plan_pairs": 8
+    },
+    {
+      "factors": [
+        "viewport",
+        "photo"
+      ],
+      "required_pairs": 8,
+      "executed_plan_pairs": 8
+    },
+    {
+      "factors": [
+        "viewport",
+        "crop"
+      ],
+      "required_pairs": 8,
+      "executed_plan_pairs": 8
+    },
+    {
+      "factors": [
+        "projection",
+        "photo"
+      ],
+      "required_pairs": 4,
+      "executed_plan_pairs": 4
+    },
+    {
+      "factors": [
+        "projection",
+        "crop"
+      ],
+      "required_pairs": 4,
+      "executed_plan_pairs": 4
+    },
+    {
+      "factors": [
+        "photo",
+        "crop"
+      ],
+      "required_pairs": 4,
+      "executed_plan_pairs": 4
+    }
+  ],
+  "scope": "Every projection/photo/crop triple once; every screen size twice with both values of each other factor. Each case executes all8 rows. Every guide hide/show/history and hand-off branch runs per row. This reduces32 lower-risk layout combinations while retaining exhaustive named states and pairwise interactions.",
+  "fixture_preparation": "All8 CADMIX variants are actual UI-created copies of the immutable original artwork. Set/pin known isometric view, adjust only Backdrop when photo=true, crop to source100,80,760,480 when crop=true; retain every original body recipe and other source pixels. Actual fresh file reopen for each fixture."
+}

@@ -1,0 +1,194 @@
+{
+  "at": "2026-10-20T16:03:59.975834+00:00",
+  "decoder": "Pillow 12.3.0",
+  "rows": [
+    {
+      "fixture": "perspective-plain-full",
+      "sha256": "4969020016c17ad430de2dd6f3c672a7f788ea008b71057c10d1ee8c7407fb8a",
+      "projection": "perspective",
+      "photo": false,
+      "crop": false,
+      "source_resolution": [
+        960,
+        640
+      ],
+      "output_resolution": [
+        960,
+        640
+      ],
+      "original_body_recipes_and_all_other_source_pixels_exact": true,
+      "declared_recipe_and_frame_only": true,
+      "actual_fresh_file_data_and_rgba_exact": true
+    },
+    {
+      "fixture": "orthographic-photo-crop",
+      "sha256": "6f07d9b4042e2a4ca27c4766dda7cb768bdfc358a60b04de817c421d0f4c60cd",
+      "projection": "orthographic",
+      "photo": true,
+      "crop": true,
+      "source_resolution": [
+        960,
+        640
+      ],
+      "output_resolution": [
+        760,
+        480
+      ],
+      "original_body_recipes_and_all_other_source_pixels_exact": true,
+      "declared_recipe_and_frame_only": true,
+      "actual_fresh_file_data_and_rgba_exact": true
+    },
+    {
+      "fixture": "perspective-plain-crop",
+      "sha256": "2a17e2767660b6bbfecbbe8d3ae752c51355612cc2a6b8d9f7bb795d65fefe0b",
+      "projection": "perspective",
+      "photo": false,
+      "crop": true,
+      "source_resolution": [
+        960,
+        640
+      ],
+      "output_resolution": [
+        760,
+        480
+      ],
+      "original_body_recipes_and_all_other_source_pixels_exact": true,
+      "declared_recipe_and_frame_only": true,
+      "actual_fresh_file_data_and_rgba_exact": true
+    },
+    {
+      "fixture": "orthographic-photo-full",
+      "sha256": "c4dbf3c4eaacb8934233931186c8b0e02ff3c757e1b5634f233967d8947015a0",
+      "projection": "orthographic",
+      "photo": true,
+      "crop": false,
+      "source_resolution": [
+        960,
+        640
+      ],
+      "output_resolution": [
+        960,
+        640
+      ],
+      "original_body_recipes_and_all_other_source_pixels_exact": true,
+      "declared_recipe_and_frame_only": true,
+      "actual_fresh_file_data_and_rgba_exact": true
+    },
+    {
+      "fixture": "perspective-photo-full",
+      "sha256": "5815f0c3704d86dd668201bd02a219fe33d4a23c0a80df39b82a1fc788ed1acf",
+      "projection": "perspective",
+      "photo": true,
+      "crop": false,
+      "source_resolution": [
+        960,
+        640
+      ],
+      "output_resolution": [
+        960,
+        640
+      ],
+      "original_body_recipes_and_all_other_source_pixels_exact": true,
+      "declared_recipe_and_frame_only": true,
+      "actual_fresh_file_data_and_rgba_exact": true
+    },
+    {
+      "fixture": "orthographic-plain-crop",
+      "sha256": "9677cec6af156ef33b6144bb700f1780173c28e86060abff4890af45ae48a262",
+      "projection": "orthographic",
+      "photo": false,
+      "crop": true,
+      "source_resolution": [
+        960,
+        640
+      ],
+      "output_resolution": [
+        760,
+        480
+      ],
+      "original_body_recipes_and_all_other_source_pixels_exact": true,
+      "declared_recipe_and_frame_only": true,
+      "actual_fresh_file_data_and_rgba_exact": true
+    },
+    {
+      "fixture": "perspective-photo-crop",
+      "sha256": "62b56c027bd7128bda500e564e48c1c4847ea33c726a58d1f999dad49ccb8194",
+      "projection": "perspective",
+      "photo": true,
+      "crop": true,
+      "source_resolution": [
+        960,
+        640
+      ],
+      "output_resolution": [
+        760,
+        480
+      ],
+      "original_body_recipes_and_all_other_source_pixels_exact": true,
+      "declared_recipe_and_frame_only": true,
+      "actual_fresh_file_data_and_rgba_exact": true
+    },
+    {
+      "fixture": "orthographic-plain-full",
+      "sha256": "eb8124cc894dcae1981b61de6796bde57355f20b1cbbb79634dd51a62ec8dcfc",
+      "projection": "orthographic",
+      "photo": false,
+      "crop": false,
+      "source_resolution": [
+        960,
+        640
+      ],
+      "output_resolution": [
+        960,
+        640
+      ],
+      "original_body_recipes_and_all_other_source_pixels_exact": true,
+      "declared_recipe_and_frame_only": true,
+      "actual_fresh_file_data_and_rgba_exact": true
+    }
+  ],
+  "actual_downloads_verified": 32,
+  "known_isometric_views": {
+    "perspective": {
+      "position": [
+        44.98170285326542,
+        -48.72621370924504,
+        47.48170285326542
+      ],
+      "target": [
+        7.5,
+        0,
+        10
+      ],
+      "up": [
+        0,
+        0,
+        1
+      ],
+      "projection": "perspective",
+      "span": 49.58317631371174
+    },
+    "orthographic": {
+      "position": [
+        44.98170285326539,
+        -48.726213709245016,
+        47.48170285326538
+      ],
+      "target": [
+        7.5,
+        0,
+        10
+      ],
+      "up": [
+        0,
+        0,
+        1
+      ],
+      "projection": "orthographic",
+      "span": 49.583176313711725
+    }
+  },
+  "independent_plain_layer_composite_max_tolerance": 1,
+  "all_four_crop_variants_exact_slices_of_their_full_picture": true,
+  "scope": "Fixture preparation only. Original body recipes, IDs, order and raw guide/annotation pixels are exact. View and guide recipe/frame changes are explicit. Photo settings are verified as independently specified inputs; this does not replace the separate Photo lab effect tests. No acceptance case Pass is inferred from fixture creation."
+}

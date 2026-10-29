@@ -1,0 +1,401 @@
+{
+  "at": "2026-10-20T18:35:28.697502+00:00",
+  "case": "PAINT-007",
+  "status": "Pre-execution plan, not a result",
+  "applicators": [
+    "brush",
+    "oil",
+    "crayon",
+    "natural"
+  ],
+  "rows_per_applicator": [
+    {
+      "id": "p1",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 1,
+      "strength": 0.15
+    },
+    {
+      "id": "p2",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 22,
+      "strength": 1
+    },
+    {
+      "id": "p3",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 96,
+      "strength": 0.15
+    },
+    {
+      "id": "p4",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 1,
+      "strength": 1
+    },
+    {
+      "id": "p5",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 0.15
+    },
+    {
+      "id": "p6",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 96,
+      "strength": 1
+    },
+    {
+      "id": "p7",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 1
+    },
+    {
+      "id": "p8",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 1,
+      "strength": 0.15
+    },
+    {
+      "id": "p9",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 22,
+      "strength": 1
+    },
+    {
+      "id": "p10",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 96,
+      "strength": 0.15
+    },
+    {
+      "id": "p11",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 1,
+      "strength": 1
+    },
+    {
+      "id": "p12",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 0.15
+    },
+    {
+      "id": "p13",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 96,
+      "strength": 1
+    },
+    {
+      "id": "p14",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 1
+    }
+  ],
+  "pairwise_proof_per_applicator": [
+    {
+      "factors": [
+        "viewport",
+        "size"
+      ],
+      "pairs": 12
+    },
+    {
+      "factors": [
+        "viewport",
+        "strength"
+      ],
+      "pairs": 8
+    },
+    {
+      "factors": [
+        "size",
+        "strength"
+      ],
+      "pairs": 6
+    }
+  ],
+  "boundary_geometry": {
+    "slow": "Quadratic from150,280 through400,160 to650,280;41 native points,15ms delay between points",
+    "fast": "Same quadratic shifted160px up;41 native points, no inserted delay",
+    "tap": [
+      800,
+      200
+    ]
+  },
+  "main_viewports": [
+    [
+      1280,
+      720
+    ],
+    [
+      320,
+      568
+    ],
+    [
+      390,
+      844
+    ],
+    [
+      844,
+      390
+    ]
+  ],
+  "main_paths": {
+    "brush": {
+      "points": [
+        [
+          120,
+          110
+        ],
+        [
+          220,
+          75
+        ],
+        [
+          320,
+          110
+        ]
+      ],
+      "tap": [
+        420,
+        110
+      ]
+    },
+    "oil": {
+      "points": [
+        [
+          520,
+          110
+        ],
+        [
+          620,
+          75
+        ],
+        [
+          720,
+          110
+        ]
+      ],
+      "tap": [
+        820,
+        110
+      ]
+    },
+    "crayon": {
+      "points": [
+        [
+          120,
+          420
+        ],
+        [
+          220,
+          385
+        ],
+        [
+          320,
+          420
+        ]
+      ],
+      "tap": [
+        420,
+        420
+      ]
+    },
+    "natural": {
+      "points": [
+        [
+          520,
+          420
+        ],
+        [
+          620,
+          385
+        ],
+        [
+          720,
+          420
+        ]
+      ],
+      "tap": [
+        820,
+        420
+      ]
+    }
+  },
+  "preview_curve": "70 declared samples: x15+1.85*i,y30+9*sin(2*pi*i/69),160x60 transparent public preview; independent core distance<3px. Main core distance<6px from the declared bent path.",
+  "oracle": "Each of the four named Classic choices gets every14-row size/Strength/layout pairwise boundary workflow, native tap/slow/fast, full gesture history and fresh input. Default Brush/Oil deltas must be8-connected; grain materials separately report raw islands and must connect after only one-cell dilation, with dense centreline samples within2px and unchanged radius+2px containment. This fixed allowance admits paper grain, not missing long stroke sections. Four main22/full contexts exercise all four choices on one picture: capture actual public preview pixels, preserve old marks on every choice change, bent stroke plus tap for each, eight separate Undo/Redo and fresh complete source/RGBA. Independent preview/main core metrics: Classic Brush has flat known Red; Oil has >=3 RGB values/green range>=3; Crayon has grain with >=5% inferred pigment alpha<.25 and >=5%>.9; Natural has <1% alpha<.25, >=5%>.75 and maximum<=.95. Both grain types have >=10 distinct core colours. These separate the families and require the selected public sample to agree with its actual material. No renderer supplies expected pixels. Mouse only.",
+  "applicator": "brush",
+  "rows": [
+    {
+      "id": "p1",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 1,
+      "strength": 0.15
+    },
+    {
+      "id": "p2",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 22,
+      "strength": 1
+    },
+    {
+      "id": "p3",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 96,
+      "strength": 0.15
+    },
+    {
+      "id": "p4",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 1,
+      "strength": 1
+    },
+    {
+      "id": "p5",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 0.15
+    },
+    {
+      "id": "p6",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 96,
+      "strength": 1
+    },
+    {
+      "id": "p7",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 1
+    },
+    {
+      "id": "p8",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 1,
+      "strength": 0.15
+    },
+    {
+      "id": "p9",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 22,
+      "strength": 1
+    },
+    {
+      "id": "p10",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 96,
+      "strength": 0.15
+    },
+    {
+      "id": "p11",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 1,
+      "strength": 1
+    },
+    {
+      "id": "p12",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 0.15
+    },
+    {
+      "id": "p13",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 96,
+      "strength": 1
+    },
+    {
+      "id": "p14",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 1
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "documentation_validation_only": true,
+  "application_cases_executed": 0,
+  "total_cases": 349,
+  "chapters": 18,
+  "persona_counts": {
+    "L1": 54,
+    "L2": 164,
+    "L3": 131
+  },
+  "all_case_ids_unique": true,
+  "all_titles_unique": true,
+  "minimum_main_steps": 3,
+  "minimum_acceptance_criteria": 3,
+  "all_sources_exist": true,
+  "all_fixture_references_resolve_to_preparation_specs": true,
+  "binary_test_fixtures_generated": false,
+  "required_variant_families": 27,
+  "local_links_checked": 3144,
+  "broken_links": [],
+  "all_execution_statuses": "Not run",
+  "html_case_count": 349
+}

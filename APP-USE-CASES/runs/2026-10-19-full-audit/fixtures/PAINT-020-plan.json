@@ -1,0 +1,728 @@
+{
+  "at": "2026-10-20T23:54:22.198056+00:00",
+  "case": "PAINT-020",
+  "status": "Pre-execution software scope plan; physical pen unavailable",
+  "rows": [
+    {
+      "id": "v1-mouse-available-normal",
+      "viewport": [
+        1280,
+        720
+      ],
+      "device": "mouse",
+      "api": "available",
+      "load": "normal"
+    },
+    {
+      "id": "v1-mouse-available-busy",
+      "viewport": [
+        1280,
+        720
+      ],
+      "device": "mouse",
+      "api": "available",
+      "load": "busy"
+    },
+    {
+      "id": "v1-mouse-absent-fallback-normal",
+      "viewport": [
+        1280,
+        720
+      ],
+      "device": "mouse",
+      "api": "absent-fallback",
+      "load": "normal"
+    },
+    {
+      "id": "v1-mouse-absent-fallback-busy",
+      "viewport": [
+        1280,
+        720
+      ],
+      "device": "mouse",
+      "api": "absent-fallback",
+      "load": "busy"
+    },
+    {
+      "id": "v1-browser-emulated-pen-available-normal",
+      "viewport": [
+        1280,
+        720
+      ],
+      "device": "browser-emulated-pen",
+      "api": "available",
+      "load": "normal"
+    },
+    {
+      "id": "v1-browser-emulated-pen-available-busy",
+      "viewport": [
+        1280,
+        720
+      ],
+      "device": "browser-emulated-pen",
+      "api": "available",
+      "load": "busy"
+    },
+    {
+      "id": "v1-browser-emulated-pen-absent-fallback-normal",
+      "viewport": [
+        1280,
+        720
+      ],
+      "device": "browser-emulated-pen",
+      "api": "absent-fallback",
+      "load": "normal"
+    },
+    {
+      "id": "v1-browser-emulated-pen-absent-fallback-busy",
+      "viewport": [
+        1280,
+        720
+      ],
+      "device": "browser-emulated-pen",
+      "api": "absent-fallback",
+      "load": "busy"
+    },
+    {
+      "id": "v2-mouse-available-normal",
+      "viewport": [
+        320,
+        568
+      ],
+      "device": "mouse",
+      "api": "available",
+      "load": "normal"
+    },
+    {
+      "id": "v2-mouse-available-busy",
+      "viewport": [
+        320,
+        568
+      ],
+      "device": "mouse",
+      "api": "available",
+      "load": "busy"
+    },
+    {
+      "id": "v2-mouse-absent-fallback-normal",
+      "viewport": [
+        320,
+        568
+      ],
+      "device": "mouse",
+      "api": "absent-fallback",
+      "load": "normal"
+    },
+    {
+      "id": "v2-mouse-absent-fallback-busy",
+      "viewport": [
+        320,
+        568
+      ],
+      "device": "mouse",
+      "api": "absent-fallback",
+      "load": "busy"
+    },
+    {
+      "id": "v2-browser-emulated-pen-available-normal",
+      "viewport": [
+        320,
+        568
+      ],
+      "device": "browser-emulated-pen",
+      "api": "available",
+      "load": "normal"
+    },
+    {
+      "id": "v2-browser-emulated-pen-available-busy",
+      "viewport": [
+        320,
+        568
+      ],
+      "device": "browser-emulated-pen",
+      "api": "available",
+      "load": "busy"
+    },
+    {
+      "id": "v2-browser-emulated-pen-absent-fallback-normal",
+      "viewport": [
+        320,
+        568
+      ],
+      "device": "browser-emulated-pen",
+      "api": "absent-fallback",
+      "load": "normal"
+    },
+    {
+      "id": "v2-browser-emulated-pen-absent-fallback-busy",
+      "viewport": [
+        320,
+        568
+      ],
+      "device": "browser-emulated-pen",
+      "api": "absent-fallback",
+      "load": "busy"
+    },
+    {
+      "id": "v3-mouse-available-normal",
+      "viewport": [
+        390,
+        844
+      ],
+      "device": "mouse",
+      "api": "available",
+      "load": "normal"
+    },
+    {
+      "id": "v3-mouse-available-busy",
+      "viewport": [
+        390,
+        844
+      ],
+      "device": "mouse",
+      "api": "available",
+      "load": "busy"
+    },
+    {
+      "id": "v3-mouse-absent-fallback-normal",
+      "viewport": [
+        390,
+        844
+      ],
+      "device": "mouse",
+      "api": "absent-fallback",
+      "load": "normal"
+    },
+    {
+      "id": "v3-mouse-absent-fallback-busy",
+      "viewport": [
+        390,
+        844
+      ],
+      "device": "mouse",
+      "api": "absent-fallback",
+      "load": "busy"
+    },
+    {
+      "id": "v3-browser-emulated-pen-available-normal",
+      "viewport": [
+        390,
+        844
+      ],
+      "device": "browser-emulated-pen",
+      "api": "available",
+      "load": "normal"
+    },
+    {
+      "id": "v3-browser-emulated-pen-available-busy",
+      "viewport": [
+        390,
+        844
+      ],
+      "device": "browser-emulated-pen",
+      "api": "available",
+      "load": "busy"
+    },
+    {
+      "id": "v3-browser-emulated-pen-absent-fallback-normal",
+      "viewport": [
+        390,
+        844
+      ],
+      "device": "browser-emulated-pen",
+      "api": "absent-fallback",
+      "load": "normal"
+    },
+    {
+      "id": "v3-browser-emulated-pen-absent-fallback-busy",
+      "viewport": [
+        390,
+        844
+      ],
+      "device": "browser-emulated-pen",
+      "api": "absent-fallback",
+      "load": "busy"
+    },
+    {
+      "id": "v4-mouse-available-normal",
+      "viewport": [
+        844,
+        390
+      ],
+      "device": "mouse",
+      "api": "available",
+      "load": "normal"
+    },
+    {
+      "id": "v4-mouse-available-busy",
+      "viewport": [
+        844,
+        390
+      ],
+      "device": "mouse",
+      "api": "available",
+      "load": "busy"
+    },
+    {
+      "id": "v4-mouse-absent-fallback-normal",
+      "viewport": [
+        844,
+        390
+      ],
+      "device": "mouse",
+      "api": "absent-fallback",
+      "load": "normal"
+    },
+    {
+      "id": "v4-mouse-absent-fallback-busy",
+      "viewport": [
+        844,
+        390
+      ],
+      "device": "mouse",
+      "api": "absent-fallback",
+      "load": "busy"
+    },
+    {
+      "id": "v4-browser-emulated-pen-available-normal",
+      "viewport": [
+        844,
+        390
+      ],
+      "device": "browser-emulated-pen",
+      "api": "available",
+      "load": "normal"
+    },
+    {
+      "id": "v4-browser-emulated-pen-available-busy",
+      "viewport": [
+        844,
+        390
+      ],
+      "device": "browser-emulated-pen",
+      "api": "available",
+      "load": "busy"
+    },
+    {
+      "id": "v4-browser-emulated-pen-absent-fallback-normal",
+      "viewport": [
+        844,
+        390
+      ],
+      "device": "browser-emulated-pen",
+      "api": "absent-fallback",
+      "load": "normal"
+    },
+    {
+      "id": "v4-browser-emulated-pen-absent-fallback-busy",
+      "viewport": [
+        844,
+        390
+      ],
+      "device": "browser-emulated-pen",
+      "api": "absent-fallback",
+      "load": "busy"
+    }
+  ],
+  "points": [
+    [
+      590.0,
+      350.0
+    ],
+    [
+      589.700249,
+      355.886282
+    ],
+    [
+      588.802281,
+      361.747357
+    ],
+    [
+      587.309939,
+      367.558129
+    ],
+    [
+      585.229616,
+      373.293714
+    ],
+    [
+      582.570218,
+      378.929552
+    ],
+    [
+      579.343135,
+      384.441509
+    ],
+    [
+      575.562184,
+      389.805982
+    ],
+    [
+      571.243557,
+      395.0
+    ],
+    [
+      566.405746,
+      400.001321
+    ],
+    [
+      561.069468,
+      404.788529
+    ],
+    [
+      555.257573,
+      409.341123
+    ],
+    [
+      548.994949,
+      413.63961
+    ],
+    [
+      542.308414,
+      417.665583
+    ],
+    [
+      535.2266,
+      421.401801
+    ],
+    [
+      527.779833,
+      424.832265
+    ],
+    [
+      520.0,
+      427.942286
+    ],
+    [
+      511.920417,
+      430.718547
+    ],
+    [
+      503.575681,
+      433.149158
+    ],
+    [
+      495.001525,
+      435.223712
+    ],
+    [
+      486.234666,
+      436.933324
+    ],
+    [
+      477.312645,
+      438.270675
+    ],
+    [
+      468.273667,
+      439.230038
+    ],
+    [
+      459.156438,
+      439.807303
+    ],
+    [
+      450.0,
+      440.0
+    ],
+    [
+      440.843562,
+      439.807303
+    ],
+    [
+      431.726333,
+      439.230038
+    ],
+    [
+      422.687355,
+      438.270675
+    ],
+    [
+      413.765334,
+      436.933324
+    ],
+    [
+      404.998475,
+      435.223712
+    ],
+    [
+      396.424319,
+      433.149158
+    ],
+    [
+      388.079583,
+      430.718547
+    ],
+    [
+      380.0,
+      427.942286
+    ],
+    [
+      372.220167,
+      424.832265
+    ],
+    [
+      364.7734,
+      421.401801
+    ],
+    [
+      357.691586,
+      417.665583
+    ],
+    [
+      351.005051,
+      413.63961
+    ],
+    [
+      344.742427,
+      409.341123
+    ],
+    [
+      338.930532,
+      404.788529
+    ],
+    [
+      333.594254,
+      400.001321
+    ],
+    [
+      328.756443,
+      395.0
+    ],
+    [
+      324.437816,
+      389.805982
+    ],
+    [
+      320.656865,
+      384.441509
+    ],
+    [
+      317.429782,
+      378.929552
+    ],
+    [
+      314.770384,
+      373.293714
+    ],
+    [
+      312.690061,
+      367.558129
+    ],
+    [
+      311.197719,
+      361.747357
+    ],
+    [
+      310.299751,
+      355.886282
+    ],
+    [
+      310.0,
+      350.0
+    ],
+    [
+      310.299751,
+      344.113718
+    ],
+    [
+      311.197719,
+      338.252643
+    ],
+    [
+      312.690061,
+      332.441871
+    ],
+    [
+      314.770384,
+      326.706286
+    ],
+    [
+      317.429782,
+      321.070448
+    ],
+    [
+      320.656865,
+      315.558491
+    ],
+    [
+      324.437816,
+      310.194018
+    ],
+    [
+      328.756443,
+      305.0
+    ],
+    [
+      333.594254,
+      299.998679
+    ],
+    [
+      338.930532,
+      295.211471
+    ],
+    [
+      344.742427,
+      290.658877
+    ],
+    [
+      351.005051,
+      286.36039
+    ],
+    [
+      357.691586,
+      282.334417
+    ],
+    [
+      364.7734,
+      278.598199
+    ],
+    [
+      372.220167,
+      275.167735
+    ],
+    [
+      380.0,
+      272.057714
+    ],
+    [
+      388.079583,
+      269.281453
+    ],
+    [
+      396.424319,
+      266.850842
+    ],
+    [
+      404.998475,
+      264.776288
+    ],
+    [
+      413.765334,
+      263.066676
+    ],
+    [
+      422.687355,
+      261.729325
+    ],
+    [
+      431.726333,
+      260.769962
+    ],
+    [
+      440.843562,
+      260.192697
+    ],
+    [
+      450.0,
+      260.0
+    ],
+    [
+      459.156438,
+      260.192697
+    ],
+    [
+      468.273667,
+      260.769962
+    ],
+    [
+      477.312645,
+      261.729325
+    ],
+    [
+      486.234666,
+      263.066676
+    ],
+    [
+      495.001525,
+      264.776288
+    ],
+    [
+      503.575681,
+      266.850842
+    ],
+    [
+      511.920417,
+      269.281453
+    ],
+    [
+      520.0,
+      272.057714
+    ],
+    [
+      527.779833,
+      275.167735
+    ],
+    [
+      535.2266,
+      278.598199
+    ],
+    [
+      542.308414,
+      282.334417
+    ],
+    [
+      548.994949,
+      286.36039
+    ],
+    [
+      555.257573,
+      290.658877
+    ],
+    [
+      561.069468,
+      295.211471
+    ],
+    [
+      566.405746,
+      299.998679
+    ],
+    [
+      571.243557,
+      305.0
+    ],
+    [
+      575.562184,
+      310.194018
+    ],
+    [
+      579.343135,
+      315.558491
+    ],
+    [
+      582.570218,
+      321.070448
+    ],
+    [
+      585.229616,
+      326.706286
+    ],
+    [
+      587.309939,
+      332.441871
+    ],
+    [
+      588.802281,
+      338.252643
+    ],
+    [
+      589.700249,
+      344.113718
+    ],
+    [
+      590.0,
+      350.0
+    ]
+  ],
+  "size": 22,
+  "strength": 1,
+  "colour": [
+    229,
+    57,
+    53
+  ],
+  "maximum_footprint_radius": 24,
+  "load_busy_ms_per_frame": 12,
+  "expected_downloads_per_row": 10,
+  "oracle": "32 actual UI software workflows: four layouts x native mouse/browser-emulated pen x available/removed coalesced API x normal/deliberately busy main thread. Busy fixture consumes12ms each real RAF during the gesture only and records actual busy intervals; no fixed clock or fabricated DOM input. Native browser pen pressures vary0.1..0.9 while source remains960x640 at unchanged scale. The predefined closed elliptic loop must remain continuous, changed pixels remain within24 source pixels of the recorded native ordinary/coalesced sample polyline, earlier/reopened source and exact complete Undo/Redo remain unchanged. Every actual saved project/PNG is hashed and independently decoded. Available coalesced sample arrays are recorded with source coordinates, pressure, timestamps and trust; any actually delivered intermediate sample must intersect the saved painted footprint. API absence is injected before app load via removal of the browser method; ordinary native events must still paint safely. Software-emulated pen and loaded scheduling never certify physical pen pressure, hardware scale or physical coalescing. Physical branch stays Partial, not Pass. Independent Python/Pillow/NumPy oracle uses no application paint/input/serializer kernel."
+}

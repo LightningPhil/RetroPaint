@@ -1,7 +1,7 @@
 import { play, playDrawing,playThrottled } from './audio';
 import { beginStrokeGeneration, segment } from './draw';
 import { pushHistory } from './history';
-import { state } from './state';
+import { state, vectorDrawingEnabled } from './state';
 import { baseCtx, H, view, W } from './canvas';
 import { bakeStaticStrokes } from './live';
 import type { GearDef, StatorShape } from './types';
@@ -215,7 +215,7 @@ export function crankStart(x: number, y: number): void {
   if (!state.spiro.gearId || motor) return;
   crankAngle = Math.atan2(y - state.spiro.cy, x - state.spiro.cx);
   pushHistory();
-  if(state.drawingMode==='vector')vectorPoints=[];else beginObjectStroke('Spiro');
+  if(vectorDrawingEnabled())vectorPoints=[];else beginObjectStroke('Spiro');
   beginStrokeGeneration();
 }
 
@@ -242,7 +242,7 @@ export function startMotor(): void {
   const outer = Math.max(1, gear.teeth / gcd(outerCount(), gear.teeth));
   const cycles = outer;
   pushHistory();
-  if(state.drawingMode==='vector')vectorPoints=[];else beginObjectStroke('Spiro');
+  if(vectorDrawingEnabled())vectorPoints=[];else beginObjectStroke('Spiro');
   beginStrokeGeneration();
   state.spiro.theta = 0;
   motor = {

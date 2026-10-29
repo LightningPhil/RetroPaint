@@ -2,20 +2,20 @@ import { activeSector, insideSector, clipSegment, sliceAt } from './symmetry-mas
 import { bus, emit } from './bus';
 import { unlockAudio } from './audio';
 import { baseCtx, eventPos, view, viewCtx } from './canvas';
-import { bakeStaticStrokes } from './live';
+import { bakeStaticStrokes, hasLive } from './live';
 import { beginStrokeGeneration, dot, segment, sprayCloud, useGeneration } from './draw';
-import { beginBake, embossAt, invertAt, isBusy, pixelateAt, smudge, startHole } from './effects';
+import { beginBake, beginPixelFilterStroke, embossAt, invertAt, isBusy, moveHole, pixelateAt, smudge, startHole, stopHole, type PixelFilterStroke } from './effects';
 import { drawShape, floodAt, floodMask, getPending, hitPin, lockPending, movePin, setPinDrag, setShapePainter, strokePath } from './fill';
 import { pushHistory } from './history';
 import { setPreview } from './preview';
 import { crankMove, crankStart, finishSpiroStroke, hitStator, hitWindKey, hoverHole, startMotor } from './spiro';
-import { currentWidth, state } from './state';
+import { currentWidth, state, vectorDrawingEnabled } from './state';
 import { placeStamp } from './stamps';
 import { beginSelectionResize, cancelSelection, commitSelection, dragSelectionResize, endSelectionResize, hitSelection, hitSelectionHandle, moveSelection, rectangle, selectPixelMask, selectRegion } from './selection';
 import { SmudgePath } from './smudge';
 import { splinePoints } from './curves';
 import { hitResizeHandle, motorOn, resizeHandle, setRingRadius } from './spiro';
-import { beginText } from './text-tool';
+import { beginText, calloutEnabled } from './text-tool';
 import { paintFrame } from './paint';
 import { activeLayer, renderActive } from './layers';
 import { rgbToHex } from './color';
@@ -35,9 +35,10 @@ interface Ptr {
   t: number;
   still: number;
   gen: number;
-  mode: 'draw' | 'spray' | 'shape' | 'lasso' | 'grad' | 'pin' | 'ring' | 'crank' | 'stamp' | 'filter' | 'smudge' | 'ignore' | 'bucket' | 'selectionMove' | 'selectionResize' | 'resize' | 'object' | 'objectMarquee';
+  mode: 'draw' | 'spray' | 'shape' | 'lasso' | 'grad' | 'pin' | 'ring' | 'crank' | 'stamp' | 'filter' | 'smudge' | 'hole' | 'ignore' | 'bucket' | 'selectionMove' | 'selectionResize' | 'resize' | 'object' | 'objectMarquee';
   secondary: boolean;
   smudgePath?: SmudgePath;
+  filterStroke?: PixelFilterStroke;
   lasso: { x: number; y: number }[];
   ringDx: number;
   ringDy: number;
@@ -96,6 +97,7 @@ function cancelPointer(id: number): void {
   if (ptr.mode === 'pin') setPinDrag(null);
   if(ptr.mode==='object')endObjectDrag();
   if(ptr.mode==='crank')finishSpiroStroke();
+  if(ptr.mode==='hole')stopHole();
   if (!ptrs.size) {
     groupSaved = false;
     // Keep pigment already laid down, without inventing a final segment to (0,0).
@@ -136,7 +138,11 @@ function onDown(event: PointerEvent): void {
 }
 function handleDown(event: PointerEvent): void {
   unlockAudio();
-  if (activeLayer().cad) { emit('open-cad'); message('This is an editable 3D layer. Use the 3D workshop, or choose a paint layer.'); return; }
+  if (activeLayer().cad && !(state.tool==='text'&&calloutEnabled())) {
+    if(state.workspaceMode==='basic')message('This is a 3D layer. Turn on Advanced mode in More to edit it or choose a paint layer. Your model stays intact.');
+    else {emit('open-cad');message('This is an editable 3D layer. Use the 3D workshop, or choose a paint layer.');}
+    return;
+  }
   if (isBusy() || state.busy || (event.button !== 0 && event.button !== 2)) return;
   if (event.button === 2 && !['draw', 'spray', 'shapes', 'bucket', 'picker'].includes(state.tool)) return;
   if (ptrs.size && (state.tool === 'sponge' || state.tool === 'scissors')) return;
@@ -151,7 +157,8 @@ function handleDown(event: PointerEvent): void {
     return;
   }
   if (state.tool === 'text') { beginText(pos.x, pos.y); return; }
-  if (!activeLayer().visible) { activeLayer().visible = true; emit('layers'); }
+  const revealEraser = state.tool === 'eraser';
+  if (!activeLayer().visible && !revealEraser) { activeLayer().visible = true; emit('layers'); }
   if (chooseSource(pos.x,pos.y)) return;
   const pin = hitPin(pos.x, pos.y);
   if (pin) {
@@ -220,8 +227,12 @@ function handleDown(event: PointerEvent): void {
     if(editableObjects()){
       if(!hasObjectSelection())selectObjectAt(pos.x,pos.y);
       if(!beginObjectPixelEdit()){message('Select one piece first, then use Black Hole.');return;}
-      startHole(pos.x,pos.y,false);if(!isBusy())finishObjectStroke();
-    } else startHole(pos.x, pos.y);
+      startHole(pos.x,pos.y,false,true);if(!isBusy())finishObjectStroke();
+    } else startHole(pos.x, pos.y,true,true);
+    if(isBusy()){
+      if(!activeLayer().visible){activeLayer().visible=true;emit('layers');}
+      ptrs.set(event.pointerId,blank(event.pointerId,pos,'hole'));
+    }
     return;
   }
 
@@ -247,24 +258,36 @@ function handleDown(event: PointerEvent): void {
   else if (state.tool === 'sponge') ptr.mode = 'smudge';
   else if (state.tool === 'eraser' && state.eraserMode !== 'scrub') ptr.mode = 'filter';
 
-  if (!groupSaved && ptr.mode !== 'lasso') {
+  if (!groupSaved && ptr.mode !== 'lasso' && (ptr.mode!=='smudge'||editableObjects())) {
     const pixelEdit=editableObjects()&&(ptr.mode==='smudge'||ptr.mode==='filter');
     if(pixelEdit&&!beginObjectPixelEdit()){message('Use Select to pick one piece first, then apply this pixel effect.');return;}
     if(!pixelEdit&&(ptr.mode === 'smudge' || ptr.mode === 'filter' || ((activeSector() || state.opacity < 1) && state.tool === 'eraser'))) beginBake();
     else if(!pixelEdit)pushHistory();
     groupSaved = true;
   }
-  if(ptr.mode==='draw'||ptr.mode==='spray'||(ptr.mode==='shape'&&state.drawingMode==='raster')||(ptr.mode==='stamp'&&state.drawingMode==='raster'))beginObjectStroke(state.tool==='eraser'?'Eraser stroke':ptr.mode==='shape'?'Shape':ptr.mode==='stamp'?'Stamp':'Brush stroke',state.tool==='eraser'&&!activeLayer().paper?'destination-out':undefined);
+  // Erasing a hidden sheet reveals it after history captures its original state.
+  if (revealEraser && !activeLayer().visible) { activeLayer().visible = true; emit('layers'); }
+  if(ptr.mode==='draw'||ptr.mode==='spray'||(ptr.mode==='shape'&&!vectorDrawingEnabled())||(ptr.mode==='stamp'&&!vectorDrawingEnabled()))beginObjectStroke(state.tool==='eraser'?'Eraser stroke':ptr.mode==='shape'?'Shape':ptr.mode==='stamp'?'Stamp':'Brush stroke',state.tool==='eraser'&&!activeLayer().paper?'destination-out':undefined);
 
   ptrs.set(event.pointerId, ptr);
   useGeneration(ptr.gen);
 
   if (ptr.mode === 'draw') dot(pos.x, pos.y, widthFor(ptr, 0, 0, 0));
   if (ptr.mode === 'stamp') placeStamp(pos.x, pos.y);
-  if (ptr.mode === 'filter') applyFilter(pos.x, pos.y);
+  if (ptr.mode === 'filter') { ptr.filterStroke = beginPixelFilterStroke(); applyFilter(pos.x, pos.y, ptr.filterStroke); }
   if (ptr.mode === 'smudge') {
     const radius = Math.max(12, currentWidth());
-    ptr.smudgePath = new SmudgePath(pos.x, pos.y, radius, (x, y, dx, dy) => smudge(x, y, dx, dy, radius));
+    const target=baseCtx;
+    ptr.smudgePath = new SmudgePath(pos.x, pos.y, radius, (x, y, dx, dy) => {
+      if(target!==baseCtx)return;
+      if(groupSaved){smudge(x,y,dx,dy,radius);return;}
+      const now=performance.now();let source=baseCtx;
+      if(hasLive()){
+        const canvas=document.createElement('canvas');canvas.width=baseCtx.canvas.width;canvas.height=baseCtx.canvas.height;
+        source=canvas.getContext('2d')!;renderActive(source,now);
+      }
+      smudge(x,y,dx,dy,radius,{source,commit:()=>{beginBake(now);groupSaved=true;}});
+    });
   }
   if (ptr.mode === 'lasso') ptr.lasso.push(pos);
 }
@@ -277,7 +300,7 @@ function handleMove(event: PointerEvent): void {
   view.style.cursor = 'crosshair';
   const ptr = ptrs.get(event.pointerId);
   if (!ptr) {
-    if(state.tool==='scissors'&&editableObjects()){const p=eventPos(event),handle=objectHandle(p.x,p.y);if(handle>=0)view.style.cursor=['nwse-resize','ns-resize','nesw-resize','ew-resize','nwse-resize','ns-resize','nesw-resize','ew-resize'][handle];}
+    if(state.tool==='scissors'&&editableObjects()){const p=eventPos(event),handle=objectHandle(p.x,p.y);if(handle>=0)view.style.cursor=['nwse-resize','ns-resize','nesw-resize','ew-resize','nwse-resize','ns-resize','nesw-resize','ew-resize'][handle]??'move';}
     if (state.tool === 'spiro') hoverHole(eventPos(event).x, eventPos(event).y);
     return;
   }
@@ -291,6 +314,7 @@ function handleMove(event: PointerEvent): void {
   else ptr.still = 0;
 
   if (ptr.mode === 'bucket' && insideSector(pos.x,pos.y)) { floodAt(pos.x,pos.y,null); ptr.mode='ignore'; }
+  else if(ptr.mode==='hole')moveHole(pos.x,pos.y);
   else if(ptr.mode==='object')dragObjects(pos.x,pos.y,event.shiftKey);
   else if(ptr.mode==='objectMarquee')setPreview({kind:'lasso',points:rectangle(ptr.sx,ptr.sy,pos.x,pos.y)});
   else if (ptr.mode === 'selectionMove') moveSelection(pos.x - ptr.x, pos.y - ptr.y);
@@ -320,7 +344,16 @@ function handleMove(event: PointerEvent): void {
       ptr.smudgePath?.move(p.x, p.y);
     }
   }
-  else if (ptr.mode === 'filter' && dist > 6) applyFilter(pos.x, pos.y);
+  else if (ptr.mode === 'filter') {
+    let previous = { x: ptr.x, y: ptr.y };
+    const samples = event.getCoalescedEvents?.() ?? [];
+    for (const sample of samples.length ? samples : [event]) {
+      const point = eventPos(sample);
+      applyFilterBetween(previous, point, ptr.filterStroke);
+      previous = point;
+    }
+    if (previous.x !== pos.x || previous.y !== pos.y) applyFilterBetween(previous, pos, ptr.filterStroke);
+  }
   else if (ptr.mode === 'draw' && state.tool === 'draw' && state.applicator === 'callig') {
     layCalligraphy(ptr, pos.x, pos.y, speed);
   } else if (ptr.mode === 'draw' && dist > 0.6) {
@@ -354,6 +387,8 @@ function handleUp(event: PointerEvent): void {
   const pos = constrainedPosition(event, ptr);
   if (event.pointerType === 'touch') state.cursor = null;
   if (ptr.mode === 'smudge') ptr.smudgePath?.move(pos.x, pos.y, true);
+  if (ptr.mode === 'filter') applyFilterBetween({ x: ptr.x, y: ptr.y }, pos, ptr.filterStroke);
+  if (ptr.mode === 'hole') { moveHole(pos.x,pos.y); stopHole(); }
   if(ptr.mode==='crank')finishSpiroStroke();
   if (ptr.mode === 'selectionMove') moveSelection(pos.x - ptr.x, pos.y - ptr.y);
   if (ptr.mode === 'selectionResize') { dragSelectionResize(pos.x, pos.y, event.shiftKey); endSelectionResize(); }
@@ -363,7 +398,7 @@ function handleUp(event: PointerEvent): void {
   if (ptr.mode === 'shape') {
     setPreview(null);
     useGeneration(ptr.gen);
-    if(state.drawingMode==='vector')addVectorShape(state.shape,ptr.sx,ptr.sy,pos.x,pos.y);
+    if(vectorDrawingEnabled())addVectorShape(state.shape,ptr.sx,ptr.sy,pos.x,pos.y);
     else drawShape(state.shape, ptr.sx, ptr.sy, pos.x, pos.y, viewCtx, true);
   }
   if (ptr.mode === 'lasso') {
@@ -414,17 +449,39 @@ export function finishPath(close = false): void {
     pushHistory();
     useGeneration(beginStrokeGeneration());
     const points = state.shape === 'spline' ? splinePoints(state.poly, close) : state.poly;
-    if(state.drawingMode==='vector')addVectorPath(points,close,'Path');
+    if(vectorDrawingEnabled())addVectorPath(points,close,'Path');
     else captureRasterAction('Path',()=>strokePath(points, viewCtx, true, close && state.shape !== 'spline'));
     bakeStaticStrokes(baseCtx);
   }
   state.poly = [];
 }
 
-function applyFilter(x: number, y: number): void {
-  if (state.eraserMode === 'pixelate') pixelateAt(x, y);
-  else if (state.eraserMode === 'invert') invertAt(x, y);
-  else embossAt(x, y);
+function applyFilter(x: number, y: number, stroke?: PixelFilterStroke): void {
+  const mode = stroke?.mode ?? state.eraserMode;
+  if (mode === 'pixelate') pixelateAt(x, y, stroke);
+  else if (mode === 'invert') invertAt(x, y, stroke);
+  else embossAt(x, y, stroke);
+}
+
+function applyFilterBetween(from: { x: number; y: number }, to: { x: number; y: number }, stroke?: PixelFilterStroke): void {
+  if (!stroke) return;
+  const dx = to.x - from.x, dy = to.y - from.y;
+  if (!Number.isFinite(dx) || !Number.isFinite(dy)) return;
+  // Clip captured movement before sampling, so far-away coordinates cannot
+  // create an unbounded walk or skip the portion that crosses the paper.
+  const pad = Math.max(22, currentWidth() * 1.4);
+  let enter = 0, leave = 1;
+  for (const [p, q] of [[-dx, from.x + pad], [dx, stroke.source.width + pad - from.x], [-dy, from.y + pad], [dy, stroke.source.height + pad - from.y]]) {
+    if (p === 0) { if (q < 0) return; }
+    else if (p < 0) enter = Math.max(enter, q / p);
+    else leave = Math.min(leave, q / p);
+  }
+  if (enter > leave) return;
+  const steps = Math.max(1, Math.ceil(Math.hypot(dx, dy) * (leave - enter) / 4));
+  for (let i = 0; i <= steps; i++) {
+    const t = enter + (leave - enter) * i / steps;
+    applyFilter(from.x + dx * t, from.y + dy * t, stroke);
+  }
 }
 
 function widthFor(_ptr: Ptr, _dx: number, _dy: number, _speed: number): number {

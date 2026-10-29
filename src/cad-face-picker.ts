@@ -12,7 +12,8 @@ export class CadFacePicker {
   private hovered=-1;
   private revision=0;
   private changed:(()=>void)|undefined;
-  constructor(scene:THREE.Scene,private camera:THREE.PerspectiveCamera,private canvas:HTMLCanvasElement,private render:()=>void,private occlusion:(event:PointerEvent)=>number|undefined){scene.add(this.group);}
+  constructor(scene:THREE.Scene,private camera:THREE.PerspectiveCamera|THREE.OrthographicCamera,private canvas:HTMLCanvasElement,private render:()=>void,private occlusion:(event:PointerEvent)=>number|undefined){scene.add(this.group);}
+  setCamera(camera:THREE.PerspectiveCamera|THREE.OrthographicCamera):void{this.camera=camera;}
   async start(item:CadBody,matrix:THREE.Matrix4,refs:CadFaceRef[]=[],changed?:()=>void):Promise<void>{
     this.clear();const revision=++this.revision,result=await cadCompute([item],'faces');if(revision!==this.revision)return;
     if(!result.faces.length||result.faces.length>1024)throw new Error('This solid has too many faces to pick comfortably. Simplify its original sketch first.');

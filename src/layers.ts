@@ -51,7 +51,7 @@ export function addLayer(cad?: CadLayer): void {
 }
 export function duplicateLayer(): void {
   storeActive(); const original = activeLayer();
-  const layer = { ...original, cad:original.cad?{units:'mm' as const,bodies:original.cad.bodies.map(b=>({...b,id:crypto.randomUUID()}))}:undefined, objects:original.objects?.map(object=>object.kind==='raster'&&object.wet?{...object,image:cloneCanvas(object.image),wet:false}:{...object}), photo:original.photo?structuredClone(original.photo):undefined, id: nextId++, name: `${original.name} copy`, canvas: cloneCanvas(original.canvas), live: snapshotLive() };
+  const layer = { ...original, cad:original.cad?{...original.cad,units:'mm' as const,bodies:original.cad.bodies.map(b=>({...b,id:crypto.randomUUID()}))}:undefined, objects:original.objects?.map(object=>object.kind==='raster'&&object.wet?{...object,image:cloneCanvas(object.image),wet:false}:{...object}), photo:original.photo?structuredClone(original.photo):undefined, id: nextId++, name: `${original.name} copy`, canvas: cloneCanvas(original.canvas), live: snapshotLive() };
   layers.splice(layers.indexOf(original) + 1, 0, layer); activate(layer); layerChanged();
 }
 export function deleteLayer(id=activeLayerId): void {
@@ -135,12 +135,12 @@ export function restoreLayers(snapshots: LayerSnapshot[], active: number, width:
   nextId = Math.max(nextId, ...layers.map(layer => layer.id + 1));
   activate(layers.find(layer => layer.id === active) ?? layers[0]); layerChanged();
 }
-export function renderLayers(ctx: CanvasRenderingContext2D, now: number, activeOverlay?: (ctx: CanvasRenderingContext2D) => void): void {
+export function renderLayers(ctx: CanvasRenderingContext2D, now: number, activeOverlay?: (ctx: CanvasRenderingContext2D) => void, sheets:readonly Layer[]=layers): void {
   composite ??= surface();
   if (composite.width !== W || composite.height !== H) { composite.width = W; composite.height = H; }
   const buffer = composite.getContext('2d')!;
   resetPaint(ctx); ctx.clearRect(0, 0, W, H);
-  for (const layer of layers) {
+  for (const layer of sheets) {
     if (!layer.visible) continue;
     const preview=photoPreview(layer.id);
     resetPaint(buffer); buffer.clearRect(0, 0, W, H); buffer.drawImage(preview??layer.canvas, 0, 0, W, H);

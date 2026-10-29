@@ -1,0 +1,29 @@
+from pathlib import Path
+from datetime import datetime,timezone
+import json
+root=Path(__file__).resolve().parent
+read=lambda name:json.loads((root/name).read_text(encoding='utf-8'))
+results=read('results.json')
+reg=read('headless/20261020-layout-fixes-full/report.json')
+assert reg['status']=='Pass'
+counts={'painting':228,'layout-1280x720':62,'layout-320x568':63,'layout-390x844':63,'layout-844x390':63}
+assert len(reg['suites'])==5
+for suite in reg['suites']:
+    assert suite['status']=='Pass' and suite['passed']==counts[suite['name']] and suite['failed']==0 and not suite['errors']
+art=read('evidence/ARTWORK-headless-verification.json')
+assert art['actual_downloads_byte_exact_to_original'] and art['rendered_rgba_save_reopen_and_previous_build_exact']
+photo=read('evidence/PHOTO-008-independent-verification.json')
+assert all(photo[k] for k in ['every_scalar_nondefault_in_saved_setup','all_eight_mixer_bands_nondefault','all_four_curves_nondefault','cancel_restores_complete_saved_recipe_and_full_size_rgba','all_groups_and_normal_look_defaults_exact','full_original_frame_and_hidden_margins_recovered','undo_restores_complete_recipe_frame_and_exact_rgba','redo_reproduces_complete_recipe_frame_and_exact_rgba','actual_fresh_project_reopen_full_json_and_rgba_exact'])
+assert photo['actual_downloads_verified']==12
+results['cases']['PHOTO-008']=dict(status='Pass',variants_executed='Actual saved 3896x2586 supplied photo plus distinct neighbouring sheet; every scalar has a non-default value, non-default Auto WB gains, all eight mixer bands, all four curve channels, flips, lens/perspective/alignment, grain and a 100/100/3500/2000 crop. Isolated production UI executes Reset/Cancel, Reset/Done, Undo, Redo and actual downloaded-file fresh-context reopen; 12 real project/PNG downloads.',criteria_observations='Cancel retains the exact complete saved recipe and cropped full-size RGBA. Done restores every defined default, including Normal baseline, all mixer bands/curves and complete original frame. Original pixels, neighbour and unrelated fields remain exact. The default output agrees with an independent raw-layer composite within 1/255. Undo restores the entire prior recipe and crop, with exact pixels; Redo and fresh project reopen reproduce the result exactly.',independent_oracle='Pillow 12.3.0 full decoded RGBA, complete parsed project comparisons, literal default field values and independently alpha-composited originals; actual UI downloads and worker completion observations',evidence_paths='evidence/PHOTO-008-independent-verification.json; evidence/PHOTO-008-all-settings-saved-before.retropaint; evidence/PHOTO-008-all-settings-saved-before.png; evidence/PHOTO-008-final-crop-values.json; headless/PHOTO-008-production-20261020/PHOTO-008-headless-ui.json; headless/PHOTO-008-production-20261020/PHOTO-008-all-settings-reset-cancelled.retropaint; headless/PHOTO-008-production-20261020/PHOTO-008-all-settings-reset-done.retropaint; headless/PHOTO-008-production-20261020/PHOTO-008-all-settings-reset-undone.retropaint; headless/PHOTO-008-production-20261020/PHOTO-008-all-settings-reset-redone.retropaint; headless/PHOTO-008-production-20261020/PHOTO-008-all-settings-reset-reopened.retropaint; headless/PHOTO-008-production-20261020/PHOTO-008-headless-reopened-ui.png; production-headless-snapshot.json',defect_or_blocker='Completed without desktop control. Earlier incomplete crop setup, interrupted Windows interaction and missing download-watcher attempts remain preserved/excluded. The earlier setup verification remains Partial as historical evidence; this completed result is supported by the independent final report. This certifies reset behavior, not every scalar effect/endpoint family.')
+s=results['supplementary_checks']
+s['browser_regressions']=dict(status='Pass',count=228,evidence='headless/20261020-layout-fixes-full/report.json',scope='Complete final-source headless painting/component suite; acceptance case count remains separate.')
+s['desktop_layout']=dict(status='Pass',count=62,evidence='headless/20261020-layout-fixes-full/layout-1280x720.txt',scope='Complete isolated headless desktop suite, including D-009 fractional layout and D-010 enhancement control regressions.')
+for width,height in [(320,568),(390,844),(844,390)]:
+    s[f'phone_{width}_layout']=dict(status='Pass',count=63,evidence=f'headless/20261020-layout-fixes-full/layout-{width}x{height}.txt',scope=f'Complete isolated headless {width}x{height} suite. Physical touch/pen and actual assistive technology remain uncertified.')
+s['headless_execution']=dict(status='Pass',browser=reg['browser'],evidence='headless/20261020-layout-fixes-full/report.json',scope='Separate headless process and ephemeral browser contexts. No connection to the user browser profile, keyboard, mouse or artwork tab.')
+s['production_build']=dict(status='Pass',command='npm run build -- --outDir <immutable headless build directory>',evidence='production-headless-snapshot.json',notes='TypeScript and Vite pass. Build/source hashes recorded; user-facing 8088 artwork preview remains untouched. Existing externalized node:module and chunk-size warnings remain.')
+s['artwork_production_roundtrip']=dict(status='Pass',evidence='evidence/ARTWORK-headless-verification.json',scope='Two fresh headless production contexts; actual chooser input and project/PNG downloads. Both editable files byte-identical to original backup, and all rendered pixels identical to each other and previous verified production render. Current user artwork tab was not accessed.')
+results['updated_at']=datetime.now(timezone.utc).isoformat()
+(root/'results.json').write_text(json.dumps(results,indent=2,ensure_ascii=False)+'\n',encoding='utf-8')
+print('Recorded PHOTO-008 Pass, 228/62/63/63/63 headless regressions and byte-exact artwork save/reopen.')

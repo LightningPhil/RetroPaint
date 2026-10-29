@@ -1,10 +1,12 @@
 import markup from '../index.html?raw';
+import { base, baseCtx, view, eventPos } from '../src/canvas';
 const testSize = new URLSearchParams(location.search).get('frame');
 if (testSize && window.top === window.self) {
   const [width, height] = testSize.split('x').map(Number);
   const iframe = document.createElement('iframe'); iframe.title = `RetroPaint ${width} × ${height} preview`;
   iframe.width = String(width); iframe.height = String(height); iframe.style.cssText = 'border:0;display:block;margin:20px auto;background:white';
-  iframe.src = new URLSearchParams(location.search).has('preview') ? '../index.html?layout-preview' : new URLSearchParams(location.search).has('cad-only') ? './mobile.html?cad-only' : './mobile.html';
+  const childChecks=new URLSearchParams();for(const key of ['cad-only','check','artwork-backup'])if(new URLSearchParams(location.search).has(key))childChecks.set(key,new URLSearchParams(location.search).get(key)!);
+  iframe.src = new URLSearchParams(location.search).has('preview') ? '../index.html?layout-preview' : './mobile.html'+(childChecks.size?'?'+childChecks:'');
   document.body.style.cssText = 'margin:0;background:#dceee5'; document.body.append(iframe);
 } else {
 const parsed = new DOMParser().parseFromString(markup, 'text/html');
@@ -13,7 +15,6 @@ document.body.replaceChildren(...Array.from(parsed.body.childNodes));
 function reportUnexpected(error:unknown):void {const output=document.getElementById('mobileUnexpected')??document.createElement('pre');output.id='mobileUnexpected';output.style.cssText='position:fixed;inset:8px;z-index:1000;background:#fff5ed;color:#8b3422;padding:12px;white-space:pre-wrap;overflow:auto';output.textContent=(output.textContent??'')+(error instanceof Error?error.stack??error.message:String(error))+'\n';document.body.append(output);}
 window.addEventListener('error',event=>reportUnexpected(event.error??event.message));window.addEventListener('unhandledrejection',event=>reportUnexpected(event.reason));
 await import('../src/main');
-const { base, baseCtx, view, eventPos } = await import('../src/canvas');
 const { state } = await import('../src/state');
 const { bakeStaticStrokes } = await import('../src/live');
 const { activeLayer, layers, resetLayers } = await import('../src/layers');
@@ -25,18 +26,70 @@ const frame = () => new Promise<void>(resolve => requestAnimationFrame(() => req
 function assert(value: unknown, message: string): asserts value { if (!value) throw new Error(message); }
 const el = (selector: string) => document.querySelector<HTMLElement>(selector)!;
 const click = (selector: string) => el(selector).click();
+const compactCad = () => matchMedia('(max-width:800px), (max-height:500px) and (max-width:1000px)').matches;
 function fits(element: HTMLElement, label: string) {
+  const page=element.closest<HTMLElement>('.cad-panel-page');
+  if(compactCad()&&(page||element.closest('.cad-tabs')||element.closest('#cadWorkshop #layerList'))){
+    const target=element.matches('input[type=checkbox]')?element.closest<HTMLElement>('label')??element:element;
+    target.scrollIntoView({block:'nearest',inline:'nearest'});
+    const r=target.getBoundingClientRect();
+    if(page&&target.matches('button,input,select,textarea,label')){
+      const p=page.getBoundingClientRect();
+      assert(r.top>=p.top-1&&r.bottom<=p.bottom+1,`${label} cannot be reached fully inside its panel`);
+      assert(r.width>=43.99&&r.height>=43.99,`${label} has a small effective target: ${r.width} × ${r.height}`);
+    }
+    element=target;
+  }
   const r = element.getBoundingClientRect();
   assert(r.left >= -1 && r.top >= -1 && r.right <= innerWidth+1 && r.bottom <= innerHeight+1, `${label} leaves viewport: ${JSON.stringify(r)}`);
   assert(element.scrollWidth <= element.clientWidth+1, `${label} overflows horizontally`);
 }
+function checkCadPage(page:HTMLElement,label:string):void {
+  if(!compactCad()){assert(page.scrollHeight<=page.clientHeight+2,label);return;}
+  fits(page,label);assert(page.clientHeight>=64,label+' leaves too little room for a full field');
+  assert(page.scrollWidth<=page.clientWidth+1,label+' overflows horizontally');
+  assert(getComputedStyle(page).overflowY==='auto',label+' does not contain its own scrolling');
+  assert((page.querySelector<HTMLElement>('.cad-page-content')?.style.zoom??'1')==='1',label+' shrinks its contents');
+  for(const control of page.querySelectorAll<HTMLElement>('button,input,select,textarea'))if(control.getClientRects().length)fits(control,label+' '+control.id);
+}
 async function run(name: string, fn: () => void | Promise<void>) {
   if(new URLSearchParams(location.search).has('cad-only')&&!name.startsWith('CAD '))return;
+  const filter=new URLSearchParams(location.search).get('check');if(filter&&!name.includes(filter))return;
   document.body.dataset.currentCheck=name;
   try { await fn(); results.push('PASS '+name); }
   catch (error) { results.push('FAIL '+name+': '+String(error)); }
+  finally { document.querySelector<HTMLButtonElement>('.drawer.open .drawer-close')?.click(); }
 }
 await frame();
+await run('Callout labels resize, drag independently, undo, reopen and edit',async()=>{
+  setAdvancedMode(true);resetLayers(960,640);state.drawingMode='raster';
+  const text=await import('../src/text-tool'),objects=await import('../src/objects'),project=await import('../src/project'),handles=await import('../src/callout');
+  text.calloutOptions.enabled=true;Object.assign(text.textOptions,{text:'Flange',size:24,width:360});text.beginText(100,100);text.placeText();
+  let label=objects.selectedObjects()[0];assert(label.kind==='text'&&label.callout,'Label became pixels');assert(label.width<150&&label.paper==='#ffffff'&&label.color==='#000000'&&label.callout.border&&label.callout.rounded,'Auto size or defaults wrong');
+  const before=project.projectData(),tip=handles.calloutHandles(label)[0],box=handles.calloutHandles(label)[1];
+  assert(objects.objectHandle(tip.x,tip.y)===8,'Arrow tip cannot be grabbed');objects.beginObjectDrag(tip.x,tip.y,8);objects.dragObjects(400,80);objects.endObjectDrag();
+  label=objects.selectedObjects()[0];assert(label.kind==='text'&&label.callout&&label.matrix[4]===100&&handles.calloutHandles(label)[0].x===400,'Arrow dragged the box');
+  objects.beginObjectDrag(box.x,box.y,9);objects.dragObjects(box.x+40,box.y+20);objects.endObjectDrag();label=objects.selectedObjects()[0];assert(label.kind==='text'&&label.callout&&label.matrix[4]===140&&handles.calloutHandles(label)[0].x===400,'Box moved the target');
+  undo();undo();assert(project.projectData()===before,'Undo failed to restore arrow and box');redo();redo();
+  const saved=project.projectData();resetLayers(30,30);await project.loadProjectData(saved);const restored=activeLayer().objects!.find(o=>o.kind==='text')!;assert(restored.kind==='text'&&restored.callout&&handles.calloutHandles(restored)[0].x===400,'Project lost editable arrow');
+  objects.selectObjects([restored.id]);click('[data-tool="scissors"]');await frame();assert(getComputedStyle(el('#editCallout')).display!=='none'&&!el('#editCallout').hidden,'Edit label is hidden by selection styles');click('#editCallout');await frame();assert((el('#textContent') as HTMLTextAreaElement).value==='Flange','Edit failed to load words');
+  (el('#textContent') as HTMLTextAreaElement).value='Component 1';el('#textContent').dispatchEvent(new Event('input'));click('#calloutBorder');(el('#calloutCorners') as HTMLSelectElement).value='square';el('#calloutCorners').dispatchEvent(new Event('change'));click('#placeText');
+  label=objects.selectedObjects()[0];assert(label.kind==='text'&&label.callout&&!label.callout.border&&!label.callout.rounded&&label.lines[0].text==='Component 1','Editing did not apply');assert(activeLayer().objects!.length===1,'Editing duplicated label');
+  text.calloutOptions.enabled=false;Object.assign(text.calloutOptions,{border:true,rounded:true});resetLayers(960,640);
+});
+await run('Callout above 3D preserves model and undoes in one step',async()=>{
+  setAdvancedMode(true);resetLayers(960,640);const doc=await import('../src/cad-document'),model=await import('../src/cad-model'),text=await import('../src/text-tool'),project=await import('../src/project');
+  doc.ensureCadLayer();doc.addBody(model.primitive('box'));const layerApi=await import('../src/layers');layerApi.switchLayer(layers[0].id);const before=project.projectData(),count=layers.length;text.calloutOptions.enabled=true;text.textOptions.text='Box';text.placeText();
+  assert(layers.length===count+1&&!activeLayer().cad&&activeLayer().name==='Annotations','Label did not get a paint layer');assert(layers.some(l=>l.cad?.bodies.length===1),'Model lost');undo();assert(project.projectData()===before,'Undo left an extra layer or changed the model');text.calloutOptions.enabled=false;resetLayers(960,640);
+});
+await run('Callout 3D layer grip reorders without opening workshop',async()=>{
+  setAdvancedMode(true);resetLayers(960,640);const doc=await import('../src/cad-document'),model=await import('../src/cad-model');doc.ensureCadLayer();doc.addBody(model.primitive('box'));const id=activeLayer().id;
+  if(el('#layersPanel').hidden)click('#layersToggle');await frame();const grip=el('[data-layer-id="'+id+'"] .layer-grip'),panel=el('#layersPanel'),capture=panel.setPointerCapture;panel.setPointerCapture=()=>{};
+  try{grip.dispatchEvent(new PointerEvent('pointerdown',{button:0,pointerId:2001,clientY:100,bubbles:true}));panel.dispatchEvent(new PointerEvent('pointerup',{pointerId:2001,bubbles:true}));await frame();assert(!state.cad.open,'Grip opened 3D editor');grip.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',altKey:true,bubbles:true}));await frame();assert(!state.cad.open&&layers[0].id===id,'Keyboard reorder opened editor or failed');}finally{panel.setPointerCapture=capture;if(!panel.hidden)click('#layersToggle');resetLayers(960,640);}
+});
+if(matchMedia('(max-width:600px), (max-height:500px) and (max-width:1000px)').matches)await run('Phone painting sliders and workspace actions retain full touch targets',()=>{
+  for(const id of ['brushSize','opacity','workspaceRedo','draftStatus']){const r=el('#'+id).getBoundingClientRect();assert(r.width>=43.99&&r.height>=43.99,id+' has a small target: '+r.width+' × '+r.height);if(id==='cadScriptSource'){const r=source.getBoundingClientRect();assert(r.left>=0&&r.right<=innerWidth,'Code editor leaves viewport');}else fits(el('#'+id),id);}
+});
 await run('Toolbar and all twelve tools fit without overlap', () => {
   fits(el('#topBar'), 'Toolbar'); fits(el('#toolBin'),'Tools'); fits(el('#stage'),'Paper');
   const buttons = [...document.querySelectorAll<HTMLElement>('#topBar>*')];
@@ -50,9 +103,10 @@ await run('Toolbar and all twelve tools fit without overlap', () => {
     assert(button.getBoundingClientRect().height>=44,'Tool is too short to tap');
   }
 });
-await run('Fitted paper sits at the bottom of its drawing space', () => {
+await run('Fitted paper uses the phone bottom alignment or desktop centred alignment', () => {
   const paper=el('#stage').getBoundingClientRect(),slot=el('#canvasSlot').getBoundingClientRect();
-  assert(Math.abs(paper.bottom-slot.bottom)<2,'Paper is still vertically centred');
+  if(innerWidth<=600||innerWidth<=1000&&innerHeight<=500)assert(Math.abs(paper.bottom-slot.bottom)<2,'Phone paper is still vertically centred');
+  else assert(Math.abs((paper.top+paper.bottom)-(slot.top+slot.bottom))<3,'Desktop paper is not centred');
 });
 await run('Tool menus fit and keep most of the picture visible', async () => {
   for (const tool of ['draw','shapes','spray','scissors','eraser','stamp','spiro']) {
@@ -82,6 +136,33 @@ await run('Stamp and Spiro settings remain accessible in compact panels', async 
     assert(el(tool==='stamp'?'#stampGrid':'#gearBox').getClientRects().length,'Chooser did not return');
     click('.drawer.open .drawer-close');
   }
+});
+await run('Dismissing More on paper consumes the gesture without paint or a history step',async()=>{
+  const history=await import('../src/history'),objects=await import('../src/objects'),{emit}=await import('../src/bus'),capture=view.setPointerCapture,snapshot=history.captureHistory();
+  const saved={tool:state.tool,applicator:state.applicator,brushApplicator:state.brushApplicator,ink:state.ink,opacity:state.opacity,brushWidth:state.brushWidth,liveArmed:state.liveArmed,symmetry:state.symmetry,drawingMode:state.drawingMode,cursor:state.cursor};
+  view.setPointerCapture=()=>{};
+  try{for(const pointerType of ['mouse','touch','pen']){
+    resetLayers(64,48,null);objects.setDrawingMode('raster');state.tool='draw';state.applicator=state.brushApplicator='marker';state.ink='#ff0000';state.opacity=1;state.brushWidth=8;state.liveArmed=false;state.symmetry='off';
+    if(el('.drawer.open'))click('.drawer.open .drawer-close');
+    history.pushHistory();baseCtx.fillStyle='#0000ff';baseCtx.fillRect(1,1,3,3);undo();assert(history.canRedo(),'Could not prepare a Redo branch');
+    const before=base.toDataURL();click('#studioBtn');await frame();assert(el('.drawer.open'),'Drawer did not open');
+    const r=view.getBoundingClientRect(),x=r.x+r.width*.65,y=r.y+r.height*.55;
+    const send=(type:string)=>view.dispatchEvent(new PointerEvent(type,{bubbles:true,cancelable:true,pointerId:730,pointerType,button:0,buttons:type==='pointerdown'?1:0,clientX:x,clientY:y}));
+    send('pointerdown');send('pointerup');bakeStaticStrokes(baseCtx);
+    assert(!el('.drawer.open'),'Outside gesture did not close the drawer');assert(base.toDataURL()===before,'Dismissal marked the picture');assert(history.canRedo(),'Dismissal destroyed the Redo branch');
+    send('pointerdown');send('pointerup');bakeStaticStrokes(baseCtx);assert(base.toDataURL()!==before,'The following drawing gesture was swallowed');undo();assert(base.toDataURL()===before,'Drawing after dismissal did not Undo as one gesture');
+  }}finally{objects.setDrawingMode(saved.drawingMode);history.restoreHistory(snapshot);Object.assign(state,saved);emit('tool-request');view.setPointerCapture=capture;}
+});
+await run('Colour picking and text positioning use the first paper gesture with their tool options open',async()=>{
+  const objects=await import('../src/objects'),text=await import('../src/text-tool'),history=await import('../src/history'),{emit}=await import('../src/bus'),capture=view.setPointerCapture,snapshot=history.captureHistory();
+  const saved={tool:state.tool,ink:state.ink,drawingMode:state.drawingMode,neonTint:state.neonTint,sparkleTint:state.sparkleTint,cursor:state.cursor};const wasAdvanced=state.workspaceMode==='advanced';view.setPointerCapture=()=>{};
+  try{resetLayers(96,64,null);objects.setDrawingMode('raster');baseCtx.fillStyle='#0000ff';baseCtx.fillRect(0,0,96,64);state.ink='#ff0000';
+    if(el('.drawer.open'))click('.drawer.open .drawer-close');click('[data-tool="picker"]');await frame();const before=base.toDataURL();
+    const tap=(x:number,y:number)=>{const r=view.getBoundingClientRect();for(const type of ['pointerdown','pointerup'])view.dispatchEvent(new PointerEvent(type,{bubbles:true,cancelable:true,pointerId:731,pointerType:'mouse',button:0,buttons:type==='pointerdown'?1:0,clientX:r.x+x/96*r.width,clientY:r.y+y/64*r.height}));};
+    tap(64,32);assert(String(state.ink).toLowerCase()==='#0000ff','The first colour-picking tap was swallowed');assert(base.toDataURL()===before,'Colour picking painted on the source');
+    setAdvancedMode(true);objects.setDrawingMode('vector');click('[data-tool="text"]');const input=el('#textContent') as HTMLTextAreaElement;input.value='First tap';input.dispatchEvent(new Event('input'));await frame();tap(25,20);click('#placeText');const object=objects.selectedObjects()[0];
+    assert(object?.kind==='text'&&Math.abs(object.matrix[4]-25)<.01&&Math.abs(object.matrix[5]-20)<.01,'The first text-positioning tap was swallowed');
+  }finally{text.cancelText();objects.setDrawingMode(saved.drawingMode);history.restoreHistory(snapshot);Object.assign(state,saved);setAdvancedMode(wasAdvanced);emit('tool-request');view.setPointerCapture=capture;}
 });
 await run('Tool choices also leave most of the zoomed drawing space visible', async () => {
   click('[aria-label="Zoom in"]'); click('[aria-label="Zoom in"]'); await frame();
@@ -154,21 +235,56 @@ await run('Zoom and pan preserve artwork and keep drawing coordinates accurate',
     assert(base.toDataURL()===painted,'Fitting changed artwork');
   } finally { view.setPointerCapture=capture; }
 });
+await run('Actual pixels gives one CSS pixel per source cell for small and narrow pictures',async()=>{
+  const layerApi=await import('../src/layers'),canvasApi=await import('../src/canvas'),history=await import('../src/history');
+  const previous=layerApi.captureLayers(),active=layerApi.activeLayerId,size=[canvasApi.W,canvasApi.H],snapshot=history.captureHistory(),savedSpiro={...state.spiro};
+  try{
+    for(const [width,height] of [[32,32],[1,1],[1,4096],[4096,1],[64,48]]){
+      resetLayers(width,height);await frame();const before=base.toDataURL();click('#viewActual');await frame();
+      const rectangle=view.getBoundingClientRect();assert(Math.abs(rectangle.width-width)<.1&&Math.abs(rectangle.height-height)<.1,`Actual pixels is ${rectangle.width}x${rectangle.height} CSS pixels for ${width}x${height} source`);
+      assert(Math.abs(state.paperScale-1)<.001,'Actual-pixel readout disagrees with the measured source scale');assert(base.toDataURL()===before,'Actual-pixel view changed source pixels');
+    }
+  }finally{layerApi.restoreLayers(previous,active,size[0],size[1]);history.restoreHistory(snapshot);state.spiro=savedSpiro;click('[aria-label="Fit whole picture"]');await frame();}
+});
+await run('Fitted paper can pan edge cells clear of floating controls without changing pixels',async()=>{
+  const layerApi=await import('../src/layers'),history=await import('../src/history'),snapshot=history.captureHistory(),capture=view.setPointerCapture,savedSpiro={...state.spiro};
+  view.setPointerCapture=()=>{};
+  try{
+    resetLayers(32,32);await frame();const before=base.toDataURL(),rectangle=view.getBoundingClientRect();click('[aria-label="Move paper"]');
+    const x=rectangle.x+rectangle.width/2,y=rectangle.y+rectangle.height/2,send=(type:string,py:number)=>view.dispatchEvent(new PointerEvent(type,{pointerId:940,pointerType:'mouse',button:0,buttons:type==='pointerup'?0:1,clientX:x,clientY:py,bubbles:true}));
+    send('pointerdown',y);send('pointermove',y-70);send('pointerup',y-70);click('[aria-label="Move paper"]');await frame();const after=view.getBoundingClientRect();
+    assert(after.top<rectangle.top-48,'Fitted picture is pinned behind the floating controls');const px=after.x+3.5/32*after.width,py=after.y+29.5/32*after.height;assert(document.elementFromPoint(px,py)===view,'Lower source cell remains covered after moving the paper');assert(base.toDataURL()===before,'Moving fitted paper changed source pixels');
+  }finally{click('[aria-label="Fit whole picture"]');history.restoreHistory(snapshot);state.spiro=savedSpiro;view.setPointerCapture=capture;await frame();}
+});
+await run('New picture validates dimensions before replacing artwork and keeps Cancel out of history',async()=>{
+  const history=await import('../src/history'),project=await import('../src/project'),snapshot=history.captureHistory(),savedMode=state.drawingMode,savedSpiro={...state.spiro};
+  try{
+    state.drawingMode='raster';resetLayers(64,48);const blank=project.projectData();history.pushHistory();baseCtx.fillStyle='#123456';baseCtx.fillRect(4,4,12,10);const before=project.projectData();
+    click('#newPicture');await frame();const dialog=document.querySelector<HTMLDialogElement>('#newPictureDialog');assert(dialog?.open,'New immediately replaced the picture instead of opening dimensions');fits(dialog,'New picture dialog');assert(project.projectData()===before,'Opening New changed the old document');
+    const width=el('#newPictureWidth') as HTMLInputElement,height=el('#newPictureHeight') as HTMLInputElement;
+    for(const [w,h] of [['','48'],['0','48'],['-1','48'],['4097','48'],['1.5','48'],['64',''],['64','0'],['64','4097'],['64','1.5']]){
+      width.value=w;height.value=h;click('#newPictureCreate');await frame();assert(dialog.open&&project.projectData()===before,'Rejected New dimensions changed the old document');const error=el('#newPictureError');assert(!error.hidden&&error.textContent?.includes('4096'),'Invalid New dimensions do not explain the whole-pixel limits');fits(error,'New picture error');
+    }
+    click('#newPictureCancel');assert(!dialog.open&&project.projectData()===before,'Cancel replaced the old document');undo();assert(project.projectData()===blank,'Opening/rejecting/cancelling New added a history step');redo();assert(project.projectData()===before,'Cancellation damaged the existing redo state');
+    click('#newPicture');width.value='17';height.value='13';for(const id of ['newPictureWidth','newPictureHeight','newPictureCreate','newPictureCancel'])fits(el('#'+id),id);click('#newPictureCreate');await frame();assert(!dialog.open&&base.width===17&&base.height===13&&layers.length===1&&activeLayer().paper==='#ffffff','Valid New did not create the requested single Paper');assert(baseCtx.getImageData(0,0,17,13).data.every(v=>v===255),'New mixed old content into the white paper');const created=project.projectData();undo();assert(project.projectData()===before,'New did not restore the complete old document in one Undo');redo();assert(project.projectData()===created,'Redo did not restore the new dimensions and Paper');
+  }finally{document.querySelector<HTMLDialogElement>('#newPictureDialog[open]')?.close();history.restoreHistory(snapshot);state.drawingMode=savedMode;state.spiro=savedSpiro;await frame();}
+});
 await run('Layers are easy to add, choose, hide and rename without covering the paper afterwards', async () => {
   setAdvancedMode(true);await frame();
   resetLayers(960, 640);
+  const compactLayers=innerWidth<=1000||innerHeight<=550,openStack=()=>{if(el('#layersPanel').hidden)click('#layersToggle');};
   const paper = activeLayer(), original = paper.canvas.toDataURL();
   click('#layersToggle'); await frame(); fits(el('#layersPanel'), 'Layer stack'); fits(el('#addLayer'), 'New layer');
   click('#addLayer'); await frame();
   assert(layers.length === 2 && activeLayer().paper === null, 'New sheet is not transparent');
-  assert(el('#layersPanel').hidden, 'Stack did not close to allow painting');
+  assert(el('#layersPanel').hidden===compactLayers, 'Layer stack did not use its phone or desktop behavior');
   assert(paper.canvas.toDataURL() === original, 'Adding a layer changed the picture below');
   const ink = activeLayer().id;
-  click('#layersToggle'); click('#addLayer'); await frame();
+  openStack(); click('#addLayer'); await frame();
   assert(activeLayer().name === 'Layer 2', 'New layers do not have friendly names');
-  click('#layersToggle'); click(`[data-layer-id="${ink}"] .layer-pick`); await frame();
-  assert(activeLayer().id === ink && el('#layersPanel').hidden, 'Choosing a sheet did not return to drawing');
-  click('#layersToggle');
+  openStack(); click(`[data-layer-id="${ink}"] .layer-pick`); await frame();
+  assert(activeLayer().id === ink && el('#layersPanel').hidden===compactLayers, 'Choosing a sheet used the wrong stack behavior');
+  openStack();
   assert(el(`[data-layer-id="${ink}"] .layer-state`).textContent === 'Painting here', 'Selected layer is unclear');
   click(`[data-layer-id="${ink}"] .layer-eye`);
   assert(!activeLayer().visible && el(`[data-layer-id="${ink}"] .layer-state`).textContent === 'Hidden', 'Eye did not hide the layer');
@@ -190,6 +306,54 @@ await run('Layers are easy to add, choose, hide and rename without covering the 
   undo(); assert(Number(layers.length) === 3 && activeLayer().id === ink && activeLayer().name === 'My doodles' && activeLayer().opacity === 0.45, 'Undo lost removed sheet settings');
   click('#layerOptions > summary'); await frame();
 });
+await run('Layer stack keeps the toolbar reachable when the list is open', async()=>{
+  const layerApi=await import('../src/layers'),advanced=await import('../src/advanced-mode'),canvasApi=await import('../src/canvas');
+  const previous=layerApi.captureLayers(),active=layerApi.activeLayerId,size=[canvasApi.W,canvasApi.H],wasAdvanced=advanced.advancedEnabled(),wasOpen=!el('#layersPanel').hidden;
+  try{
+    setAdvancedMode(true);resetLayers(960,640);for(let i=0;i<3;i++)layerApi.addLayer();
+    if(el('#layersPanel').hidden)click('#layersToggle');
+    const options=el('#layerOptions') as HTMLDetailsElement;if(options.open)click('#layerOptions > summary');await frame();
+    const panel=el('#layersPanel').getBoundingClientRect(),header=el('#topBar').getBoundingClientRect(),more=el('#studioBtn'),r=more.getBoundingClientRect();
+    assert(panel.top>=header.bottom+4,`Layer stack covers toolbar: top ${panel.top}, toolbar bottom ${header.bottom}`);
+    const hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+    assert(hit===more||Boolean(hit&&more.contains(hit)),'Layer stack intercepts More instead of leaving Save/Open reachable');
+  }finally{
+    layerApi.restoreLayers(previous,active,size[0],size[1]);setAdvancedMode(wasAdvanced);
+    if(!el('#layersPanel').hidden!==wasOpen)click('#layersToggle');
+    await frame();
+  }
+});
+await run('A full layer stack explains why Add and Duplicate are unavailable',async()=>{
+  const layerApi=await import('../src/layers'),advanced=await import('../src/advanced-mode'),canvasApi=await import('../src/canvas');
+  const previous=layerApi.captureLayers(),active=layerApi.activeLayerId,size=[canvasApi.W,canvasApi.H],wasAdvanced=advanced.advancedEnabled(),wasOpen=!el('#layersPanel').hidden;
+  try{
+    setAdvancedMode(true);resetLayers(32,24);for(let i=0;i<15;i++)layerApi.addLayer();
+    if(el('#layersPanel').hidden)click('#layersToggle');if((el('#layerOptions') as HTMLDetailsElement).open)click('#layerOptions summary');await frame();
+    assert((el('#addLayer') as HTMLButtonElement).disabled&&(el('#duplicateLayer') as HTMLButtonElement).disabled,'Full stack still enables an add');
+    const hint=el('#layersHint').textContent!;assert(/16\s+(?:layers|sheets).*full|layer limit/i.test(hint),'Disabled Add has no count-limit explanation: '+hint);
+    layerApi.deleteLayer();await frame();assert(!(el('#addLayer') as HTMLButtonElement).disabled&&!/stack is full/i.test(el('#layersHint').textContent!),'Removing a sheet did not release the limit');
+  }finally{layerApi.restoreLayers(previous,active,size[0],size[1]);setAdvancedMode(wasAdvanced);if(!el('#layersPanel').hidden!==wasOpen)click('#layersToggle');await frame();}
+});
+await run('Layers keeps a reachable Photo lab entry and restores its open state', async()=>{
+  const layerApi=await import('../src/layers'),advanced=await import('../src/advanced-mode'),canvasApi=await import('../src/canvas');
+  const previous=layerApi.captureLayers(),active=layerApi.activeLayerId,size=[canvasApi.W,canvasApi.H],wasAdvanced=advanced.advancedEnabled(),wasOpen=!el('#layersPanel').hidden;
+  const reachable=(button:HTMLElement)=>{const r=button.getBoundingClientRect(),hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return hit===button||Boolean(hit&&button.contains(hit));};
+  const openPhoto=()=>{const tile=el('#photoToggle'),entry=reachable(tile)?tile:document.getElementById('layerPhotoLab');assert(entry,'Layers covers Photo lab and has no reachable alternative');assert(reachable(entry),'Layers Photo lab entry is covered');entry.click();};
+  try{
+    setAdvancedMode(true);resetLayers(96,64);for(let i=0;i<3;i++)layerApi.addLayer();activeLayer().canvas.getContext('2d')!.fillStyle='#1e88e5';activeLayer().canvas.getContext('2d')!.fillRect(0,0,96,64);layerApi.layerChanged();
+    if(el('#layersPanel').hidden)click('#layersToggle');if((el('#layerOptions') as HTMLDetailsElement).open)click('#layerOptions > summary');await frame();
+    for(const done of [false,true]){
+      openPhoto();await frame();assert(!el('#photoPanel').hidden&&el('#layersPanel').hidden&&el('#layersPanel').inert,'Photo lab and Layers compete for editing');
+      click('[data-photo-category="light"]');const input=el('[data-photo-value="brightness"]') as HTMLInputElement;input.value='1';input.dispatchEvent(new Event('input',{bubbles:true}));
+      for(let i=0;i<180&&el('#photoStatus').getAttribute('aria-busy')!=='false';i++)await frame();assert(el('#photoStatus').getAttribute('aria-busy')==='false','Photo preview did not settle');
+      click(done?'#photoApply':'#photoCancel');for(let i=0;i<180&&!el('#photoPanel').hidden;i++)await frame();
+      assert(el('#photoPanel').hidden&&!el('#layersPanel').hidden&&!el('#layersPanel').inert,'Photo exit did not restore the open interactive Layers palette');
+    }
+    click(`#layerList [data-layer-id="${activeLayer().id}"] .layer-eye`);await frame();const entry=document.getElementById('layerPhotoLab')??el('#photoToggle');entry.click();assert(el('#photoPanel').hidden&&el('#editorStatus').textContent!.includes('Show this layer'),'Hidden target bypassed Photo lab guard');
+  }finally{
+    photoModule.cancelPhoto();layerApi.restoreLayers(previous,active,size[0],size[1]);setAdvancedMode(wasAdvanced);if(!el('#layersPanel').hidden!==wasOpen)click('#layersToggle');await frame();
+  }
+});
 await run('Layer drag handles and keyboard moves reorder sheets and support Undo', async () => {
   const panel = el('#layersPanel'), before = layers.map(layer => layer.id).join(','), active = activeLayer().id;
   const grip = el(`[data-layer-id="${active}"] .layer-grip`), first = el('#layerList .layer-row');
@@ -210,7 +374,7 @@ await run('Layer drag handles and keyboard moves reorder sheets and support Undo
   click('#closeLayers'); resetLayers(960, 640);
 });
 await run('Every Photo lab category fits, including crop, curves and lens controls, without scrolling', async()=>{
-  resetLayers(960,640);click('#layersToggle');await frame();const layerWidth=el('#layersPanel').getBoundingClientRect().width;click('#photoToggle');await frame();
+  photoModule.cancelPhoto();resetLayers(960,640);setAdvancedMode(true);if(el('#layersPanel').hidden)click('#layersToggle');await frame();const layerWidth=el('#layersPanel').getBoundingClientRect().width;click('#photoToggle');await frame();
   assert(Math.abs(el('#photoPanel').getBoundingClientRect().width-layerWidth)<1,'Photo lab is wider than the Layers palette');
   fits(el('#photoPanel'),'Photo lab');
   for(const category of ['light','colour','curves','detail','effects','geometry']){
@@ -227,6 +391,35 @@ await run('Every Photo lab category fits, including crop, curves and lens contro
   assert([...el('#toolBin').querySelectorAll<HTMLButtonElement>('[data-tool],#symBtn')].every(button=>button.disabled),'Drawing tools can mutate a pending photo preview');click('#photoCancel');
   assert([...el('#toolBin').querySelectorAll<HTMLButtonElement>('[data-tool],#symBtn')].every(button=>!button.disabled)&&!photoModule.photoSession,'Cancel did not release drawing tools');
   click('#closeLayers');
+});
+await run('Photo import retains the chosen group and targets a fresh visible source without old adjustments',async()=>{
+  const history=await import('../src/history'),snapshot=history.captureHistory(),layerModule=await import('../src/layers');
+  const {advancedEnabled}=await import('../src/advanced-mode'),wasAdvanced=advancedEnabled();
+  const previousGroup=(el('#photoGroup') as HTMLSelectElement).value||'light-basic',previousCategory=document.querySelector<HTMLElement>('[data-photo-category][aria-pressed="true"]')?.dataset.photoCategory??'light';
+  const input=el('#imageInput') as HTMLInputElement,preventChooser=(event:Event)=>event.preventDefault();
+  try{
+    setAdvancedMode(true);resetLayers(48,32,null);baseCtx.fillStyle='#df7531';baseCtx.fillRect(0,0,48,32);const oldId=activeLayer().id;
+    activeLayer().visible=false;layerModule.layerChanged();click('#photoToggle');
+    assert(el('#photoPanel').hidden&&el('#editorStatus').textContent?.includes('Show this layer'),'Hidden target was edited without an explanation');
+    activeLayer().visible=true;layerModule.layerChanged();click('#photoToggle');click('[data-photo-category="detail"]');
+    const group=el('#photoGroup') as HTMLSelectElement;group.value='detail-noise';group.dispatchEvent(new Event('change',{bubbles:true}));
+    const noise=el('[data-photo-value="noise"]') as HTMLInputElement;noise.value='45';noise.dispatchEvent(new Event('input',{bubbles:true}));
+    const fixture=document.createElement('canvas');fixture.width=40;fixture.height=30;const ctx=fixture.getContext('2d')!;ctx.fillStyle='#1257a3';ctx.fillRect(0,0,40,30);ctx.fillStyle='#ef7c18';ctx.fillRect(20,0,20,30);
+    const png=await new Promise<Blob>(resolve=>fixture.toBlob(blob=>resolve(blob!),'image/png'));
+    // The OS chooser itself is exercised by the acceptance audit. This UI
+    // integration test supplies genuine encoded bytes through the file input.
+    input.addEventListener('click',preventChooser,{once:true});click('#photoOpen');
+    const transfer=new DataTransfer();transfer.items.add(new File([png],'New photo.png',{type:'image/png'}));input.files=transfer.files;input.dispatchEvent(new Event('change'));
+    for(let attempt=0;attempt<120&&(!photoModule.photoSession||photoModule.photoSession.layer===oldId);attempt++)await frame();
+    assert(photoModule.photoSession?.layer===activeLayer().id&&activeLayer().id!==oldId,'New import did not become the photo target');
+    assert(activeLayer().visible&&activeLayer().opacity===1&&activeLayer().canvas.width===40&&activeLayer().canvas.height===30,'New photo target retained old visibility or dimensions');
+    assert((el('#photoGroup') as HTMLSelectElement).value==='detail-noise','Opening another photo discarded the chosen adjustment group');
+    assert(photoModule.photoSession.settings.noise===0&&photoModule.photoSession.settings.exposure===0,'New photo inherited old draft settings');
+    assert([...activeLayer().canvas.getContext('2d')!.getImageData(5,5,1,1).data].join(',')==='18,87,163,255','New original pixels changed');
+  }finally{
+    input.removeEventListener('click',preventChooser);photoModule.cancelPhoto();history.restoreHistory(snapshot);
+    click('#photoToggle');click(`[data-photo-category="${previousCategory}"]`);const group=el('#photoGroup') as HTMLSelectElement;group.value=previousGroup;group.dispatchEvent(new Event('change',{bubbles:true}));click('#photoCancel');setAdvancedMode(wasAdvanced);await frame();
+  }
 });
 await run('Photo sliders preview reversibly, curve points are editable and crop can be dragged',async()=>{
   const photoCanvas=activeLayer().canvas,photoCtx=photoCanvas.getContext('2d')!;photoCtx.fillStyle='#778899';photoCtx.fillRect(0,0,960,640);const before=photoCanvas.toDataURL();click('#photoToggle');
@@ -265,7 +458,7 @@ await run('Look selection is persistent, Normal restores the pre-look image and 
   await photoModule.applyPhoto();click('#photoToggle');assert(photoModule.photoSession!.settings.brightness===17&&look===el('#photoLook'),'Reopening lost saved controls');click('#photoCancel');
 });
 await run('Launching restores panel context and file-picker cancellation keeps the draft; a new photo opens directly in Photo lab',async()=>{
-  click('#photoToggle');click('[data-photo-category="detail"]');const pop=el('[data-photo-value="pop"]') as HTMLInputElement;pop.value='20';pop.dispatchEvent(new Event('input',{bubbles:true}));
+  photoModule.cancelPhoto();resetLayers(960,640);setAdvancedMode(true);click('#photoToggle');click('[data-photo-category="detail"]');const group=el('#photoGroup') as HTMLSelectElement;group.value='detail-presence';group.dispatchEvent(new Event('change',{bubbles:true}));const pop=el('[data-photo-value="pop"]') as HTMLInputElement;pop.value='20';pop.dispatchEvent(new Event('input',{bubbles:true}));
   const input=el('#imageInput') as HTMLInputElement,originalClick=input.click;input.click=()=>{};
   try{
     click('#photoOpen');input.dispatchEvent(new Event('cancel'));assert(photoModule.photoSession?.settings.pop===20&&!el('#photoPanel').hidden,'Cancelling a file picker lost the draft');
@@ -286,7 +479,15 @@ await run('Advanced mode owns the palette buttons, preserves saved work and rema
   click('#photoToggle');assert(!el('#photoPanel').hidden&&!el('#photoToggle').hasAttribute('disabled'),'Photo toggle cannot close its own panel');
   const draft=photoModule.photoSession!;draft.settings.brightness=12;await photoModule.applyPhoto();
   const original=activeLayer().canvas.toDataURL(),recipe=JSON.stringify(activeLayer().photo);
-  click('#photoToggle');click('#studioBtn');await frame();assert(el('#studioDrawer').classList.contains('open'),'More is unavailable in Photo lab');
+  click('#photoToggle');await frame();
+  const more=el('#studioBtn'),moreBounds=more.getBoundingClientRect(),moreHit=document.elementFromPoint(moreBounds.left+moreBounds.width/2,moreBounds.top+moreBounds.height/2);
+  assert(moreHit===more||Boolean(moreHit&&more.contains(moreHit)),'Photo lab intercepts More instead of leaving Advanced and File reachable');
+  click('#studioBtn');await frame();assert(el('#studioDrawer').classList.contains('open'),'More is unavailable in Photo lab');
+  for(const target of ['#studioDrawer [data-studio="file"]','#advancedMode','#studioDrawer .drawer-close']){
+    const control=el(target);control.scrollIntoView({block:'nearest',inline:'nearest'});await frame();
+    const bounds=control.getBoundingClientRect(),hit=document.elementFromPoint(bounds.left+bounds.width/2,bounds.top+bounds.height/2);
+    assert(hit===control||Boolean(hit&&control.contains(hit)),'Photo lab covers a More control: '+target+' '+JSON.stringify({bounds,hit:hit?.id,drawerScroll:el('#studioDrawer').scrollTop}));
+  }
   const advanced=el('#advancedMode') as HTMLInputElement;advanced.checked=false;advanced.dispatchEvent(new Event('change',{bubbles:true}));await frame();
   assert(el('#photoPanel').hidden&&el('#layersPanel').hidden&&el('#layersToggle').hidden&&el('#photoToggle').hidden,'Turning off Advanced left a panel or button visible');
   assert(activeLayer().canvas.toDataURL()===original&&JSON.stringify(activeLayer().photo)===recipe,'Turning off Advanced changed saved artwork');
@@ -299,6 +500,21 @@ await run('Super resolution offers both exact scales and a responsive, cancellab
   for(const button of dialog.querySelectorAll<HTMLElement>('button'))fits(button,'Enhancement control');
   const before=activeLayer().canvas.toDataURL();click('#enhanceDetail');assert((el('#enhanceFull') as HTMLButtonElement).disabled,'Full enhancement could start during preview');click('#enhanceClose');
   assert(!dialog.open&&activeLayer().canvas.toDataURL()===before,'Cancelling enhancement changed the original');resetLayers(960,640);
+});
+await run('Enhancement dialog preserves full controls and preview space at short phone heights',async()=>{
+  const history=await import('../src/history'),snapshot=history.captureHistory();
+  try{
+    setAdvancedMode(true);resetLayers(32,24);click('#openSuperResolution');await frame();await frame();
+    const dialog=el('#superResolutionDialog');fits(dialog,'Enhancement dialog');
+    assert(dialog.scrollHeight<=dialog.clientHeight+1,`Enhancement content is clipped: ${dialog.scrollHeight} > ${dialog.clientHeight}`);
+    const bounds=dialog.getBoundingClientRect();
+    for(const control of dialog.querySelectorAll<HTMLElement>('button,select')){
+      const r=control.getBoundingClientRect();assert(r.width>=43.99&&r.height>=43.99,`${control.id||control.textContent} has a small target: ${r.width} x ${r.height}`);
+      assert(r.top>=bounds.top&&r.bottom<=bounds.bottom,`${control.id} is clipped inside the dialog`);
+    }
+    const preview=el('.enhance-view').getBoundingClientRect();assert(preview.height>=100,'Enhancement comparison leaves too little preview space');
+    click('#enhanceClose');
+  }finally{if((el('#superResolutionDialog') as HTMLDialogElement).open)click('#enhanceClose');history.restoreHistory(snapshot);await frame();}
 });
 await run('Enhancement preview areas are selectable and normal large photos can enhance the whole image',async()=>{
   resetLayers(2048,1536);const sample=activeLayer().canvas.getContext('2d')!;sample.fillStyle='#99ddff';sample.fillRect(0,0,2048,1536);sample.fillStyle='#754522';sample.fillRect(1536,0,512,1536);click('#openSuperResolution');await frame();await frame();
@@ -370,11 +586,104 @@ await run('Recent drafts paginate without scrolling and keep picture previews re
 });
 const cadDoc=await import('../src/cad-document'),cadUi=await import('../src/cad-ui');
 const waitCad=async(test:()=>boolean)=>{const started=performance.now();while(!test()){if(performance.now()-started>20000)throw new Error('3D workshop did not finish the action: '+el('#cadStatus')?.textContent);await new Promise(resolve=>setTimeout(resolve,30));}await frame();};
+
+await run('CAD Script studio previews safely, updates source, undoes and fits every screen',async()=>{
+  if(state.cad.open)click('#cadClose');resetLayers(960,640);setAdvancedMode(true);await cadUi.openCad();await cadUi.cadWorkbench()!.sync();click('[data-cad-tab="code"]');click('#cadOpenScript');
+  const dialog=el('#cadScriptStudio') as HTMLDialogElement,source=el('#cadScriptSource') as HTMLTextAreaElement,add=el('#cadScriptAdd') as HTMLButtonElement;
+  await waitCad(()=>!add.disabled);assert(dialog.open&&cadDoc.currentBodies().length===0,'Preview changed the scene');fits(dialog,'Script studio');assert(parseFloat(getComputedStyle(source).fontSize)>=14,'Code font is too small');
+  for(const id of ['cadScriptSource','cadScriptPreview','cadScriptAdd','cadScriptClose']){el('#'+id).scrollIntoView({block:'nearest'});await frame();if(id==='cadScriptSource'){const r=source.getBoundingClientRect();assert(r.left>=0&&r.right<=innerWidth,'Code editor leaves viewport');}else fits(el('#'+id),id);}
+  source.value='size=12; cube(size);';source.dispatchEvent(new Event('input'));assert(add.disabled,'Stale preview can be added');click('#cadScriptPreview');await waitCad(()=>!add.disabled);click('#cadScriptAdd');await waitCad(()=>!dialog.open);assert(cadDoc.currentBodies().length===1&&cadDoc.currentBodies()[0].script?.source===source.value,'Add lost script');
+  const original=JSON.stringify(cadDoc.currentBodies());click('#cadEditScript');await waitCad(()=>!add.disabled);source.value='cube([30,10,10]);';source.dispatchEvent(new Event('input'));click('#cadScriptPreview');await waitCad(()=>!add.disabled);assert(JSON.stringify(cadDoc.currentBodies())===original,'Preview edited original');click('#cadScriptUpdate');await waitCad(()=>!dialog.open);assert(cadDoc.currentBodies().length===1&&cadDoc.currentBodies()[0].script?.source==='cube([30,10,10]);','Update duplicated or lost source');click('#cadUndo');await cadUi.cadWorkbench()!.sync();assert(JSON.stringify(cadDoc.currentBodies())===original,'Undo did not restore code and solid');
+  click('#cadEditScript');await waitCad(()=>!add.disabled);source.value='cube([);';source.dispatchEvent(new Event('input'));click('#cadScriptPreview');await waitCad(()=>source.getAttribute('aria-invalid')==='true');assert(add.disabled&&/line[: ]+1/i.test(el('#cadScriptStatus').textContent!)&&JSON.stringify(cadDoc.currentBodies())===original,'Error failed to protect scene or show line');click('#cadScriptClose');click('#cadClose');if(!el('#layersPanel').hidden)click('#layersToggle');resetLayers(960,640);
+});
+await run('CAD OpenSCAD folder import retains relative libraries and editable entry files',async()=>{
+ if(state.cad.open)click('#cadClose');resetLayers(160,120);setAdvancedMode(true);await cadUi.openCad();click('[data-cad-tab="code"]');click('#cadOpenScript');const add=el('#cadScriptAdd') as HTMLButtonElement;await waitCad(()=>!(el('#cadScriptPreview') as HTMLButtonElement).disabled);
+ const transfer=new DataTransfer();for(const [path,text] of [['demo/main.scad','use <lib/part.scad> part();'],['demo/lib/part.scad','module part(){cube([4,5,6]);}'],['demo/alternate.scad','sphere(3);']]){const file=new File([text],path.split('/').pop()!);Object.defineProperty(file,'webkitRelativePath',{value:path});transfer.items.add(file);}
+ const input=el('#cadScriptFolderInput') as HTMLInputElement;input.files=transfer.files;input.dispatchEvent(new Event('change'));await waitCad(()=>el('#cadScriptFileInfo').textContent!.includes('3 supplied files'));assert((el('#cadScriptSource') as HTMLTextAreaElement).value.includes('use <lib/part.scad>'),'Wrong entry');assert(add.disabled,'Stale folder preview enabled');click('#cadScriptPreview');await waitCad(()=>!add.disabled);click('#cadScriptAdd');await waitCad(()=>!(el('#cadScriptStudio') as HTMLDialogElement).open);const script=cadDoc.currentBodies()[0].script!;assert(script.entry==='main.scad'&&script.files?.some(f=>f.path==='lib/part.scad'),'Relative files lost when adding');
+ click('#cadEditScript');await waitCad(()=>!add.disabled);const entry=el('#cadScriptEntry') as HTMLSelectElement;entry.value='alternate.scad';entry.dispatchEvent(new Event('change'));assert((el('#cadScriptSource') as HTMLTextAreaElement).value==='sphere(3);','Entry switch failed');click('#cadScriptPreview');await waitCad(()=>!add.disabled);click('#cadScriptClose');click('#cadClose');if(!el('#layersPanel').hidden)click('#layersToggle');resetLayers(960,640);
+});
+await run('CAD OpenSCAD edits libraries, navigates errors, cancels and protects async file loads',async()=>{
+ if(state.cad.open)click('#cadClose');resetLayers(160,120);setAdvancedMode(true);await cadUi.openCad();click('[data-cad-tab="code"]');click('#cadOpenScript');
+ const dialog=el('#cadScriptStudio') as HTMLDialogElement,source=el('#cadScriptSource') as HTMLTextAreaElement,add=el('#cadScriptAdd') as HTMLButtonElement,preview=el('#cadScriptPreview') as HTMLButtonElement,auto=el('#cadScriptAuto') as HTMLInputElement;
+ const edit=(text:string)=>{source.value=text;source.dispatchEvent(new Event('input'));};const choose=(id:string,value:string)=>{const field=el(id) as HTMLSelectElement;field.value=value;field.dispatchEvent(new Event('change'));};
+ try{
+  auto.checked=false;auto.dispatchEvent(new Event('change'));await waitCad(()=>!preview.disabled);
+  const transfer=new DataTransfer();for(const [path,text]of [['demo/main.scad','use <lib/part.scad> part();'],['demo/lib/part.scad','module part(){cube([4,5,6]);}']]){const file=new File([text],path.split('/').pop()!);Object.defineProperty(file,'webkitRelativePath',{value:path});transfer.items.add(file);}const folder=el('#cadScriptFolderInput') as HTMLInputElement;folder.files=transfer.files;folder.dispatchEvent(new Event('change'));await waitCad(()=>source.value==='use <lib/part.scad> part();'&&!preview.disabled);
+  choose('#cadScriptEditFile','lib/part.scad');edit('module part(){cube([8,5,6]);}');auto.checked=true;auto.dispatchEvent(new Event('change'));await waitCad(()=>!add.disabled);assert((el('#cadScriptEntry') as HTMLSelectElement).value==='main.scad'&&el('#cadScriptStats').textContent!.includes('0.24 cm'),'Library rendered as entry or auto-preview did not start');auto.checked=false;auto.dispatchEvent(new Event('change'));
+  click('#cadScriptAdd');await waitCad(()=>!dialog.open);assert(cadDoc.currentBodies()[0].script?.source==='use <lib/part.scad> part();'&&atob(cadDoc.currentBodies()[0].script!.files!.find(f=>f.path==='lib/part.scad')!.data).includes('[8,5,6]'),'Library edits not saved');
+  click('#cadEditScript');await waitCad(()=>!add.disabled);choose('#cadScriptEditFile','lib/part.scad');edit('module part(){\n cube([);\n}');choose('#cadScriptEditFile','main.scad');click('#cadScriptPreview');await waitCad(()=>source.getAttribute('aria-invalid')==='true');assert((el('#cadScriptEditFile') as HTMLSelectElement).value==='lib/part.scad'&&source.value.slice(source.selectionStart,source.selectionEnd).includes('cube([);'),'Diagnostic did not navigate to library line');
+  edit('module part(){cube([8,5,6]);}');click('#cadScriptPreview');await waitCad(()=>!add.disabled);
+  choose('#cadScriptEditFile','main.scad');edit('for(i=[0:100000000]) translate([i,0,0]) cube(1);');click('#cadScriptPreview');click('#cadScriptCancel');assert(!preview.disabled&&add.disabled&&!source.hasAttribute('aria-invalid')&&el('#cadScriptStatus').textContent!.includes('cancelled'),'Cancellation is treated as a syntax error or leaves rendering stuck');
+  click('#cadScriptClose');click('#cadEditScript');await waitCad(()=>!add.disabled);
+  const delayed=new File(['cube(3);'],'delayed.scad');let release!:(text:string)=>void;Object.defineProperty(delayed,'text',{value:()=>new Promise<string>(resolve=>{release=resolve;})});const files=new DataTransfer();files.items.add(delayed);const input=el('#cadScriptFile') as HTMLInputElement;input.files=files.files;input.dispatchEvent(new Event('change'));assert(add.disabled&&preview.disabled,'Old preview stays usable while file is loading');edit('cube(7);');release('cube(3);');await new Promise(resolve=>setTimeout(resolve,30));assert(source.value==='cube(7);'&&!preview.disabled,'Late file load overwrote newer edits');click('#cadScriptPreview');await waitCad(()=>!add.disabled);assert(el('#cadScriptStats').textContent!.includes('0.34 cm'),'Latest code did not render');
+  const oversized=new File([''],'too-large.scad');Object.defineProperty(oversized,'size',{value:2000001});const oversizedFiles=new DataTransfer();oversizedFiles.items.add(oversized);auto.checked=true;auto.dispatchEvent(new Event('change'));input.files=oversizedFiles.files;input.dispatchEvent(new Event('change'));await new Promise(resolve=>setTimeout(resolve,750));assert(el('#cadScriptStatus').textContent!.includes('below 2 MB')&&add.disabled,'Auto-preview hid a failed import');
+  edit('cube(9);');auto.checked=true;auto.dispatchEvent(new Event('change'));click('#cadScriptClose');click('#cadEditScript');await waitCad(()=>!add.disabled);assert(source.value==='use <lib/part.scad> part();','Close/reopen resurrected old draft render');
+ }finally{auto.checked=false;auto.dispatchEvent(new Event('change'));if(dialog.open)click('#cadScriptClose');if(state.cad.open)click('#cadClose');if(!el('#layersPanel').hidden)click('#layersToggle');resetLayers(960,640);}
+});
+await run('CAD advanced starters load commented code and render from the example menu',async()=>{
+ if(state.cad.open)click('#cadClose');resetLayers(160,120);setAdvancedMode(true);await cadUi.openCad();click('[data-cad-tab="code"]');click('#cadOpenScript');
+ const studio=el('#cadScriptStudio') as HTMLDialogElement,select=el('#cadScriptExample') as HTMLSelectElement,source=el('#cadScriptSource') as HTMLTextAreaElement,auto=el('#cadScriptAuto') as HTMLInputElement;
+ try{
+  const {ADVANCED_SCRIPT_EXAMPLES}=await import('../src/cad-script-examples');auto.checked=false;auto.dispatchEvent(new Event('change'));
+  for(const [name,code] of Object.entries(ADVANCED_SCRIPT_EXAMPLES)){
+   assert([...select.options].some(option=>option.value===name),'Missing starter '+name);select.value=name;click('#cadScriptLoadExample');assert(source.value===code&&source.value.includes('//'),'Wrong or uncommented source '+name);
+   assert((el('#cadScriptName') as HTMLInputElement).value===name,'Wrong model name');click('#cadScriptPreview');await waitCad(()=>!(el('#cadScriptAdd') as HTMLButtonElement).disabled);assert(cadDoc.currentBodies().length===0,'Starter preview changed scene');fits(studio,'Starter editor');
+  }
+ }finally{if(studio.open)click('#cadScriptClose');if(state.cad.open)click('#cadClose');if(!el('#layersPanel').hidden)click('#layersToggle');resetLayers(960,640);}
+});
+await run('CAD Code wiki searches, navigates and previews without changing the draft or scene',async()=>{
+ if(state.cad.open)click('#cadClose');resetLayers(160,120);setAdvancedMode(true);await cadUi.openCad();click('[data-cad-tab="code"]');click('#cadOpenScript');const source=el('#cadScriptSource') as HTMLTextAreaElement,studio=el('#cadScriptStudio') as HTMLDialogElement;
+ try{
+  const original=source.value,bodies=JSON.stringify(cadDoc.currentBodies());click('#cadScriptHelp');const wiki=el('#cadWiki') as HTMLDialogElement;assert(wiki.open&&studio.open,'Help did not open over code');fits(wiki,'Wiki');for(const id of ['cadWikiSearch','cadWikiCategory','cadWikiClose'])fits(el('#'+id),id);
+  const search=el('#cadWikiSearch') as HTMLInputElement;search.value='rotate_extrude';search.dispatchEvent(new Event('input'));click('[data-wiki-topic="rotate-extrude"]');assert(el('#cadWikiArticle').dataset.topic==='rotate-extrude','Wrong function article');fits(el('#cadWikiArticle'),'Wiki article');assert(el('#cadWikiArticle').scrollWidth<=el('#cadWikiArticle').clientWidth+2,'Article overflows horizontally');
+  for(const level of ['beginner','deeper','examples']){click(`[data-wiki-jump="${level}"]`);await frame();fits(el('#cadWiki-'+level),'Learning section '+level);assert(document.activeElement===el('#cadWiki-'+level),'Jump did not move keyboard focus');}
+  assert(el('#cadWikiArticle .cad-wiki-example pre').textContent!.includes('// Outside rim.'),'Commented example missing');assert(el('#cadWikiArticle .cad-wiki-result').textContent!.includes('50 mm'),'Expected result missing');assert(el('#cadWikiArticle .cad-wiki-experiment').textContent!.includes('270'),'Guided exercise missing');
+  click('#cadWikiHome');click('#cadWikiBack');assert(el('#cadWikiArticle').dataset.topic==='rotate-extrude','Wiki back history lost article');click('#cadWikiForward');assert(el('#cadWikiArticle').dataset.topic==='start','Wiki forward failed');
+  search.value='zzzz-nothing';search.dispatchEvent(new Event('input'));assert(el('#cadWikiArticle').textContent!.includes('No topics match'),'No-results state missing');search.value='cube';search.dispatchEvent(new Event('input'));click('[data-wiki-topic="cube"]');const run=Array.from(el('#cadWikiArticle').querySelectorAll('button')).find(button=>button.textContent==='Preview example')!;run.scrollIntoView({block:'nearest'});await frame();fits(run,'Example button');run.click();await waitCad(()=>el('#cadWikiPreviewStatus').textContent!.startsWith('Ready'));fits(el('#cadWikiPreview'),'Example dialog');fits(el('#cadWikiPreviewCanvas'),'Example viewport');assert(source.value===original&&JSON.stringify(cadDoc.currentBodies())===bodies,'Example changed document');click('#cadWikiPreview button');assert(wiki.open,'Closing preview closed wiki');
+  await waitCad(()=>Array.from((el('#cadWikiCategory') as HTMLSelectElement).options).some(option=>option.value==='MCAD source catalogue'));search.value='roundedBox';search.dispatchEvent(new Event('input'));assert(el('#cadWikiTopics').textContent!.includes('boxes.scad'),'MCAD search missing');click('#cadWikiClose');assert(!wiki.open&&studio.open&&document.activeElement===el('#cadScriptHelp'),'Help did not restore editor focus');assert(source.value===original&&JSON.stringify(cadDoc.currentBodies())===bodies,'Reading wiki changed document');
+ }finally{if((el('#cadWikiPreview') as HTMLDialogElement).open)click('#cadWikiPreview button');if((el('#cadWiki') as HTMLDialogElement).open)click('#cadWikiClose');if(studio.open)click('#cadScriptClose');if(state.cad.open)click('#cadClose');if(!el('#layersPanel').hidden)click('#layersToggle');resetLayers(960,640);}
+});
+await run('CAD keeps the picture Layers palette usable for guide visibility and open after returning to Paint',async()=>{
+  const history=await import('../src/history'),snapshot=history.captureHistory(),layerModule=await import('../src/layers'),{primitive}=await import('../src/cad-model'),{advancedEnabled}=await import('../src/advanced-mode');
+  const advanced=advancedEnabled(),panel=el('#layersPanel'),paintParent=panel.parentNode;
+  try{
+    if(state.cad.open)click('#cadClose');resetLayers(160,120);activeLayer().name='Guide image';const guideCtx=activeLayer().canvas.getContext('2d')!;guideCtx.fillStyle='#e03040';guideCtx.fillRect(0,0,160,120);const guide=activeLayer().id;
+    cadDoc.ensureCadLayer();cadDoc.addBody(primitive('box'));const solid=activeLayer().id;layerModule.addLayer();activeLayer().name='Text above 3D';const ink=activeLayer().id;setAdvancedMode(false);
+    await cadUi.openCad();assert(!state.cad.open,'Basic mode opened the advanced workshop');setAdvancedMode(true);
+    await cadUi.openCad();await cadUi.cadWorkbench()!.sync();await frame();
+    assert(advancedEnabled()&&!panel.hidden&&panel.parentElement===el('#cadWorkshop')&&!panel.closest('[inert]'),'Opening the workshop did not expose an interactive Layers palette');fits(panel,'Workshop layers');fits(el('#cadView'),'Workshop view');
+    const stack=panel.getBoundingClientRect();for(const selector of ['#cadView','.cad-panel']){const r=el(selector).getBoundingClientRect();assert(Math.min(stack.right,r.right)-Math.max(stack.left,r.left)<1||Math.min(stack.bottom,r.bottom)-Math.max(stack.top,r.top)<1,'Layers cover the workshop '+selector);}
+    const work=cadUi.cadWorkbench()!;work.setPictureMode(true);await work.sync();await frame();const back=el('.cad-picture-back') as HTMLCanvasElement,pixel=()=>back.getContext('2d')!.getImageData(0,0,1,1).data;
+    assert(pixel()[0]>200&&pixel()[1]<80,'Guide image is missing from the workshop picture');const eye=el(`[data-layer-id="${guide}"] .layer-eye`);eye.focus();assert(document.activeElement===eye,'Guide visibility is not keyboard accessible');eye.click();await work.sync();await frame();
+    assert(activeLayer().id===solid&&state.cad.open&&!layers.find(l=>l.id===guide)!.visible&&pixel()[3]===0,'Hiding a guide closed CAD, changed selection or left the guide visible');click('#cadUndo');await work.sync();assert(layers.find(l=>l.id===guide)!.visible,'Guide visibility cannot be undone');
+    el('#cadStatus').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));click('[data-cad-tab="add"]');await frame();assert(!panel.hidden,'Using workshop tools dismisses the Layers palette');
+    click('#cadClose');await frame();assert(!state.cad.open&&!panel.hidden&&panel.parentNode===paintParent&&!panel.closest('[inert]'),'Returning to Paint did not keep the Layers palette open and interactive');
+    click(`[data-layer-id="${ink}"] .layer-pick`);click('[data-tool="text"]');assert(activeLayer().id===ink&&!activeLayer().cad&&state.tool==='text','Cannot choose a paint layer for text after closing the workshop');
+    await cadUi.openCad();await cadUi.cadWorkbench()!.sync();click(`[data-layer-id="${guide}"] .layer-pick`);await frame();assert(!state.cad.open&&activeLayer().id===guide&&!panel.hidden&&panel.parentNode===paintParent,'Choosing a paint sheet from the workshop lost the sheet or dismissed Layers');
+    assert(layers.find(l=>l.id===solid)?.cad?.bodies[0].solid.kind==='primitive','Layer switching flattened the editable solid');
+  }finally{if(state.cad.open)click('#cadClose');history.restoreHistory(snapshot);setAdvancedMode(advanced);await frame();}
+});
 await run('CAD launches from More, shares one 3D layer and supports exact transforms with Undo',async()=>{
   resetLayers(960,640);if(!el('#studioDrawer').classList.contains('open'))click('#studioBtn');click('#openCad');await waitCad(()=>state.cad.open&&!!cadUi.cadWorkbench());fits(el('#cadWorkshop'),'CAD workspace');fits(el('.cad-panel'),'CAD panel');
   click('[data-cad-primitive="box"]');await waitCad(()=>cadDoc.currentBodies().length===1&&!el('#cadWorkshop').hasAttribute('aria-busy'));assert(layers.length===2&&activeLayer().cad,'Cube did not use a 3D layer');
   (el('#cadPos0') as HTMLInputElement).value='-12.5';(el('#cadRot2') as HTMLInputElement).value='30';click('#cadApplyTransform');await frame();assert(cadDoc.currentBodies()[0].position[0]===-12.5&&cadDoc.currentBodies()[0].rotation[2]===30,'Exact mm position or angle was not applied');click('#cadUndo');await frame();assert(cadDoc.currentBodies()[0].position[0]===0,'CAD Undo lost the original transform');
   click('[data-cad-tab="add"]');click('[data-cad-primitive="sphere"]');await waitCad(()=>cadDoc.currentBodies().length===2&&!el('#cadWorkshop').hasAttribute('aria-busy'));assert(layers.length===2,'Second primitive created another layer');
+});
+if(compactCad())await run('CAD compact controls retain 44px targets including tabs fields layer eyes and workbench actions',async()=>{
+  const saved=JSON.stringify(cadDoc.currentBodies()),panel=el('.cad-panel'),hidden=panel.classList.contains('cad-tools-hidden');
+  if(hidden)click('#cadToolsToggle');await frame();
+  const check=(control:HTMLElement)=>{
+    const target=control.matches('input[type=checkbox]')?control.closest<HTMLElement>('label')??control:control;
+    const tabs=target.closest<HTMLElement>('.cad-tabs');if(tabs)target.scrollIntoView({block:'nearest',inline:'nearest'});
+    const r=target.getBoundingClientRect();assert(r.width>=43.99&&r.height>=43.99,'Small CAD target '+(control.id||control.textContent)+': '+r.width+' × '+r.height);
+    assert(parseFloat(getComputedStyle(control).fontSize)>=12,'Small CAD control text '+control.id);
+    if(tabs){const t=tabs.getBoundingClientRect();assert(r.left>=t.left-1&&r.right<=t.right+1&&r.top>=t.top-1&&r.bottom<=t.bottom+1,'CAD tab is clipped by its strip');}
+    fits(target,'CAD compact '+control.id);
+  };
+  for(const control of document.querySelectorAll<HTMLElement>('.cad-header button,.cad-tabs button,.cad-snap-bar input,.cad-snap-bar select,#cadHideTools,#cadWorkshop .layer-eye'))if(control.getClientRects().length)check(control);
+  click('#cadHideTools');await frame();
+  for(const control of document.querySelectorAll<HTMLElement>('.cad-view-buttons button,.cad-tools button,#cadToolsToggle'))if(control.getClientRects().length)check(control);
+  if(!hidden)click('#cadToolsToggle');await frame();assert(JSON.stringify(cadDoc.currentBodies())===saved,'Checking controls changed solid recipes');
 });
 await run('CAD dragging the move handle keeps the gesture alive across history updates and commits one reversible move',async()=>{
   const {Vector3}=await import('three'),work=cadUi.cadWorkbench()!,cube=cadDoc.currentBodies()[0],canvas=el('#cadCanvas') as HTMLCanvasElement;cadDoc.selectBodies([cube.id]);state.cad.tool='translate';work.setTool();work.view('top');await frame();
@@ -408,13 +717,35 @@ await run('CAD face snapping mates selected solid faces with opposite normals',a
     await waitCad(()=>Math.abs(cadDoc.currentBodies().find(b=>b.id===moving.id)!.position[0]-target.position[0])<.01);assert(Math.abs(work.bounds(moving.id)!.min.z-work.bounds(target.id)!.max.z)<.01,'Mated faces do not touch');
   }finally{canvas.setPointerCapture=capture;canvas.releasePointerCapture=release;history.restoreHistory(before);await frame();}
 });
-await run('CAD every tool category and sketch stage fits without scrolling at this viewport',async()=>{
-  if(el('.cad-panel').classList.contains('cad-tools-hidden'))click('#cadToolsToggle');await frame();const checkCad=()=>{const panel=el('.cad-panel'),page=el('[data-cad-panel]:not([hidden])');fits(panel,'CAD panel');assert(page.scrollHeight<=page.clientHeight+2,'CAD page scrolls: '+page.id);for(const child of page.querySelectorAll<HTMLElement>('button,input,select,textarea'))if(child.getClientRects().length){fits(child,'CAD '+child.id);const a=child.getBoundingClientRect(),b=page.getBoundingClientRect();assert(a.bottom<=b.bottom+2,'CAD control clipped: '+child.id);}};
+await run('CAD every tool category and sketch stage keeps full controls reachable at this viewport',async()=>{
+  if(el('.cad-panel').classList.contains('cad-tools-hidden'))click('#cadToolsToggle');await frame();const checkCad=()=>{const panel=el('.cad-panel'),page=el('[data-cad-panel]:not([hidden])');fits(panel,'CAD panel');const timeline=el('#cadTimeline');if(!timeline.hidden){assert(el('.cad-timeline-top').getBoundingClientRect().bottom<=el('.cad-timeline-track').getBoundingClientRect().top+1,'Timeline heading overlaps step buttons');}assert(el('.cad-tabs').getBoundingClientRect().bottom<=page.getBoundingClientRect().top+1,'CAD tabs overlap panel text');checkCadPage(page,'CAD page scrolls: '+page.id);for(const child of page.querySelectorAll<HTMLElement>('button,input,select,textarea'))if(child.getClientRects().length){fits(child,'CAD '+child.id);const a=child.getBoundingClientRect(),b=page.getBoundingClientRect();assert(a.bottom<=b.bottom+2,'CAD control clipped: '+child.id);}};
   for(const category of ['add','move','sketch','build','layers','print']){click(`[data-cad-tab="${category}"]`);await frame();await frame();checkCad();}
   click('[data-cad-tab="move"]');click('[data-cad-edit="size"]');await frame();checkCad();click('[data-cad-edit="transform"]');
   click('[data-cad-tab="build"]');for(const value of ['combine','align','repeat','edges','shell','loft','sweep']){(el('#cadBuildPage') as HTMLSelectElement).value=value;el('#cadBuildPage').dispatchEvent(new Event('change'));await frame();checkCad();}
   click('[data-cad-tab="sketch"]');click('[data-cad-sketch-kind="revolve"]');await frame();checkCad();click('#cadNextFeature');await frame();checkCad();click('#cadBackSketch');click('[data-cad-sketch-kind="extrude"]');
-  click('#cadHelp');await frame();const help=el('#cadHelpDialog') as HTMLDialogElement;assert(help.open,'Workshop help did not open');fits(help,'Workshop help');assert(help.scrollHeight<=help.clientHeight+1,'Workshop help scrolls');click('#cadHelpDone');assert((el('#topBar') as HTMLElement).inert,'Painting controls remain keyboard accessible behind the workshop');
+  click('#cadHelp');await frame();const help=el('#cadHelpDialog') as HTMLDialogElement;assert(help.open,'Workshop help did not open');fits(help,'Workshop help');assert(help.scrollHeight<=help.clientHeight+1,'Workshop help dialog clips its fixed actions');
+  const helpContent=el('#cadHelpContent'),done=el('#cadHelpDone'),before=done.getBoundingClientRect();
+  for(const paragraph of helpContent.children){(paragraph as HTMLElement).scrollIntoView({block:'nearest'});fits(paragraph as HTMLElement,'Workshop help paragraph');const p=paragraph.getBoundingClientRect(),r=helpContent.getBoundingClientRect();assert(p.top>=r.top-1&&p.bottom<=r.bottom+1,'Workshop help text cannot be reached');}
+  fits(done,'Workshop help Done');assert(done.getBoundingClientRect().top===before.top,'Scrolling help moved its Done action');if(compactCad())assert(before.width>=44&&before.height>=44,'Workshop help Done is too small');
+  click('#cadHelpDone');assert((el('#topBar') as HTMLElement).inert,'Painting controls remain keyboard accessible behind the workshop');
+});
+await run('CAD revolve starts a new piece and its profile axes do not obscure the sketch',async()=>{
+  click('[data-cad-tab="sketch"]');click('[data-cad-sketch-kind="extrude"]');(el('#cadFeatureOperation') as HTMLSelectElement).value='cut';click('[data-cad-sketch-kind="revolve"]');await frame();
+  for(const path of el('#cadProfile').querySelectorAll('path'))assert(path.getAttribute('fill')==='none','Profile axis is filled over the sketch');
+  click('#cadNextFeature');assert((el('#cadFeatureOperation') as HTMLSelectElement).value==='new','Revolve inherited a cut from the previous sketch');click('#cadBackSketch');click('[data-cad-sketch-kind="extrude"]');
+});
+if(!compactCad())await run('CAD desktop form fitting contains rounded layout at fractional zoom',async()=>{
+  const wasOpen=state.cad.open;if(!wasOpen)await cadUi.openCad();await frame();
+  const previousTab=document.querySelector<HTMLElement>('[data-cad-tab][aria-selected="true"]')?.dataset.cadTab??'add';
+  const previousBuild=(el('#cadBuildPage') as HTMLSelectElement).value;
+  try{
+    click('[data-cad-tab="build"]');(el('#cadBuildPage') as HTMLSelectElement).value='loft';el('#cadBuildPage').dispatchEvent(new Event('change'));
+    for(const pane of ['outline','placement','draw','point','coordinates','copy','settings']){
+      (el('#cadLoftPane') as HTMLSelectElement).value=pane;el('#cadLoftPane').dispatchEvent(new Event('change'));await frame();await frame();
+      const page=el('#cadPagebuild');assert(page.scrollHeight<=page.clientHeight+1,`Loft ${pane} is clipped: ${page.scrollHeight} > ${page.clientHeight}`);
+      const bounds=page.getBoundingClientRect();for(const control of page.querySelectorAll<HTMLElement>('input,select,button'))if(control.getClientRects().length){const r=control.getBoundingClientRect();assert(r.top>=bounds.top-1&&r.bottom<=bounds.bottom+1,`Loft ${pane} clips ${control.id}`);}
+    }
+  }finally{(el('#cadBuildPage') as HTMLSelectElement).value=previousBuild;el('#cadBuildPage').dispatchEvent(new Event('change'));click(`[data-cad-tab="${previousTab}"]`);if(!wasOpen)click('#cadClose');await frame();}
 });
 await run('CAD flat-face picking, dimensioned sketches and inward circle cuts make real closed geometry',async()=>{
   const {Vector3}=await import('three'),work=cadUi.cadWorkbench()!;cadDoc.selectBodies([cadDoc.currentBodies()[0].id]);click('[data-cad-tab="sketch"]');click('#cadPickFace');work.view('top');await frame();
@@ -432,12 +763,12 @@ await run('CAD original hole sketches and through depths edit without losing the
   const root=cadDoc.currentBodies().find(b=>b.solid.kind==='boolean')!;click('[data-feature-key="1:sketch"]');click('#cadFeatureEdit');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));(el('#cadFeatureSketchWidth') as HTMLInputElement).value='12';(el('#cadFeatureSketchHeight') as HTMLInputElement).value='12';click('#cadFeatureApply');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));
   click('[data-feature-key="1"]');click('#cadFeatureEdit');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));(el('#cadFeatureThrough') as HTMLInputElement).checked=true;click('#cadFeatureApply');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));const {cadCompute}=await import('../src/cad-engine'),mesh=(await cadCompute([cadDoc.currentBodies().find(b=>b.id===root.id)!])).mesh;assert(Math.abs(mesh.volume-(16000-Math.PI*36*40))<5,'Hole diameter or through depth was not regenerated');
   click('[data-feature-key="0"]');click('#cadFeatureEdit');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));const saved=JSON.stringify(cadDoc.currentBodies());(el('#cadFeatureSize2') as HTMLInputElement).value='0';click('#cadFeatureApply');await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));assert(state.cad.editing&&!el('#cadFeatureError').hidden&&JSON.stringify(cadDoc.currentBodies())===saved,'Invalid dimensions changed the solid or discarded the draft');
-  const page=el('#cadPagehistory');assert(page.scrollHeight<=page.clientHeight+2,'Feature editor scrolls');for(const input of page.querySelectorAll<HTMLElement>('button,input,select,textarea'))if(input.getClientRects().length)fits(input,'Feature editor '+input.id);click('#cadFeatureCancel');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));assert(!state.cad.preview&&JSON.stringify(cadDoc.currentBodies())===saved,'Cancel did not restore the exact original solid');
+  const page=el('#cadPagehistory');checkCadPage(page,'Feature editor scrolls');for(const input of page.querySelectorAll<HTMLElement>('button,input,select,textarea'))if(input.getClientRects().length)fits(input,'Feature editor '+input.id);click('#cadFeatureCancel');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));assert(!state.cad.preview&&JSON.stringify(cadDoc.currentBodies())===saved,'Cancel did not restore the exact original solid');
 });
 await run('CAD timeline rollback and feature suppression preserve history and fit the viewport',async()=>{
   const {projectData}=await import('../src/project');cadUi.cadWorkbench()!.updatePreviews();const saved=projectData();click('[data-cad-step="0"]');await waitCad(()=>!!state.cad.preview&&!el('#cadWorkshop').hasAttribute('aria-busy'));assert(projectData()===saved&&el('#cadTimelinePosition').textContent?.includes('Viewing step 1'),'Timeline changed the project or failed to roll back');assert(!cadUi.cadWorkbench()!.transform.object,'Rollback allowed a destructive gizmo edit');fits(el('#cadTimeline'),'Feature timeline');assert(el('#cadCanvas').getBoundingClientRect().bottom<=el('#cadTimeline').getBoundingClientRect().top+1,'Timeline covers the 3D workbench');click('#cadTimelineLatest');await waitCad(()=>!state.cad.preview&&!el('#cadWorkshop').hasAttribute('aria-busy'));const returned=projectData();assert(returned===saved,'Return to latest altered geometry: '+(()=>{const a=JSON.parse(saved),b=JSON.parse(returned);return a.layers.map((l:{id:number;image:string;cad?:unknown},i:number)=>({layer:l.id,image:l.image===b.layers[i].image,cad:JSON.stringify(l.cad)===JSON.stringify(b.layers[i].cad)})).map((v:unknown)=>JSON.stringify(v)).join(',');})());
   click('[data-feature-key="root"]');click('#cadFeatureSuppress');await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));assert(cadDoc.currentBodies().find(b=>b.solid.kind==='boolean')!.solid.feature?.suppressed,'Cut was not suppressed');click('#cadFeatureSuppress');await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));assert(!cadDoc.currentBodies().find(b=>b.solid.kind==='boolean')!.solid.feature?.suppressed,'Feature did not resume');
-  const page=el('#cadPagehistory');assert(page.scrollHeight<=page.clientHeight+2,'History tree scrolls');for(const input of page.querySelectorAll<HTMLElement>('button,input,select'))if(input.getClientRects().length)fits(input,'History tree '+input.id);
+  const page=el('#cadPagehistory');checkCadPage(page,'History tree scrolls');for(const input of page.querySelectorAll<HTMLElement>('button,input,select'))if(input.getClientRects().length)fits(input,'History tree '+input.id);
 });
 await run('CAD edge picking toggles real edges and applies editable fillets and chamfers with Undo',async()=>{
   const history=await import('../src/history'),snapshot=history.captureHistory(),{primitive}=await import('../src/cad-model'),cube=primitive('box');
@@ -449,11 +780,11 @@ await run('CAD edge picking toggles real edges and applies editable fillets and 
     click('[data-feature-key="root"]');click('#cadFeatureEdit');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));(el('#cadFeatureFinishSize') as HTMLInputElement).value='3';(el('#cadFeatureFinishMode') as HTMLSelectElement).value='chamfer';el('#cadFeatureFinishMode').dispatchEvent(new Event('change'));for(let i=0;i<2;i++){click('#cadFeaturePreview');await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));}click('#cadFeatureApply');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));const result=cadDoc.currentBodies()[0];assert(result.solid.kind==='finish'&&result.solid.mode==='chamfer'&&result.solid.size===3,'Chamfer settings were not editable');assert(!result.solid.feature?.label||result.solid.feature.label==='Chamfer','Previewing kept an incorrect automatic feature name');const {cadCompute}=await import('../src/cad-engine');assert(Math.abs((await cadCompute([result])).mesh.volume-7910)<.03,'The edited chamfer size is incorrect');click('#cadUndo');await frame();assert(cadDoc.currentBodies()[0].solid.kind==='finish'&&(cadDoc.currentBodies()[0].solid as {size:number}).size===2,'Feature edit did not Undo in one step');
   }finally{if(state.cad.editing){click('#cadFeatureCancel');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));}state.cad.tool='translate';cadUi.cadWorkbench()?.setTool();history.restoreHistory(snapshot);await frame();}
 });
-await run('CAD finish history reselects original edges and safely rejects impossible radii without scrolling',async()=>{
+await run('CAD finish history reselects original edges and safely rejects impossible radii with reachable controls',async()=>{
   const history=await import('../src/history'),snapshot=history.captureHistory(),{primitive}=await import('../src/cad-model'),{cadCompute}=await import('../src/cad-engine'),cube=primitive('box');
   try{const edges=(await cadCompute([{...cube,position:[0,0,0]}],'edges')).edges!;cadDoc.replaceBodies([cadDoc.finishedBody(cube,'fillet',2,[edges[0].ref])]);cadDoc.selectBodies([cube.id]);await cadUi.cadWorkbench()!.sync();click('[data-cad-tab="history"]');click('[data-feature-key="root"]');click('#cadFeatureEdit');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));click('#cadFeatureReselectEdges');await waitCad(()=>state.cad.tool==='edge'&&!el('#cadWorkshop').hasAttribute('aria-busy'));assert(cadUi.cadWorkbench()!.edges.choices.length===12,'Reselect did not expose the original sharp input');
     if(el('.cad-panel').classList.contains('cad-tools-hidden'))click('#cadToolsToggle');click('#cadFeatureNoEdges');assert(state.cad.edgeSelection.length===0,'Clear edges did not empty the selection');click('#cadFeatureAllEdges');assert(state.cad.edgeSelection.length===12,'Select all did not choose original edges');click('#cadFeaturePreview');await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));click('#cadFeatureApply');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));const result=cadDoc.currentBodies()[0];assert(result.solid.kind==='finish'&&result.solid.edges.length===12,'Reselected edges were not saved in the feature');
-    click('#cadFeatureEdit');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));const saved=JSON.stringify(cadDoc.currentBodies());(el('#cadFeatureFinishSize') as HTMLInputElement).value='40';click('#cadFeatureApply');await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));assert(state.cad.editing&&!el('#cadFeatureError').hidden&&JSON.stringify(cadDoc.currentBodies())===saved,'An impossible radius changed the original or discarded the editor');await frame();const page=el('#cadPagehistory');assert(page.scrollHeight<=page.clientHeight+2,'Fillet editor scrolls');for(const input of page.querySelectorAll<HTMLElement>('button,input,select'))if(input.getClientRects().length)fits(input,'Fillet editor '+input.id);click('#cadFeatureCancel');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));assert(!state.cad.preview&&JSON.stringify(cadDoc.currentBodies())===saved,'Cancel did not restore the original finish');
+    click('#cadFeatureEdit');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));const saved=JSON.stringify(cadDoc.currentBodies());(el('#cadFeatureFinishSize') as HTMLInputElement).value='40';click('#cadFeatureApply');await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));assert(state.cad.editing&&!el('#cadFeatureError').hidden&&JSON.stringify(cadDoc.currentBodies())===saved,'An impossible radius changed the original or discarded the editor');await frame();const page=el('#cadPagehistory');checkCadPage(page,'Fillet editor scrolls');for(const input of page.querySelectorAll<HTMLElement>('button,input,select'))if(input.getClientRects().length)fits(input,'Fillet editor '+input.id);click('#cadFeatureCancel');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));assert(!state.cad.preview&&JSON.stringify(cadDoc.currentBodies())===saved,'Cancel did not restore the original finish');
   }finally{if(state.cad.editing){click('#cadFeatureCancel');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));}state.cad.tool='translate';cadUi.cadWorkbench()?.setTool();history.restoreHistory(snapshot);await frame();}
 });
 await run('CAD shell picks whole faces, previews safely and edits wall thickness with one-step Undo',async()=>{
@@ -468,8 +799,8 @@ await run('CAD shell picks whole faces, previews safely and edits wall thickness
 await run('CAD shell reselects original faces and preserves editable drafts when walls are impossible',async()=>{
   const history=await import('../src/history'),snapshot=history.captureHistory(),{primitive}=await import('../src/cad-model'),{cadCompute}=await import('../src/cad-engine'),cube=primitive('box');
   try{const faces=(await cadCompute([{...cube,position:[0,0,0]}],'faces')).faces,top=faces.find(f=>f.ref.normal[2]>.99)!;cadDoc.replaceBodies([cadDoc.shelledBody(cube,2,[top.ref])]);cadDoc.selectBodies([cube.id]);const work=cadUi.cadWorkbench()!;await work.sync();click('[data-cad-tab="history"]');click('[data-feature-key="root"]');click('#cadFeatureEdit');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));click('#cadFeatureReselectFaces');await waitCad(()=>state.cad.tool==='shellFace'&&!el('#cadWorkshop').hasAttribute('aria-busy'));assert(work.faces.choices.length===6&&state.cad.faceSelection.length===1,'Reselect did not expose the intact original with its saved opening');assert(Math.abs(work.nodes.get(cube.id)!.data.volume-8000)<.02,'Reselect is picking faces on the hollow result');
-    if(el('.cad-panel').classList.contains('cad-tools-hidden'))click('#cadToolsToggle');click('#cadFeatureNoFaces');assert(state.cad.faceSelection.length===0,'Clear openings left a selected face');await frame();const page=el('#cadPagehistory');assert(page.scrollHeight<=page.clientHeight+2,'Shell face editor scrolls');for(const input of page.querySelectorAll<HTMLElement>('button,input,select'))if(input.getClientRects().length)fits(input,'Shell editor '+input.id);click('#cadFeatureApply');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));const result=cadDoc.currentBodies()[0];assert(result.solid.kind==='shell'&&!result.solid.faces.length&&Math.abs((await cadCompute([result])).mesh.volume-3904)<.02,'Changing openings did not create an enclosed cavity');
-    click('#cadFeatureEdit');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));const saved=JSON.stringify(cadDoc.currentBodies());(el('#cadFeatureThickness') as HTMLInputElement).value='40';click('#cadFeatureApply');await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));assert(state.cad.editing&&!el('#cadFeatureError').hidden&&JSON.stringify(cadDoc.currentBodies())===saved,'An impossible wall discarded the editor or changed the original');await frame();assert(page.scrollHeight<=page.clientHeight+2,'Shell error editor scrolls');click('#cadFeatureCancel');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));assert(!state.cad.preview&&JSON.stringify(cadDoc.currentBodies())===saved,'Cancel failed to restore the shell');
+    if(el('.cad-panel').classList.contains('cad-tools-hidden'))click('#cadToolsToggle');click('#cadFeatureNoFaces');assert(state.cad.faceSelection.length===0,'Clear openings left a selected face');await frame();const page=el('#cadPagehistory');checkCadPage(page,'Shell face editor scrolls');for(const input of page.querySelectorAll<HTMLElement>('button,input,select'))if(input.getClientRects().length)fits(input,'Shell editor '+input.id);click('#cadFeatureApply');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));const result=cadDoc.currentBodies()[0];assert(result.solid.kind==='shell'&&!result.solid.faces.length&&Math.abs((await cadCompute([result])).mesh.volume-3904)<.02,'Changing openings did not create an enclosed cavity');
+    click('#cadFeatureEdit');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));const saved=JSON.stringify(cadDoc.currentBodies());(el('#cadFeatureThickness') as HTMLInputElement).value='40';click('#cadFeatureApply');await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));assert(state.cad.editing&&!el('#cadFeatureError').hidden&&JSON.stringify(cadDoc.currentBodies())===saved,'An impossible wall discarded the editor or changed the original');await frame();checkCadPage(page,'Shell error editor scrolls');click('#cadFeatureCancel');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));assert(!state.cad.preview&&JSON.stringify(cadDoc.currentBodies())===saved,'Cancel failed to restore the shell');
     click('#cadFeatureSuppress');await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));assert(Math.abs((await cadCompute([cadDoc.currentBodies()[0]])).mesh.volume-8000)<.02,'Shell suppression lost its source');click('#cadFeatureSuppress');await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));click('[data-cad-step="0"]');await waitCad(()=>!!state.cad.preview&&!el('#cadWorkshop').hasAttribute('aria-busy'));assert(Math.abs(work.nodes.get(cube.id)!.data.volume-8000)<.02,'Shell timeline lost its original solid');click('#cadTimelineLatest');await waitCad(()=>!state.cad.preview&&!el('#cadWorkshop').hasAttribute('aria-busy'));
   }finally{if(state.cad.editing){click('#cadFeatureCancel');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));}state.cad.tool='translate';cadUi.cadWorkbench()?.setTool();history.restoreHistory(snapshot);await frame();}
 });
@@ -477,21 +808,21 @@ await run('CAD loft builder preserves ordered profiles and History edits them wi
   const history=await import('../src/history'),snapshot=history.captureHistory();
   try{cadDoc.replaceBodies([]);const work=cadUi.cadWorkbench()!;await work.sync();click('[data-cad-tab="build"]');(el('#cadBuildPage') as HTMLSelectElement).value='loft';el('#cadBuildPage').dispatchEvent(new Event('change'));assert(el('#cadEmpty').hidden,'Empty workshop message covers profile guides');
     const select=(id:string,value:string)=>{(el(id) as HTMLSelectElement).value=value;el(id).dispatchEvent(new Event('change'));};
-    for(const pane of ['outline','placement','draw','point','coordinates','copy','settings']){select('#cadLoftPane',pane);await frame();const page=el('#cadPagebuild');assert(page.scrollHeight<=page.clientHeight+2,'Loft '+pane+' page scrolls');for(const input of page.querySelectorAll<HTMLElement>('button,input,select,textarea,svg'))if(input.getClientRects().length)fits(input,'Loft '+pane+' '+input.id);}
+    for(const pane of ['outline','placement','draw','point','coordinates','copy','settings']){select('#cadLoftPane',pane);await frame();const page=el('#cadPagebuild');checkCadPage(page,'Loft '+pane+' page scrolls');for(const input of page.querySelectorAll<HTMLElement>('button,input,select,textarea,svg'))if(input.getClientRects().length)fits(input,'Loft '+pane+' '+input.id);}
     select('#cadLoftPane','outline');click('#cadLoftAddProfile');assert((el('#cadLoftProfile') as HTMLSelectElement).options.length===3,'Could not add a profile');click('#cadLoftUp');click('#cadLoftDown');select('#cadLoftProfile','2');(el('#cadLoftProfileName') as HTMLInputElement).value='Lid sketch';(el('#cadLoftWidth') as HTMLInputElement).value='10';(el('#cadLoftHeight') as HTMLInputElement).value='10';select('#cadLoftPane','placement');(el('#cadLoftOrigin2') as HTMLInputElement).value='40';select('#cadLoftPane','settings');select('#cadLoftSides','ruled');click('#cadLoftMake');await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));const made=cadDoc.currentBodies()[0];assert(made?.solid.kind==='loft'&&made.solid.profiles.length===3&&made.solid.ruled&&made.solid.profiles[2].name==='Lid sketch','Loft settings or original profiles were baked');assert(Math.abs(work.nodes.get(made.id)!.data.bounds.max[2]-40)<.01,'Loft profile placement was ignored');
     click('[data-feature-key="root:profile:2"]');click('#cadFeatureEdit');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));const before=JSON.stringify(cadDoc.currentBodies());(el('#cadFeatureFormWidth') as HTMLInputElement).value='14';click('#cadFeaturePreview');await waitCad(()=>!!state.cad.preview&&!el('#cadWorkshop').hasAttribute('aria-busy'));assert(JSON.stringify(cadDoc.currentBodies())===before,'Loft profile preview changed the project');click('#cadFeatureApply');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));assert(JSON.stringify(cadDoc.currentBodies())!==before,'Loft profile edit was not applied');click('#cadUndo');await frame();assert(JSON.stringify(cadDoc.currentBodies())===before,'Loft edit was not one Undo step');
-    click('[data-feature-key="root:profile:2"]');click('#cadFeatureEdit');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));(el('#cadFeatureFormWidth') as HTMLInputElement).value='0';click('#cadFeatureApply');await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));assert(state.cad.editing&&!el('#cadFeatureError').hidden&&JSON.stringify(cadDoc.currentBodies())===before,'Invalid loft dimensions discarded the editable draft');await frame();assert(el('#cadPagehistory').scrollHeight<=el('#cadPagehistory').clientHeight+2,'Loft error editor scrolls');click('#cadFeatureCancel');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));assert(!state.cad.preview&&JSON.stringify(cadDoc.currentBodies())===before,'Loft Cancel changed the original');
+    click('[data-feature-key="root:profile:2"]');click('#cadFeatureEdit');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));(el('#cadFeatureFormWidth') as HTMLInputElement).value='0';click('#cadFeatureApply');await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));assert(state.cad.editing&&!el('#cadFeatureError').hidden&&JSON.stringify(cadDoc.currentBodies())===before,'Invalid loft dimensions discarded the editable draft');await frame();checkCadPage(el('#cadPagehistory'),'Loft error editor scrolls');click('#cadFeatureCancel');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));assert(!state.cad.preview&&JSON.stringify(cadDoc.currentBodies())===before,'Loft Cancel changed the original');
   }finally{if(state.cad.editing){click('#cadFeatureCancel');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));}history.restoreHistory(snapshot);await frame();}
 });
 await run('CAD sweep path dragging, exact point edits and settings stay parametric and fit the panel',async()=>{
   const history=await import('../src/history'),snapshot=history.captureHistory();
   try{cadDoc.replaceBodies([]);const work=cadUi.cadWorkbench()!;await work.sync();click('[data-cad-tab="build"]');const select=(id:string,value:string)=>{(el(id) as HTMLSelectElement).value=value;el(id).dispatchEvent(new Event('change'));};select('#cadBuildPage','sweep');
-    for(const pane of ['outline','draw','path','point','coordinates','copy','settings']){select('#cadSweepPane',pane);await frame();const page=el('#cadPagebuild');assert(page.scrollHeight<=page.clientHeight+2,'Sweep '+pane+' page scrolls');for(const input of page.querySelectorAll<HTMLElement>('button,input,select,textarea,svg'))if(input.getClientRects().length)fits(input,'Sweep '+pane+' '+input.id);}
+    for(const pane of ['outline','draw','path','point','coordinates','copy','settings']){select('#cadSweepPane',pane);await frame();const page=el('#cadPagebuild');checkCadPage(page,'Sweep '+pane+' page scrolls');for(const input of page.querySelectorAll<HTMLElement>('button,input,select,textarea,svg'))if(input.getClientRects().length)fits(input,'Sweep '+pane+' '+input.id);}
     select('#cadSweepPane','outline');select('#cadSweepShape','rectangle');(el('#cadSweepWidth') as HTMLInputElement).value='4';(el('#cadSweepHeight') as HTMLInputElement).value='4';select('#cadSweepPane','coordinates');(el('#cadSweepCoordinates') as HTMLTextAreaElement).value='0,0,0; 0,0,20; 20,0,20';(el('#cadSweepPathName') as HTMLInputElement).value='My route';select('#cadSweepPane','settings');select('#cadSweepPathMode','polyline');click('#cadSweepMake');await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));const made=cadDoc.currentBodies()[0];assert(made?.solid.kind==='sweep'&&made.solid.path.name==='My route'&&!made.solid.path.smooth,'Sweep did not preserve its path and settings');assert(Math.abs(work.nodes.get(made.id)!.data.volume-640)<.05,'Sweep did not make real solid geometry');
     click('[data-feature-key="root:path"]');click('#cadFeatureEdit');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));const original=JSON.stringify(cadDoc.currentBodies()),svg=el('#cadFeatureFormPlot') as unknown as SVGSVGElement,matrix=svg.getScreenCTM()!,start=new DOMPoint(0,-20).matrixTransform(matrix),end=new DOMPoint(-5,-25).matrixTransform(matrix),capture=svg.setPointerCapture;svg.setPointerCapture=()=>{};
     try{svg.querySelector('[data-form-point="1"]')!.dispatchEvent(new PointerEvent('pointerdown',{pointerId:993,button:0,buttons:1,clientX:start.x,clientY:start.y,bubbles:true}));svg.dispatchEvent(new PointerEvent('pointermove',{pointerId:993,button:-1,buttons:1,clientX:end.x,clientY:end.y,bubbles:true}));svg.dispatchEvent(new PointerEvent('pointerup',{pointerId:993,button:0,buttons:0,clientX:end.x,clientY:end.y,bubbles:true}));}finally{svg.setPointerCapture=capture;}
     select('#cadFeatureFormPane','point');select('#cadFeatureFormPoint','1');assert(Number((el('#cadFeatureFormPoint0') as HTMLInputElement).value)===-5&&Number((el('#cadFeatureFormPoint2') as HTMLInputElement).value)===25,'Dragging did not edit the selected 3D path point');assert(JSON.stringify(cadDoc.currentBodies())===original,'Path dragging changed the committed model');click('#cadFeatureApply');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));const changed=cadDoc.currentBodies()[0];assert(changed.solid.kind==='sweep'&&changed.solid.path.points[1][0]===-5,'Path point edit was not saved');click('#cadUndo');await frame();assert(JSON.stringify(cadDoc.currentBodies())===original,'Sweep path did not Undo in one step');
-    click('[data-feature-key="root"]');click('#cadFeatureEdit');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));select('#cadFeatureFormPathMode','smooth');(el('#cadFeatureFormRoll') as HTMLInputElement).value='25';click('#cadFeatureApply');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));const result=cadDoc.currentBodies()[0];assert(result.solid.kind==='sweep'&&result.solid.path.smooth&&result.solid.roll===25,'Sweep settings did not rebuild');click('[data-feature-key="root:path"]');click('#cadFeatureEdit');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));select('#cadFeatureFormPane','coordinates');const saved=JSON.stringify(cadDoc.currentBodies());(el('#cadFeatureFormCoordinates') as HTMLTextAreaElement).value='0,0,0;0,0,0';click('#cadFeatureApply');await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));assert(state.cad.editing&&!el('#cadFeatureError').hidden&&JSON.stringify(cadDoc.currentBodies())===saved,'Invalid path changed the original or discarded its editor');await frame();assert(el('#cadPagehistory').scrollHeight<=el('#cadPagehistory').clientHeight+2,'Sweep error editor scrolls');click('#cadFeatureCancel');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));
+    click('[data-feature-key="root"]');click('#cadFeatureEdit');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));select('#cadFeatureFormPathMode','smooth');(el('#cadFeatureFormRoll') as HTMLInputElement).value='25';click('#cadFeatureApply');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));const result=cadDoc.currentBodies()[0];assert(result.solid.kind==='sweep'&&result.solid.path.smooth&&result.solid.roll===25,'Sweep settings did not rebuild');click('[data-feature-key="root:path"]');click('#cadFeatureEdit');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));select('#cadFeatureFormPane','coordinates');const saved=JSON.stringify(cadDoc.currentBodies());(el('#cadFeatureFormCoordinates') as HTMLTextAreaElement).value='0,0,0;0,0,0';click('#cadFeatureApply');await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));assert(state.cad.editing&&!el('#cadFeatureError').hidden&&JSON.stringify(cadDoc.currentBodies())===saved,'Invalid path changed the original or discarded its editor');await frame();checkCadPage(el('#cadPagehistory'),'Sweep error editor scrolls');click('#cadFeatureCancel');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));
   }finally{if(state.cad.editing){click('#cadFeatureCancel');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));}history.restoreHistory(snapshot);await frame();}
 });
 await run('CAD loft can copy saved and newly drawn sketch outlines while preserving their sources',async()=>{
@@ -502,9 +833,9 @@ await run('CAD loft can copy saved and newly drawn sketch outlines while preserv
 });
 await run('CAD sketch dimensions create solids and edit in History with safe Preview Apply Cancel and Undo',async()=>{
   const history=await import('../src/history'),snapshot=history.captureHistory(),work=cadUi.cadWorkbench()!,select=(id:string,value:string)=>{(el(id) as HTMLSelectElement).value=value;el(id).dispatchEvent(new Event('change'));};
-  try{cadDoc.replaceBodies([]);await work.sync();click('[data-cad-tab="sketch"]');click('[data-cad-sketch-kind="extrude"]');state.cad.tool='rectangle';work.setTool();select('#cadPlane','xy');for(const[id,value]of [['cadSketchX','0'],['cadSketchY','0'],['cadSketchW','20'],['cadSketchH','10']])(el('#'+id) as HTMLInputElement).value=value;click('#cadUseDimensions');click('#cadSketchConstraints');(el('#cadSketchConstraintValue') as HTMLInputElement).value='32';click('#cadSketchConstraintAdd');assert(el('#cadSketchConstraintEditor').textContent?.includes('1 constraints · solved'),'New sketch dimension was not saved');await frame();assert(el('#cadPagesketch').scrollHeight<=el('#cadPagesketch').clientHeight+2,'Sketch dimension page scrolls');click('#cadNextFeature');select('#cadFeatureOperation','new');(el('#cadFeatureAmount') as HTMLInputElement).value='10';(el('#cadTaper') as HTMLInputElement).value='1';(el('#cadTwist') as HTMLInputElement).value='0';click('#cadCreateFeature');await waitCad(()=>cadDoc.currentBodies().length===1&&!el('#cadWorkshop').hasAttribute('aria-busy'));const made=cadDoc.currentBodies()[0];assert(made.solid.feature?.constraints?.length===1&&Math.abs(work.nodes.get(made.id)!.data.volume-3200)<.02,'New dimension was baked or ignored');
+  try{cadDoc.replaceBodies([]);await work.sync();click('[data-cad-tab="sketch"]');click('[data-cad-sketch-kind="extrude"]');state.cad.tool='rectangle';work.setTool();select('#cadPlane','xy');for(const[id,value]of [['cadSketchX','0'],['cadSketchY','0'],['cadSketchW','20'],['cadSketchH','10']])(el('#'+id) as HTMLInputElement).value=value;click('#cadUseDimensions');click('#cadSketchConstraints');(el('#cadSketchConstraintValue') as HTMLInputElement).value='32';click('#cadSketchConstraintAdd');assert(el('#cadSketchConstraintEditor').textContent?.includes('1 constraints · solved'),'New sketch dimension was not saved');await frame();checkCadPage(el('#cadPagesketch'),'Sketch dimension page scrolls');click('#cadNextFeature');select('#cadFeatureOperation','new');(el('#cadFeatureAmount') as HTMLInputElement).value='10';(el('#cadTaper') as HTMLInputElement).value='1';(el('#cadTwist') as HTMLInputElement).value='0';click('#cadCreateFeature');await waitCad(()=>cadDoc.currentBodies().length===1&&!el('#cadWorkshop').hasAttribute('aria-busy'));const made=cadDoc.currentBodies()[0];assert(made.solid.feature?.constraints?.length===1&&Math.abs(work.nodes.get(made.id)!.data.volume-3200)<.02,'New dimension was baked or ignored');
     click('[data-cad-tab="history"]');click('[data-feature-key="root:sketch"]');click('#cadFeatureEdit');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));const original=JSON.stringify(cadDoc.currentBodies());click('#cadFeatureConstraintSavedPage');(el('#cadFeatureConstraintValue') as HTMLInputElement).value='40';click('#cadFeatureConstraintUpdate');assert(JSON.stringify(cadDoc.currentBodies())===original,'Updating a dimension changed the committed recipe');await frame();for(const input of el('#cadPagehistory').querySelectorAll<HTMLElement>('button,input,select,svg'))if(input.getClientRects().length)fits(input,'Constraint history '+input.id);click('#cadFeaturePreview');await waitCad(()=>!!state.cad.preview&&!el('#cadWorkshop').hasAttribute('aria-busy'));assert(JSON.stringify(cadDoc.currentBodies())===original&&Math.abs(work.nodes.get(made.id)!.data.volume-4000)<.02,'Dimension preview was destructive or did not rebuild');click('#cadFeatureApply');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));assert(JSON.stringify(cadDoc.currentBodies())!==original,'Dimension edit was not committed');click('#cadUndo');await frame();assert(JSON.stringify(cadDoc.currentBodies())===original,'Dimension edit did not Undo in one step');
-    click('[data-feature-key="root:sketch"]');click('#cadFeatureEdit');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));(el('#cadFeatureConstraintValue') as HTMLInputElement).value='20';click('#cadFeatureConstraintAdd');assert(!el('#cadFeatureConstraintError').hidden&&JSON.stringify(cadDoc.currentBodies())===original,'Conflicting dimension replaced a valid sketch');await frame();assert(el('#cadPagehistory').scrollHeight<=el('#cadPagehistory').clientHeight+2,'Constraint conflict scrolls');click('#cadFeatureConstraintSavedPage');(el('#cadFeatureConstraintValue') as HTMLInputElement).value='36';click('#cadFeatureConstraintUpdate');click('#cadFeatureCancel');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));assert(JSON.stringify(cadDoc.currentBodies())===original,'Cancel changed the saved dimension');
+    click('[data-feature-key="root:sketch"]');click('#cadFeatureEdit');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));(el('#cadFeatureConstraintValue') as HTMLInputElement).value='20';click('#cadFeatureConstraintAdd');assert(!el('#cadFeatureConstraintError').hidden&&JSON.stringify(cadDoc.currentBodies())===original,'Conflicting dimension replaced a valid sketch');await frame();checkCadPage(el('#cadPagehistory'),'Constraint conflict scrolls');click('#cadFeatureConstraintSavedPage');(el('#cadFeatureConstraintValue') as HTMLInputElement).value='36';click('#cadFeatureConstraintUpdate');click('#cadFeatureCancel');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));assert(JSON.stringify(cadDoc.currentBodies())===original,'Cancel changed the saved dimension');
   }finally{if(state.cad.editing){click('#cadFeatureCancel');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));}history.restoreHistory(snapshot);await frame();}
 });
 await run('CAD clickable sketch lines add editable geometric relations and reject conflicting angles',async()=>{
@@ -516,8 +847,27 @@ await run('CAD clickable sketch lines add editable geometric relations and rejec
 });
 await run('CAD loft and sweep profiles expose dimensions and retain them in the feature tree',async()=>{
   const history=await import('../src/history'),snapshot=history.captureHistory(),{body}=await import('../src/cad-model'),{defaultForm}=await import('../src/cad-profiles'),work=cadUi.cadWorkbench()!,select=(id:string,value:string)=>{(el(id) as HTMLSelectElement).value=value;el(id).dispatchEvent(new Event('change'));};
-  try{for(const kind of ['loft','sweep'] as const){const form=defaultForm(kind);if(form.kind==='sweep')form.path.points=[[0,0,0],[0,0,30]];const source=body(form,'Dimensioned '+kind);cadDoc.replaceBodies([source]);await work.sync();cadDoc.selectBodies([source.id]);click('[data-cad-tab="history"]');click('[data-feature-key="root:profile:0"]');click('#cadFeatureEdit');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));select('#cadFeatureFormPane','constraints');assert((el('#cadFeatureFormConstraintKind') as HTMLSelectElement).value==='diameter','Circle profile is missing its diameter control');(el('#cadFeatureFormConstraintValue') as HTMLInputElement).value=kind==='loft'?'24':'8';click('#cadFeatureFormConstraintAdd');await frame();assert(el('#cadPagehistory').scrollHeight<=el('#cadPagehistory').clientHeight+2,'Profile dimension editor scrolls');click('#cadFeatureApply');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));const s=cadDoc.currentBodies()[0].solid;assert((s.kind==='loft'?s.profiles[0].constraints:s.kind==='sweep'?s.profile.constraints:[])?.length===1,'Profile constraints were baked');if(kind==='sweep')assert(Math.abs(work.nodes.get(source.id)!.data.volume-Math.PI*16*30)<1,'Sweep profile diameter was ignored');}}
+  try{for(const kind of ['loft','sweep'] as const){const form=defaultForm(kind);if(form.kind==='sweep')form.path.points=[[0,0,0],[0,0,30]];const source=body(form,'Dimensioned '+kind);cadDoc.replaceBodies([source]);await work.sync();cadDoc.selectBodies([source.id]);click('[data-cad-tab="history"]');click('[data-feature-key="root:profile:0"]');click('#cadFeatureEdit');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));select('#cadFeatureFormPane','constraints');assert((el('#cadFeatureFormConstraintKind') as HTMLSelectElement).value==='diameter','Circle profile is missing its diameter control');(el('#cadFeatureFormConstraintValue') as HTMLInputElement).value=kind==='loft'?'24':'8';click('#cadFeatureFormConstraintAdd');await frame();checkCadPage(el('#cadPagehistory'),'Profile dimension editor scrolls');click('#cadFeatureApply');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));const s=cadDoc.currentBodies()[0].solid;assert((s.kind==='loft'?s.profiles[0].constraints:s.kind==='sweep'?s.profile.constraints:[])?.length===1,'Profile constraints were baked');if(kind==='sweep')assert(Math.abs(work.nodes.get(source.id)!.data.volume-Math.PI*16*30)<1,'Sweep profile diameter was ignored');}}
   finally{if(state.cad.editing){click('#cadFeatureCancel');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));}history.restoreHistory(snapshot);await frame();}
+});
+await run('CAD Inspect provides orthographic views measurement and reversible cutaway display without scrolling',async()=>{
+  const history=await import('../src/history'),snapshot=history.captureHistory(),{primitive}=await import('../src/cad-model'),{Vector3,OrthographicCamera}=await import('three'),{cadCompute}=await import('../src/cad-engine'),work=cadUi.cadWorkbench()!,select=(id:string,value:string)=>{(el(id) as HTMLSelectElement).value=value;el(id).dispatchEvent(new Event('change'));};
+  try{const cube=primitive('box');cadDoc.replaceBodies([cube]);await work.sync();cadDoc.selectBodies([cube.id]);click('[data-cad-tab="inspect"]');for(const page of ['picture','camera','measure','section','import']){select('#cadInspectPage',page);await frame();await frame();const panel=el('#cadPageinspect');checkCadPage(panel,'Inspect '+page+' scrolls');for(const input of panel.querySelectorAll<HTMLElement>('button,input,select,output'))if(input.getClientRects().length)fits(input,'Inspect '+input.id);}
+    select('#cadInspectPage','camera');select('#cadProjection','orthographic');assert(work.camera instanceof OrthographicCamera,'Orthographic view is still perspective');for(const view of ['top','bottom','front','back','left','right','iso']){select('#cadExactView',view);click('#cadShowExactView');await frame();assert(work.camera.position.toArray().every(Number.isFinite),'View camera became invalid');}click('#cadFitSelected');select('#cadExactView','top');click('#cadShowExactView');
+    const before=JSON.stringify(cadDoc.currentBodies());select('#cadInspectPage','section');(el('#cadSectionOn') as HTMLInputElement).checked=true;el('#cadSectionOn').dispatchEvent(new Event('change'));assert(work.nodes.get(cube.id)!.mesh.material.clippingPlanes?.length===1,'Cutaway did not clip the display');select('#cadAppearance','xray');assert(work.nodes.get(cube.id)!.mesh.material.opacity<.3,'X-ray did not change the view');work.updatePreviews();assert(work.nodes.get(cube.id)!.mesh.material.clippingPlanes?.length===1&&JSON.stringify(cadDoc.currentBodies())===before,'Preview cache lost the inspection or changed geometry');assert(Math.abs((await cadCompute(cadDoc.currentBodies(),'print')).mesh.volume-8000)<.02,'Cutaway changed the printable solid');
+    select('#cadInspectPage','measure');click('#cadMeasureStart');const canvas=el('#cadCanvas') as HTMLCanvasElement,rect=canvas.getBoundingClientRect(),capture=canvas.setPointerCapture,release=canvas.releasePointerCapture;canvas.setPointerCapture=()=>{};canvas.releasePointerCapture=()=>{};try{for(const x of [-9.9,9.9]){const p=new Vector3(x,-9.9,20).project(work.camera),options={pointerId:1008,button:0,clientX:rect.left+(p.x+1)*rect.width/2,clientY:rect.top+(1-p.y)*rect.height/2,bubbles:true};canvas.dispatchEvent(new PointerEvent('pointerdown',{...options,buttons:1}));canvas.dispatchEvent(new PointerEvent('pointerup',{...options,buttons:0}));}}finally{canvas.setPointerCapture=capture;canvas.releasePointerCapture=release;}assert(el('#cadMeasureReport').textContent?.startsWith('20.000 mm'),'Measurement did not snap to exact vertices: '+el('#cadMeasureReport').textContent);if(el('.cad-panel').classList.contains('cad-tools-hidden'))click('#cadToolsToggle');click('[data-cad-tab="move"]');assert(!work.nodes.get(cube.id)!.mesh.material.clippingPlanes?.length&&work.nodes.get(cube.id)!.mesh.material.opacity===1,'Leaving Inspect did not restore normal geometry');
+  }finally{state.cad.tool='translate';work.setTool();work.setProjection('perspective');history.restoreHistory(snapshot);await frame();}
+});
+await run('CAD mixed picture layers stay above and below real solids and preserve their saved picture placement',async()=>{
+  const history=await import('../src/history'),snapshot=history.captureHistory(),{primitive}=await import('../src/cad-model'),{addLayer}=await import('../src/layers'),select=(id:string,value:string)=>{(el(id) as HTMLSelectElement).value=value;el(id).dispatchEvent(new Event('change'));};
+  try{click('#cadClose');await frame();resetLayers(960,640);const background=activeLayer(),backgroundContext=background.canvas.getContext('2d')!;backgroundContext.fillStyle='#e65a70';backgroundContext.fillRect(0,0,960,640);const cad=cadDoc.ensureCadLayer();cadDoc.addBody(primitive('box'));const solid=JSON.stringify(cad.cad!.bodies);addLayer();const overlay=activeLayer(),foreground=overlay.canvas.getContext('2d')!;foreground.fillStyle='#3455dd';foreground.fillRect(20,20,80,40);await cadUi.openCad();const work=cadUi.cadWorkbench()!;click('[data-cad-tab="inspect"]');select('#cadInspectPage','picture');(el('#cadPictureMode') as HTMLInputElement).checked=true;el('#cadPictureMode').dispatchEvent(new Event('change'));await work.sync();click('#cadPinView');await work.sync();const back=el('.cad-picture-back') as HTMLCanvasElement,front=el('.cad-picture-front') as HTMLCanvasElement;assert(back.getContext('2d')!.getImageData(10,10,1,1).data[0]===230&&front.getContext('2d')!.getImageData(30,30,1,1).data[2]===221,'Workshop ignored artwork below or above CAD');work.updatePreviews();assert(cad.canvas.getContext('2d')!.getImageData(0,0,1,1).data[3]===0&&cad.canvas.getContext('2d')!.getImageData(0,0,960,640).data.some((v,i)=>i%4===3&&v>0),'3D picture layer lost transparency or geometry');const view=structuredClone(cad.cad!.view!);assert(JSON.stringify(cad.cad!.bodies)===solid,'Compositing flattened the model');click('#cadClose');await frame();assert(!activeLayer().cad&&layers.indexOf(background)<layers.indexOf(cad)&&layers.indexOf(overlay)>layers.indexOf(cad),'Returning to Paint changed the picture stack');await cadUi.openCad();const reopened=cadUi.cadWorkbench()!;assert(reopened.pictureMode&&Math.hypot(...reopened.camera.position.toArray().map((v,i)=>v-view.position[i]))<.001,'Reopening CAD reframed the model beneath its painting');
+    const count=layers.length;click('[data-cad-tab="inspect"]');select('#cadInspectPage','picture');click('#cadPaintAbove');await frame();assert(!state.cad.open&&!activeLayer().cad&&layers.length===count+1&&layers.indexOf(activeLayer())===layers.indexOf(cad)+1,'Paint above did not create a separate foreground sheet');undo();await frame();assert(layers.length===count,'Paint above did not Undo in one step');await cadUi.openCad();click('[data-cad-tab="inspect"]');select('#cadInspectPage','picture');const working=activeLayer();click('#cadPaintBelow');await frame();assert(!state.cad.open&&!activeLayer().cad&&layers.indexOf(activeLayer())===layers.indexOf(working)-1,'Paint below did not create a separate backdrop');undo();await frame();assert(layers.length===count&&JSON.stringify(layers.find(l=>l.id===cad.id)!.cad!.bodies)===solid,'Picture layer creation altered the solid or did not Undo');
+  }finally{if(state.cad.open)click('#cadClose');history.restoreHistory(snapshot);await cadUi.openCad();await frame();}
+});
+await run('CAD STL import controls add unit-correct editable meshes and reject bad files safely',async()=>{
+  const history=await import('../src/history'),snapshot=history.captureHistory(),{primitive}=await import('../src/cad-model'),{solidMesh,binaryStl}=await import('../src/cad-kernel'),work=cadUi.cadWorkbench()!,select=(id:string,value:string)=>{(el(id) as HTMLSelectElement).value=value;el(id).dispatchEvent(new Event('change'));};
+  try{cadDoc.replaceBodies([]);await work.sync();click('[data-cad-tab="inspect"]');select('#cadInspectPage','import');select('#cadStlUnits','cm');const input=el('#cadStlInput') as HTMLInputElement,send=(file:File)=>{input.addEventListener('click',event=>event.preventDefault(),{once:true});click('#cadImportStl');const transfer=new DataTransfer();transfer.items.add(file);input.files=transfer.files;input.dispatchEvent(new Event('change'));};send(new File([binaryStl(await solidMesh(primitive('box',[2,2,2])))],'Imported.stl'));await waitCad(()=>cadDoc.currentBodies().length===1&&!el('#cadWorkshop').hasAttribute('aria-busy'));const imported=cadDoc.currentBodies()[0];assert(imported.solid.kind==='mesh'&&Math.abs(work.nodes.get(imported.id)!.data.volume-8000)<.01&&Math.abs(work.bounds(imported.id)!.min.z)<.001,'STL units, original recipe or bed placement were lost: '+JSON.stringify({kind:imported.solid.kind,volume:work.nodes.get(imported.id)!.data.volume,position:imported.position}));const before=JSON.stringify(cadDoc.currentBodies());send(new File(['not a model'],'Broken.stl'));await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));assert(JSON.stringify(cadDoc.currentBodies())===before&&el('#cadStatus').textContent?.includes('STL'),'Bad STL replaced the model');click('#cadUndo');await frame();assert(cadDoc.currentBodies().length===0,'STL import did not Undo in one step');
+  }finally{history.restoreHistory(snapshot);await frame();}
 });
 await run('CAD revolving a hollow profile, making layers and checking STL size work through the controls',async()=>{
   click('[data-cad-tab="sketch"]');click('[data-cad-sketch-kind="revolve"]');click('#cadNextFeature');(el('#cadFeatureOperation') as HTMLSelectElement).value='new';click('#cadCreateFeature');await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));assert(cadDoc.currentBodies().some(b=>b.solid.kind==='revolve'),'Revolve did not create a solid');
@@ -527,9 +877,68 @@ await run('CAD revolving a hollow profile, making layers and checking STL size w
   click('[data-cad-tab="layers"]');const before=layers.length;click('#cadNewLayer');await frame();assert(layers.length===before+1&&layers.filter(l=>l.cad).length===2&&activeLayer().cad?.bodies.length===0,'New 3D layer failed');click('[data-cad-tab="add"]');click('[data-cad-primitive="cylinder"]');await waitCad(()=>cadDoc.currentBodies().length===1&&!el('#cadWorkshop').hasAttribute('aria-busy'));
   click('[data-cad-tab="print"]');click('#cadCheckPrint');await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));assert(el('#cadPrintReport').textContent?.includes('Closed solid geometry'),'Print check did not build the export mesh');click('#cadClose');await frame();assert(!state.cad.open&&!activeLayer().cad,'Returning to Paint did not select a paint layer');assert(layers.filter(l=>l.cad).every(l=>l.canvas.getContext('2d')!.getImageData(0,0,l.canvas.width,l.canvas.height).data.some((v,i)=>i%4===3&&v>0)),'CAD layers have no painting preview');resetLayers(960,640);
 });
+await run('CAD busy state waits for a joined feature mesh to be ready',async()=>{
+  const history=await import('../src/history'),snapshot=history.captureHistory(),{primitive}=await import('../src/cad-model'),wasOpen=state.cad.open;
+  try{
+    await cadUi.openCad();const work=cadUi.cadWorkbench()!,cube=primitive('box');cadDoc.replaceBodies([cube]);await work.sync();cadDoc.selectBodies([cube.id]);
+    click('[data-cad-tab="sketch"]');click('[data-cad-sketch-kind="extrude"]');click('#cadRectSketch');for(const[id,value]of [['cadSketchX','-5'],['cadSketchY','-5'],['cadSketchW','10'],['cadSketchH','10']])(el('#'+id) as HTMLInputElement).value=value;
+    click('#cadUseDimensions');click('#cadNextFeature');(el('#cadFeatureAmount') as HTMLInputElement).value='30';(el('#cadFeatureOperation') as HTMLSelectElement).value='join';
+    const original=work.sync;let entered=0,release!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve;});
+    work.sync=async()=>{entered++;await gate;await original.call(work);};
+    try{
+      click('#cadCreateFeature');await waitCad(()=>entered>0);
+      assert(el('#cadWorkshop').hasAttribute('aria-busy'),'Joining reported ready before its pending viewport mesh was available');
+      release();await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));
+      const made=cadDoc.currentBodies()[0],node=work.nodes.get(made.id);assert(made.solid.kind==='boolean'&&node&&Math.abs(node.data.volume-9000)<.02,'Ready state does not have the completed 9000mm³ join');
+    }finally{release();work.sync=original;await original.call(work);await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));}
+  }finally{if(!wasOpen&&state.cad.open)click('#cadClose');history.restoreHistory(snapshot);await frame();}
+});
+await run('CAD busy state waits for boolean result meshes across join subtract intersect and hull',async()=>{
+  const history=await import('../src/history'),snapshot=history.captureHistory(),{primitive}=await import('../src/cad-model'),wasOpen=state.cad.open;
+  try{
+    await cadUi.openCad();const work=cadUi.cadWorkbench()!;
+    for(const[operation,volume]of [['union',12000],['subtract',4000],['intersect',4000],['hull',12000]] as const){
+      const first=primitive('box'),second=primitive('box');second.position[0]=10;cadDoc.replaceBodies([first,second]);await work.sync();cadDoc.selectBodies([first.id,second.id]);click('[data-cad-tab="build"]');(el('#cadBuildPage') as HTMLSelectElement).value='combine';el('#cadBuildPage').dispatchEvent(new Event('change'));(el('#cadBooleanTarget') as HTMLSelectElement).value=first.id;
+      const original=work.sync;let entered=0,release!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve;});work.sync=async()=>{entered++;await gate;await original.call(work);};
+      try{
+        click(`[data-cad-boolean="${operation}"]`);await waitCad(()=>entered>0);assert(el('#cadWorkshop').hasAttribute('aria-busy'),operation+' reported ready before its mesh was available');
+        release();await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));const made=cadDoc.currentBodies()[0],node=work.nodes.get(made.id);assert(cadDoc.currentBodies().length===1&&node&&Math.abs(node.data.volume-volume)<.02,operation+' ready state has no correct completed mesh');
+      }finally{release();work.sync=original;await original.call(work);await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));}
+    }
+  }finally{if(!wasOpen&&state.cad.open)click('#cadClose');history.restoreHistory(snapshot);await frame();}
+});
+await run('CAD workplane joins preserve positive and negative pull endpoints and editable dimensions with Undo Redo',async()=>{
+  const history=await import('../src/history'),snapshot=history.captureHistory(),{primitive}=await import('../src/cad-model');
+  try{await cadUi.openCad();const work=cadUi.cadWorkbench()!;
+    for(const pull of [30,-10]){const cube=primitive('box');cadDoc.replaceBodies([cube]);await work.sync();cadDoc.selectBodies([cube.id]);click('[data-cad-tab="sketch"]');click('[data-cad-sketch-kind="extrude"]');click('#cadRectSketch');for(const[id,value]of [['cadSketchX','-5'],['cadSketchY','-5'],['cadSketchW','10'],['cadSketchH','10']]){(el('#'+id) as HTMLInputElement).value=value;}click('#cadUseDimensions');click('#cadNextFeature');(el('#cadFeatureAmount') as HTMLInputElement).value=String(pull);(el('#cadFeatureOperation') as HTMLSelectElement).value='join';click('#cadCreateFeature');await waitCad(()=>!el('#cadWorkshop').hasAttribute('aria-busy'));
+      const made=cadDoc.currentBodies()[0],mesh=work.nodes.get(made.id)!.data;assert(made.solid.kind==='boolean'&&made.solid.children[1].solid.kind==='extrude'&&made.solid.children[1].solid.height===pull,'The entered pull dimension was changed in History');assert(Math.abs(mesh.bounds.min[2]-(pull<0?-10:0))<.001&&Math.abs(mesh.bounds.max[2]-(pull>0?30:20))<.001&&Math.abs(mesh.volume-9000)<.02,'Contact allowance extended the requested endpoint: '+JSON.stringify(mesh.bounds));click('#cadUndo');await work.sync();assert(cadDoc.currentBodies()[0].solid.kind==='primitive','Join did not Undo in one step');click('#cadRedo');await work.sync();assert(Math.abs(work.nodes.get(made.id)!.data.volume-9000)<.02,'Redo changed the joined solid');
+    }
+  }finally{if(state.cad.open)click('#cadClose');history.restoreHistory(snapshot);await frame();}
+});
+await run('CAD joined cylinder cube complex cap shells preview Apply Cancel and edit at 3mm without changing source artwork',async()=>{
+  const history=await import('../src/history'),snapshot=history.captureHistory(),{primitive}=await import('../src/cad-model'),{Vector3}=await import('three');
+  try{await cadUi.openCad();const work=cadUi.cadWorkbench()!,cylinder=primitive('cylinder'),cube=primitive('box');cylinder.position=[15,0,10];const joined=cadDoc.combinedBody('union',[cylinder,cube]);cadDoc.replaceBodies([joined]);await work.sync();cadDoc.selectBodies([joined.id]);work.fit();click('[data-cad-tab="build"]');(el('#cadBuildPage') as HTMLSelectElement).value='shell';el('#cadBuildPage').dispatchEvent(new Event('change'));click('#cadPickShellFaces');await waitCad(()=>work.faces.choices.length===8&&!el('#cadWorkshop').hasAttribute('aria-busy'));work.view('top');await frame();
+    const canvas=el('#cadCanvas') as HTMLCanvasElement,rect=canvas.getBoundingClientRect(),p=new Vector3(15,0,20).project(work.camera),capture=canvas.setPointerCapture,release=canvas.releasePointerCapture;canvas.setPointerCapture=()=>{};canvas.releasePointerCapture=()=>{};try{for(const type of ['pointerdown','pointerup'])canvas.dispatchEvent(new PointerEvent(type,{pointerId:1011,button:0,buttons:type==='pointerdown'?1:0,clientX:rect.left+(p.x+1)*rect.width/2,clientY:rect.top+(1-p.y)*rect.height/2,bubbles:true}));}finally{canvas.setPointerCapture=capture;canvas.releasePointerCapture=release;}
+    assert(state.cad.faceSelection.length===1&&state.cad.faceSelection[0].normal[2]>.99,'Could not pick the complex combined cap');if(el('.cad-panel').classList.contains('cad-tools-hidden'))click('#cadToolsToggle');const source=JSON.stringify(cadDoc.currentBodies());click('#cadPreviewShell');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));(el('#cadFeatureThickness') as HTMLInputElement).value='3';click('#cadFeaturePreview');await waitCad(()=>!!state.cad.preview&&!el('#cadWorkshop').hasAttribute('aria-busy'));assert(JSON.stringify(cadDoc.currentBodies())===source&&Math.abs(work.nodes.get(joined.id)!.data.volume-6688.252)<3,'Complex shell preview failed or changed the source');click('#cadFeatureCancel');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));assert(JSON.stringify(cadDoc.currentBodies())===source,'Cancel lost the joined source');
+    click('[data-cad-tab="build"]');click('#cadPickShellFaces');await waitCad(()=>work.faces.choices.length===8&&!el('#cadWorkshop').hasAttribute('aria-busy'));canvas.setPointerCapture=()=>{};canvas.releasePointerCapture=()=>{};try{const r=canvas.getBoundingClientRect(),point=new Vector3(15,0,20).project(work.camera);for(const type of ['pointerdown','pointerup'])canvas.dispatchEvent(new PointerEvent(type,{pointerId:1012,button:0,buttons:type==='pointerdown'?1:0,clientX:r.left+(point.x+1)*r.width/2,clientY:r.top+(1-point.y)*r.height/2,bubbles:true}));}finally{canvas.setPointerCapture=capture;canvas.releasePointerCapture=release;}if(el('.cad-panel').classList.contains('cad-tools-hidden'))click('#cadToolsToggle');click('#cadPreviewShell');await waitCad(()=>state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));(el('#cadFeatureThickness') as HTMLInputElement).value='3';click('#cadFeatureApply');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));const made=cadDoc.currentBodies()[0];assert(made.solid.kind==='shell'&&made.solid.thickness===3&&made.solid.source.solid.kind==='boolean','Shell did not retain the editable union');click('#cadUndo');await work.sync();assert(JSON.stringify(cadDoc.currentBodies())===source,'Shell Apply did not Undo in one step');click('#cadRedo');await work.sync();assert(Math.abs(work.nodes.get(joined.id)!.data.volume-6688.252)<3,'Redo lost the complex cavity');
+  }finally{if(state.cad.editing){click('#cadFeatureCancel');await waitCad(()=>!state.cad.editing&&!el('#cadWorkshop').hasAttribute('aria-busy'));}if(state.cad.open)click('#cadClose');history.restoreHistory(snapshot);await frame();}
+});
+await run('CAD actual project download payload reopens through the file input with mixed pixels mesh recipes and camera intact',async()=>{
+  const history=await import('../src/history'),snapshot=history.captureHistory(),project=await import('../src/project'),{exportCanvas}=await import('../src/export'),{addLayer}=await import('../src/layers'),{primitive}=await import('../src/cad-model'),{importStl}=await import('../src/cad-stl'),{solidMesh,binaryStl}=await import('../src/cad-kernel');
+  const fromBackup=new URLSearchParams(location.search).has('artwork-backup');
+  try{if(state.cad.open)click('#cadClose');resetLayers(160,120);baseCtx.fillStyle='#ef4858';baseCtx.fillRect(0,0,160,120);const {newPhotoRecipe}=await import('../src/photo-recipe');activeLayer().photo=newPhotoRecipe();activeLayer().photo!.settings.brightness=12;const cad=cadDoc.ensureCadLayer();cadDoc.addBody(importStl(binaryStl(await solidMesh(primitive('box'))),'Original mesh.stl'));cad.cad!.view={position:[100,-150,100],target:[0,0,10],up:[0,0,1],projection:'orthographic',span:80};addLayer();activeLayer().canvas.getContext('2d')!.fillStyle='#3455dd';activeLayer().canvas.getContext('2d')!.fillRect(20,20,30,30);activeLayer().opacity=.6;const objects=await import('../src/objects');state.shapeFill='primary';objects.addVectorShape('rect',60,20,90,50);objects.commitObjectSelection();
+    const input=el('#projectInput') as HTMLInputElement,open=async(text:string)=>{el('#editorStatus').textContent='';const transfer=new DataTransfer();transfer.items.add(new File([text],'Verified project.retropaint',{type:'application/json'}));input.files=transfer.files;input.dispatchEvent(new Event('change'));await waitCad(()=>!!el('#editorStatus').textContent?.includes('Project opened'));};
+    const source=fromBackup?await(await fetch('../.cad-repair-backup.retropaint')).text():await project.projectDataAsync();await open(source);const first=JSON.parse(project.projectData()),picture=(await exportCanvas()).toDataURL();
+    let payload:Blob|null=null,filename='';const create=URL.createObjectURL,anchor=HTMLAnchorElement.prototype.click;
+    URL.createObjectURL=function(blob:Blob|MediaSource){if(blob instanceof Blob)payload=blob;return create.call(URL,blob);};HTMLAnchorElement.prototype.click=function(){if(this.download.endsWith('.retropaint')){filename=this.download;return;}anchor.call(this);};
+    try{await project.saveProjectFile('cad-regression-roundtrip');}finally{URL.createObjectURL=create;HTMLAnchorElement.prototype.click=anchor;}
+    assert(payload&&filename==='cad-regression-roundtrip.retropaint','Save project did not create a real downloadable payload');const saved=await(payload as Blob).text();resetLayers(10,10);await open(saved);const next=JSON.parse(project.projectData());assert(next.width===first.width&&next.height===first.height&&next.active===first.active&&JSON.stringify(next.layers)===JSON.stringify(first.layers),'File reopen changed layer pixels recipes camera or stack settings');assert((await exportCanvas()).toDataURL()===picture,'File round trip changed the exported composition');
+    if(fromBackup){const {RecoveryStore}=await import('../src/recovery-store'),store=new RecoveryStore(`RetroPaintDraftUiChecks-${innerWidth}x${innerHeight}`);try{await store.save({id:'cad-repair-verified-artwork',name:'Verified artwork backup',width:next.width,height:next.height,savedAt:Date.now(),thumbnail:picture,data:saved,bytes:saved.length*2});assert((await store.read('cad-repair-verified-artwork'))?.data===saved,'Verified recovery copy did not read back');document.body.dataset.backupVerified='true';}finally{await store.close();}}
+  }finally{history.restoreHistory(snapshot);await frame();}
+});
 const report=document.createElement('pre'); report.id='mobileResults';
 report.style.cssText='position:fixed;inset:10px;z-index:100;background:white;color:#263047;overflow:auto;padding:16px;white-space:pre-wrap';
-report.textContent=`${innerWidth} × ${innerHeight}\n`+results.join('\n');
+report.textContent=`${innerWidth} × ${innerHeight}\nUser agent: ${navigator.userAgent}\nDevice pixel ratio: ${devicePixelRatio}\nBrowser input capabilities: coarse=${matchMedia('(pointer:coarse)').matches}, touch points=${navigator.maxTouchPoints}\n`+results.join('\n');
 document.body.append(report);
 document.title=results.some(r=>r.startsWith('FAIL'))?'FAIL — Mobile checks':'PASS — Mobile checks';
 document.body.dataset.currentCheck='Complete';

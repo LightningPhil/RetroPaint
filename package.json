@@ -10,11 +10,15 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview --port 8080 --strictPort"
+    "preview": "vite preview --port 8080 --strictPort",
+    "test": "node tests/headless.mjs",
+    "test:workshop": "node tests/workshop-acceptance-headless.mjs",
+    "test:photo-reset": "node tests/headless.mjs --suite acceptance --reset-acceptance"
   },
   "devDependencies": {
     "@types/three": "0.186.0",
     "@upscalerjs/esrgan-thick": "1.0.0",
+    "playwright": "1.62.1",
     "typescript": "^5.6.3",
     "vite": "^6.0.6"
   },

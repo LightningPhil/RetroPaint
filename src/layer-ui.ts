@@ -16,9 +16,23 @@ const compact = matchMedia('(max-width:1000px), (max-height:550px)');
 const rows = new Map<number, Row>();
 const field = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 let actions: LayerActions | null = null, drag: Drag | null = null, opacityGesture: number | null = null, thumbnailTime = 0,thumbnailRevision=-1;
+let paintDock: Comment | undefined;
+
+export function dockWorkshopLayers(workshop?: HTMLElement): void {
+  const panel = field('layersPanel');
+  panel.inert = false;
+  if (workshop) {
+    paintDock ??= document.createComment('Paint layers dock');
+    panel.before(paintDock); workshop.append(panel);
+    field<HTMLDetailsElement>('layerOptions').open = false;
+  } else if (paintDock) {
+    paintDock.replaceWith(panel); paintDock = undefined;
+  }
+  showLayers(true);
+}
 
 function showLayers(open: boolean, focus = false): void {
-  open = open && advancedEnabled();
+  open = state.cad.open || open && advancedEnabled();
   const panel = field('layersPanel'); panel.hidden = !open;
   field('layersToggle').setAttribute('aria-expanded', String(open));
   field('layersToggle').classList.toggle('active',open);
@@ -30,11 +44,12 @@ function change(action: () => void, notice?: () => string): void {
   if (!actions?.editable()) return;
   actions.settle(); pushHistory(); action(); if (notice) actions.message(notice());
 }
-function selectLayer(id: number, keepOpen = false): void {
+function selectLayer(id: number, keepOpen = false, openEditor = true): void {
   if (!actions?.editable()) return;
+  const workshop = state.cad.open;
   actions.settle(); switchLayer(id);
-  if (activeLayer().cad) emit('open-cad');
-  if (compact.matches && !keepOpen) showLayers(false, true);
+  if (openEditor && activeLayer().cad) emit('open-cad');
+  if (compact.matches && !keepOpen && !workshop && !state.cad.open) showLayers(false, true);
 }
 function makeRow(id: number): Row {
   const element = document.createElement('div'); element.className = 'layer-row'; element.dataset.layerId = String(id);
@@ -49,7 +64,7 @@ function makeRow(id: number): Row {
   eye.addEventListener('click', () => change(() => { const layer = layers.find(layer => layer.id === id); if (layer) { layer.visible = !layer.visible; layerChanged(); } }));
   grip.addEventListener('pointerdown', event => {
     if (event.button !== 0 || !actions?.editable()) return;
-    event.preventDefault(); selectLayer(id, true);
+    event.preventDefault(); selectLayer(id, true, false);
     drag = { pointerId: event.pointerId, id, startY: event.clientY, moved: false, target: null, above: false };
     field('layersPanel').setPointerCapture(event.pointerId);
   });
@@ -57,7 +72,7 @@ function makeRow(id: number): Row {
     if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
     event.preventDefault(); event.stopPropagation();
     if (event.altKey) {
-      selectLayer(id, true); const index = layers.findIndex(layer => layer.id === id), direction = event.key === 'ArrowUp' ? 1 : -1;
+      selectLayer(id, true, false); const index = layers.findIndex(layer => layer.id === id), direction = event.key === 'ArrowUp' ? 1 : -1;
       if (layers[index + direction]) change(() => reorderLayer(direction));
     } else {
       const displayed = [...layers].reverse(), index = displayed.findIndex(layer => layer.id === id), next = displayed[index + (event.key === 'ArrowUp' ? -1 : 1)];
@@ -91,10 +106,17 @@ export function refreshLayersUi(): void {
   field<HTMLInputElement>('transparentLayer').checked = active.paper === null;
   field<HTMLButtonElement>('deleteLayer').disabled = layers.length < 2; field<HTMLButtonElement>('mergeLayer').disabled = index === 0 || Boolean(active.cad || layers[index - 1]?.cad);
   field<HTMLButtonElement>('layerDown').disabled = index === 0; field<HTMLButtonElement>('layerUp').disabled = index === layers.length - 1;
-  field<HTMLButtonElement>('addLayer').disabled = field<HTMLButtonElement>('duplicateLayer').disabled = !canAddLayer();
+  const limit = canAddLayer() ? '' : layers.length >= 16
+    ? '16 layers: your stack is full. Combine or remove a sheet to make room.'
+    : 'Adding another sheet would exceed the 64 million stored pixel budget. Combine or remove a sheet to make room.';
+  field<HTMLButtonElement>('addLayer').disabled = field<HTMLButtonElement>('duplicateLayer').disabled = Boolean(limit);
+  field('addLayer').title = limit || 'Add a clear sheet above the working layer';
+  field('duplicateLayer').title = limit || 'Copy the working layer';
   field('activeLayerName').textContent = active.name; field('layerCount').textContent = String(layers.length);
+  field('layerPhotoLab').setAttribute('aria-label', `Edit ${active.name} in Photo lab`);
+  field('layerPhotoLab').title = `Edit ${active.name} in Photo lab`;
   field('layersToggle').setAttribute('aria-label', `Layers: ${layers.length}, painting on ${active.name}${!active.visible ? ', hidden' : ''}`);
-  field('layersHint').textContent = !active.visible ? `${active.name} is hidden. Tap its eye to see your paint.` : layers.length === 1 ? 'Add a clear sheet to draw on top of your picture.' : `Painting on ${active.name}. Tap another sheet to switch.`;
+  field('layersHint').textContent = limit || (!active.visible ? `${active.name} is hidden. Tap its eye to see your paint.` : layers.length === 1 ? 'Add a clear sheet to draw on top of your picture.' : `Painting on ${active.name}. Tap another sheet to switch.`);
   refreshThumbnails(performance.now());
 }
 function refreshThumbnails(now: number, force = false): void {
@@ -110,13 +132,17 @@ function clearDrag(): void {
 }
 export function initLayersUi(callbacks: LayerActions): void {
   actions = callbacks;
+  const photo = document.createElement('button');photo.type='button';photo.id='layerPhotoLab';photo.className='layer-icon-button';photo.innerHTML=icon('photo');
+  photo.addEventListener('click',()=>field<HTMLButtonElement>('photoToggle')?.click());
+  field('closeLayers').before(photo);
   field('layersToggle').addEventListener('click', () => {const open=field('layersPanel').hidden;emit('close-photo');showLayers(open);});
   field('closeLayers').addEventListener('click', () => showLayers(false, true));
   field('openLayers').addEventListener('click', () => {emit('close-photo');showLayers(true, true);});
   field('addLayer').addEventListener('click', () => {
     if (!canAddLayer()) { actions?.message('Your layer stack is full. Combine some sheets to make room.'); return; }
+    const workshop = state.cad.open;
     change(addLayer, () => `New clear sheet: ${activeLayer().name}. You’re ready to paint.`);
-    if (compact.matches) showLayers(false, true);
+    if (compact.matches && !workshop) showLayers(false, true);
   });
   const commands: Record<string, () => void> = { duplicateLayer, deleteLayer, mergeLayer: mergeLayerDown, layerUp: () => reorderLayer(1), layerDown: () => reorderLayer(-1) };
   for (const [id, command] of Object.entries(commands)) field(id).addEventListener('click', () => {
@@ -147,7 +173,7 @@ export function initLayersUi(callbacks: LayerActions): void {
   transparent.addEventListener('change', () => { const value = transparent.checked; change(() => { activeLayer().paper = value ? null : state.secondaryInk; layerChanged(); }); });
   const panel = field('layersPanel');
   document.addEventListener('pointerdown', event => {
-    if (compact.matches && !panel.hidden && event.target instanceof Node && !panel.contains(event.target) && !field('layersToggle').contains(event.target)) showLayers(false);
+    if (!state.cad.open && compact.matches && !panel.hidden && event.target instanceof Node && !panel.contains(event.target) && !field('layersToggle').contains(event.target)) showLayers(false);
   });
   const options = field<HTMLDetailsElement>('layerOptions');
   options.addEventListener('toggle', () => {
@@ -192,7 +218,7 @@ export function initLayersUi(callbacks: LayerActions): void {
     if (event.key.toLowerCase() === 'l' && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); showLayers(panel.hidden, true); }
     if (event.key === 'Escape' && !panel.hidden) { event.preventDefault(); showLayers(false, true); }
   });
-  compact.addEventListener('change', () => showLayers(!compact.matches));
+  compact.addEventListener('change', () => showLayers(state.cad.open || !compact.matches));
   field('layersToggle').querySelector('span')!.innerHTML = icon('layers');
   refreshLayersUi(); showLayers(!compact.matches);
   bus.addEventListener('layers', () => { if (drag && !layers.some(layer => layer.id === drag!.id)) clearDrag(); });

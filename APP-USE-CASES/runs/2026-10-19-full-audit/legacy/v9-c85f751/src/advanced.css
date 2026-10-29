@@ -1,0 +1,22 @@
+.studio-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.advanced-switch { display:flex; align-items:center; gap:5px; font-size:12px; font-weight:800; }
+.advanced-switch input { width:22px; height:22px; accent-color:#7952b8; }
+#toolBin,body.advanced-mode #toolBin { grid-template-rows:none;grid-auto-rows:clamp(44px,calc((100% - 60px) / 7),calc(64px * var(--ui-scale)));align-content:start; }
+#toolBin #layersToggle,#toolBin #photoToggle { position:relative; inset:auto; width:auto; max-width:none; min-height:44px; padding:4px 2px; gap:4px; border-radius:12px; font-size:11px; }
+#toolBin #layersToggle { background:#eee2ff; }
+#toolBin #photoToggle { background:#bce6ed; }
+#toolBin #layersToggle[aria-expanded=true],#toolBin #photoToggle[aria-expanded=true] { background:#ffd16f; box-shadow:1px 1px 0 var(--ink); }
+#toolBin .advanced-tool .icon { width:28px; height:28px; }
+#toolBin .advanced-tool > span { font-size:inherit; line-height:1.1; }
+#toolBin #layerCount { position:absolute; right:4px; top:4px; min-width:17px; height:17px; padding:0 2px; font-size:9px; }
+#toolBin .layer-toggle-label { align-items:center; font-size:inherit; }
+#toolBin #activeLayerName { display:none; }
+@media(max-width:600px), (max-height:500px) and (max-width:1000px) {
+  #toolBin,body.advanced-mode #toolBin { grid-template-columns:repeat(7,minmax(0,1fr)); grid-template-rows:repeat(2,52px);grid-auto-rows:52px; }
+  #toolBin .tool-btn { font-size:8px; padding:2px 1px; }
+  #toolBin #layersToggle,#toolBin #photoToggle { font-size:8px; gap:2px; padding:3px 1px; }
+  #toolBin .advanced-tool .icon { width:23px; height:23px; }
+}
+@media(max-height:500px) and (max-width:1000px) and (orientation:landscape) {
+  #toolBin,body.advanced-mode #toolBin { grid-template-columns:repeat(3,minmax(0,1fr)); grid-template-rows:none;grid-auto-rows:44px; }
+}

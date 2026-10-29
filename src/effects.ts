@@ -7,8 +7,8 @@ import { bakeLive, clearLive } from './live';
 import { currentWidth, state } from './state';
 import { advectMany } from './smudge';
 import { mirrorMotion } from './symmetry';
-import { renderLayers, resetLayers } from './layers';
-import { finishObjectStroke } from './objects';
+import { activeLayer, renderLayers, resetLayers } from './layers';
+import { finishObjectStroke, hasObjectCapture } from './objects';
 
 export interface Drip {
   x: number;
@@ -23,7 +23,7 @@ export interface Drip {
 export const drips: Drip[] = [];
 
 let wipe: { t: number; snap: HTMLCanvasElement } | null = null;
-let hole: { x: number; y: number; r: number; life: number; src: ImageData } | null = null;
+let hole: { x: number; y: number; r: number; life: number; src: ImageData; target: CanvasRenderingContext2D; clear: Uint8ClampedArray; held: boolean } | null = null;
 
 export function isBusy(): boolean {
   return wipe !== null || hole !== null;
@@ -76,26 +76,44 @@ export function tickSqueegee(dt: number): void {
   }
 }
 
-export function startHole(x: number, y: number, history=true): void {
+export function startHole(x: number, y: number, history=true, held=false): void {
   if (isBusy() || x+58<=0 || y+58<=0 || x-58>=W || y-58>=H) return;
   if(history)pushHistory();
   bakeLive(baseCtx, performance.now());
   clearLive();
-  hole = { x, y, r: 58, life: 1, src: baseCtx.getImageData(0, 0, W, H) };
+  const clearCanvas=document.createElement('canvas');clearCanvas.width=clearCanvas.height=1;
+  const clearCtx=clearCanvas.getContext('2d')!;
+  // A selected piece has a clear backing, even when its parent sheet is Paper.
+  const paper=hasObjectCapture()?null:activeLayer().paper;
+  if(paper){clearCtx.fillStyle=paper;clearCtx.fillRect(0,0,1,1);}
+  hole = { x, y, r: 58, life: 1, src: baseCtx.getImageData(0, 0, W, H), target:baseCtx, clear:clearCtx.getImageData(0,0,1,1).data, held };
   state.busy = true;
   playDrawing('vwoop');
 }
 
+export function moveHole(x:number,y:number):void {
+  if(!hole||!hole.held||hole.x===x&&hole.y===y)return;
+  // Continue from committed paint at the new centre; never resurrect an earlier hole.
+  hole.x=x;hole.y=y;hole.life=1;
+  hole.src=hole.target.getImageData(0,0,hole.target.canvas.width,hole.target.canvas.height);
+}
+
+export function stopHole():void {
+  if(!hole)return;
+  hole=null;state.busy=false;finishObjectStroke();
+}
+
 export function tickHole(dt: number): void {
-  if (!hole) return;
+  if (!hole || hole.life<=0) return;
   hole.life -= dt / 680;
   const amount = 1 - Math.max(0, hole.life);
-  const { x, y, r, src } = hole;
+  const { x, y, r, src, target, clear } = hole;
   const x0 = Math.max(0, Math.floor(x - r));
   const y0 = Math.max(0, Math.floor(y - r));
-  const x1 = Math.min(W, Math.ceil(x + r));
-  const y1 = Math.min(H, Math.ceil(y + r));
-  const img = baseCtx.getImageData(x0, y0, x1 - x0, y1 - y0);
+  const x1 = Math.min(src.width, Math.ceil(x + r));
+  const y1 = Math.min(src.height, Math.ceil(y + r));
+  if(x1<=x0||y1<=y0){if(!hole.held&&hole.life<=0)stopHole();return;}
+  const img = target.getImageData(x0, y0, x1 - x0, y1 - y0);
   const dw = x1 - x0;
   for (let yy = y0; yy < y1; yy++) {
     for (let xx = x0; xx < x1; xx++) {
@@ -108,29 +126,24 @@ export function tickHole(dt: number): void {
       const sx = Math.floor(x + Math.cos(ang) * nd);
       const sy = Math.floor(y + Math.sin(ang) * nd);
       const di = ((yy - y0) * dw + (xx - x0)) * 4;
-      if (sx < 0 || sy < 0 || sx >= W || sy >= H || dist < amount * r * 0.25) {
-        img.data[di] = img.data[di + 1] = img.data[di + 2] = 255;
-        img.data[di + 3] = 255;
+      if (sx < 0 || sy < 0 || sx >= src.width || sy >= src.height || dist < amount * r * 0.25) {
+        img.data.set(clear,di);
         continue;
       }
-      const si = (sy * W + sx) * 4;
+      const si = (sy * src.width + sx) * 4;
       img.data[di] = src.data[si];
       img.data[di + 1] = src.data[si + 1];
       img.data[di + 2] = src.data[si + 2];
-      img.data[di + 3] = 255;
+      img.data[di + 3] = src.data[si + 3];
     }
   }
-  paintSectorPatch(baseCtx,img,x0,y0,x,y,r);
+  paintSectorPatch(target,img,x0,y0,x,y,r,true);
   if (hole.life <= 0) {
-    if (activeSector()) {
-      const clear=baseCtx.createImageData(img.width,img.height); clear.data.fill(255);
-      paintSectorPatch(baseCtx,clear,x0,y0,x,y,r*0.94);
-    } else {
-      baseCtx.fillStyle='#ffffff';baseCtx.beginPath();baseCtx.arc(x,y,r*0.94,0,Math.PI*2);baseCtx.fill();
+    for(let yy=y0;yy<y1;yy++)for(let xx=x0;xx<x1;xx++){
+      if(Math.hypot(xx-x,yy-y)<=r*.94)img.data.set(clear,((yy-y0)*dw+xx-x0)*4);
     }
-    hole = null;
-    state.busy = false;
-    finishObjectStroke();
+    paintSectorPatch(target,img,x0,y0,x,y,r*.94,true);
+    if(!hole.held)stopHole();
   }
 }
 
@@ -148,13 +161,14 @@ export function tickDrips(dt: number): void {
   }
 }
 
-export function beginBake(): void {
+export function beginBake(now=performance.now()): void {
   pushHistory();
-  bakeLive(baseCtx, performance.now());
+  bakeLive(baseCtx, now);
   clearLive();
 }
 
-export function smudge(x: number, y: number, dx: number, dy: number, radius: number): void {
+export function smudge(x: number, y: number, dx: number, dy: number, radius: number,
+  pending?: { source: CanvasRenderingContext2D; commit: () => void }): void {
   const sector=activeSector();
   const dabs=(sector ? [{x,y,dx,dy}] : mirrorMotion(x,y,dx,dy)).filter(p=>p.x+radius>0&&p.y+radius>0&&p.x-radius<W&&p.y-radius<H);
   if(!dabs.length)return;
@@ -164,15 +178,31 @@ export function smudge(x: number, y: number, dx: number, dy: number, radius: num
   const right=Math.min(W,Math.ceil(Math.max(...dabs.map(p=>p.x))+pad));
   const bottom=Math.min(H,Math.ceil(Math.max(...dabs.map(p=>p.y))+pad));
   if(right<=left||bottom<=top)return;
-  const patch=baseCtx.getImageData(left,top,right-left,bottom-top);
-  patch.data.set(advectMany(patch.data,patch.width,patch.height,dabs.map(p=>({...p,x:p.x-left,y:p.y-top})),radius,0.88*state.opacity, sector ? (px,py,sx,sy)=>{
+  const patch=(pending?.source??baseCtx).getImageData(left,top,right-left,bottom-top);
+  const moved=advectMany(patch.data,patch.width,patch.height,dabs.map(p=>({...p,x:p.x-left,y:p.y-top})),radius,0.88*state.opacity, sector ? (px,py,sx,sy)=>{
     const line=clipSegment({x:px+left+0.5,y:py+top+0.5},{x:sx+left+0.5,y:sy+top+0.5},sector,0.5);
     return line ? {x:line[1].x-left-0.5,y:line[1].y-top-0.5} : {x:px,y:py};
-  } : undefined));
+  } : undefined);
+  if(!moved.some((value,i)=>value!==patch.data[i]))return;
+  pending?.commit();
+  patch.data.set(moved);
   paintSectorPatch(baseCtx,patch,left,top,x,y,radius);
 }
 
-export function pixelateAt(x: number, y: number): void {
+export interface PixelFilterStroke {
+  target: CanvasRenderingContext2D;
+  source: ImageData;
+  covered: Uint8Array;
+  strength: number;
+  mode: typeof state.eraserMode;
+}
+
+/** One immutable source and one contribution per pixel for an entire gesture. */
+export function beginPixelFilterStroke(): PixelFilterStroke {
+  return { target: baseCtx, source: baseCtx.getImageData(0, 0, W, H), covered: new Uint8Array(W * H), strength: state.opacity, mode: state.eraserMode };
+}
+
+export function pixelateAt(x: number, y: number, stroke?: PixelFilterStroke): void {
   const radius = Math.max(22, currentWidth() * 1.4);
   filterDisc(x, y, radius, (data, w, h, cx, cy) => {
     const block = 8;
@@ -204,10 +234,10 @@ export function pixelateAt(x: number, y: number): void {
         }
       }
     }
-  });
+  }, stroke);
 }
 
-export function invertAt(x: number, y: number): void {
+export function invertAt(x: number, y: number, stroke?: PixelFilterStroke): void {
   const radius = Math.max(20, currentWidth() * 1.3);
   filterDisc(x, y, radius, (data, w, _h, cx, cy) => {
     for (let yy = 0; yy < _h; yy++) {
@@ -219,10 +249,10 @@ export function invertAt(x: number, y: number): void {
         data[i + 2] = 255 - data[i + 2];
       }
     }
-  });
+  }, stroke);
 }
 
-export function embossAt(x: number, y: number): void {
+export function embossAt(x: number, y: number, stroke?: PixelFilterStroke): void {
   const radius = Math.max(20, currentWidth() * 1.3);
   filterDisc(x, y, radius, (data, w, h, cx, cy) => {
     const copy = new Uint8ClampedArray(data);
@@ -238,7 +268,7 @@ export function embossAt(x: number, y: number): void {
         data[i + 2] = v * 0.7 + copy[i + 2] * 0.3;
       }
     }
-  });
+  }, stroke);
 }
 
 function filterDisc(
@@ -246,7 +276,11 @@ function filterDisc(
   y: number,
   radius: number,
   paint: (data: Uint8ClampedArray, w: number, h: number, cx: number, cy: number) => void,
+  stroke?: PixelFilterStroke,
 ): void {
+  if (stroke && (stroke.target !== baseCtx || stroke.source.width !== W || stroke.source.height !== H)) return;
+  const strength = Math.max(0, Math.min(1, stroke?.strength ?? state.opacity));
+  if (strength === 0) return;
   const x0 = Math.max(0, Math.floor(x - radius));
   const y0 = Math.max(0, Math.floor(y - radius));
   const x1 = Math.min(W, Math.ceil(x + radius));
@@ -255,7 +289,22 @@ function filterDisc(
   const h = y1 - y0;
   if (w < 2 || h < 2) return;
   const img = baseCtx.getImageData(x0, y0, w, h);
-  paint(img.data, w, h, x - x0, y - y0);
+  const source = new Uint8ClampedArray(img.data);
+  if (stroke) for (let row = 0; row < h; row++) {
+    const start = ((y0 + row) * W + x0) * 4;
+    source.set(stroke.source.data.subarray(start, start + w * 4), row * w * 4);
+  }
+  const filtered = new Uint8ClampedArray(source);
+  paint(filtered, w, h, x - x0, y - y0);
+  for (let row = 0; row < h; row++) for (let col = 0; col < w; col++) {
+    if ((col + x0 - x) ** 2 + (row + y0 - y) ** 2 > radius * radius) continue;
+    const index = (y0 + row) * W + x0 + col;
+    if (stroke?.covered[index]) continue;
+    if (stroke) stroke.covered[index] = 1;
+    const i = (row * w + col) * 4;
+    for (let c = 0; c < 3; c++) img.data[i + c] = source[i + c] + (filtered[i + c] - source[i + c]) * strength;
+    img.data[i + 3] = source[i + 3];
+  }
   paintSectorPatch(baseCtx,img,x0,y0,x,y,radius);
 }
 

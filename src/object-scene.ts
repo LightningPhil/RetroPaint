@@ -2,6 +2,7 @@ import { resetPaint } from './canvas';
 import { liveAnimated,renderLiveSnapshot, type LiveSnapshot } from './live';
 import { colorFromSpec, glitterPattern, patternFor, previewColor } from './materials';
 import type { LiveSpec } from './types';
+import { calloutConnection } from './callout';
 
 export type ObjectMatrix = [number, number, number, number, number, number];
 export interface Bounds { x:number; y:number; width:number; height:number }
@@ -10,7 +11,7 @@ export interface ObjectPath { points:{x:number;y:number}[]; clip?:{x:number;y:nu
 interface ObjectBase { id:string; name:string; matrix:ObjectMatrix; width:number; height:number; opacity:number }
 export interface PathObject extends ObjectBase { kind:'path'; paths:ObjectPath[]; fill:ObjectInk|null; stroke:ObjectInk|null; lineWidth:number }
 export interface RasterObject extends ObjectBase { kind:'raster'; image:HTMLCanvasElement; live?:LiveSnapshot; liveSize?:{width:number;height:number}; origin?:{x:number;y:number}; blend?:'destination-out'; wet?:boolean; clip?:{x:number;y:number}[] }
-export interface TextObject extends ObjectBase { kind:'text'; lines:{text:string;x:number;y:number;width:number}[]; font:string; size:number; align:CanvasTextAlign; color:string; paper:string|null; underline:boolean; strike:boolean }
+export interface TextObject extends ObjectBase { kind:'text'; lines:{text:string;x:number;y:number;width:number}[]; font:string; size:number; align:CanvasTextAlign; color:string; paper:string|null; underline:boolean; strike:boolean; callout?:{text?:string;wrapWidth?:number;tip:{x:number;y:number};border:boolean;rounded:boolean} }
 export interface StampObject extends ObjectBase { kind:'stamp'; emoji:string; flipH:boolean; flipV:boolean; angle:number }
 export type PaintObject = PathObject|RasterObject|TextObject|StampObject;
 export let objectCapture:{layer:number;canvas:HTMLCanvasElement;live:()=>LiveSnapshot;blend?:'destination-out';index?:number}|null=null;
@@ -20,6 +21,7 @@ export function multiply(a:ObjectMatrix,b:ObjectMatrix):ObjectMatrix {
 }
 export function objectBounds(object:PaintObject):Bounds {
   const m=object.matrix,local=object.kind==='raster'&&object.clip?.length?object.clip:[{x:0,y:0},{x:object.width,y:0},{x:object.width,y:object.height},{x:0,y:object.height}],points=local.map(({x,y})=>({x:m[0]*x+m[2]*y+m[4],y:m[1]*x+m[3]*y+m[5]}));
+  if(object.kind==='text'&&object.callout){const {x,y}=object.callout.tip;for(const dx of [-10,10])for(const dy of [-10,10])points.push({x:m[0]*(x+dx)+m[2]*(y+dy)+m[4],y:m[1]*(x+dx)+m[3]*(y+dy)+m[5]});}
   const x=Math.min(...points.map(p=>p.x)),y=Math.min(...points.map(p=>p.y));
   return {x,y,width:Math.max(...points.map(p=>p.x))-x,height:Math.max(...points.map(p=>p.y))-y};
 }
@@ -44,7 +46,13 @@ export function drawObject(ctx:CanvasRenderingContext2D,object:PaintObject,now:n
     ctx.lineWidth=object.lineWidth;ctx.lineCap='round';ctx.lineJoin='round';
     for(const lane of object.paths){ctx.save();if(lane.clip?.length){ctx.beginPath();lane.clip.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();ctx.clip();}let path=vectorPaths.get(lane);if(!path){path=new Path2D();if(lane.svg)path.addPath(new Path2D(lane.svg),new DOMMatrix(lane.transform));else{lane.points.forEach((p,i)=>i?path!.lineTo(p.x,p.y):path!.moveTo(p.x,p.y));if(lane.closed)path.closePath();}vectorPaths.set(lane,path);}if(object.fill){ctx.fillStyle=inkStyle(ctx,object.fill,now,object.width);ctx.fill(path);}if(object.stroke){ctx.strokeStyle=inkStyle(ctx,object.stroke,now,object.width);if(object.stroke.spec?.kind==='neon'){ctx.shadowColor=object.stroke.color;ctx.shadowBlur=object.lineWidth*1.4;}ctx.stroke(path);}ctx.restore();}
   } else if(object.kind==='text') {
-    if(object.paper){ctx.fillStyle=object.paper;ctx.fillRect(0,0,object.width,object.height);}ctx.font=object.font;ctx.textAlign=object.align;ctx.textBaseline='top';ctx.fillStyle=object.color;
+    if(object.callout){
+      const {tip,border,rounded}=object.callout,start=calloutConnection(object.width,object.height,tip,rounded),dx=tip.x-start.x,dy=tip.y-start.y;
+      ctx.strokeStyle='#000';ctx.fillStyle='#000';ctx.lineWidth=1.5;ctx.lineJoin='round';
+      if(Math.hypot(dx,dy)>1){const angle=Math.atan2(dy,dx),head=Math.min(10,Math.hypot(dx,dy));ctx.beginPath();ctx.moveTo(start.x,start.y);ctx.lineTo(tip.x,tip.y);ctx.stroke();ctx.beginPath();ctx.moveTo(tip.x,tip.y);ctx.lineTo(tip.x-head*Math.cos(angle-.45),tip.y-head*Math.sin(angle-.45));ctx.lineTo(tip.x-head*Math.cos(angle+.45),tip.y-head*Math.sin(angle+.45));ctx.closePath();ctx.fill();}
+      ctx.beginPath();ctx.roundRect(0,0,object.width,object.height,rounded?Math.min(8,object.height/4):0);ctx.fillStyle=object.paper??'#fff';ctx.fill();if(border){ctx.lineWidth=1;ctx.stroke();}
+    }
+    if(object.paper&&!object.callout){ctx.fillStyle=object.paper;ctx.fillRect(0,0,object.width,object.height);}ctx.font=object.font;ctx.textAlign=object.align;ctx.textBaseline='top';ctx.fillStyle=object.color;
     for(const line of object.lines){ctx.fillText(line.text,line.x,line.y);const left=line.x-(object.align==='center'?line.width/2:object.align==='right'?line.width:0);if(object.underline)ctx.fillRect(left,line.y+object.size*1.04,line.width,Math.max(1,object.size/18));if(object.strike)ctx.fillRect(left,line.y+object.size*.55,line.width,Math.max(1,object.size/18));}
   } else {
     ctx.translate(object.width/2,object.height/2);ctx.rotate(object.angle);ctx.scale(object.flipH?-1:1,object.flipV?-1:1);ctx.font=`${object.height*.82}px "Segoe UI Emoji","Apple Color Emoji",sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(object.emoji,0,0);

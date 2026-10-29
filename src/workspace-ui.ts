@@ -7,7 +7,7 @@ import { icon } from './icons';
 import { centreObjects, duplicateObjects, hasObjectSelection, selectedObjects } from './objects';
 import { photoEditing } from './photo-preview';
 import { cancelSelection, commitSelection, copySelection, deleteSelection, hasSelection, moveSelection, selectionBounds } from './selection';
-import { state } from './state';
+import { state, vectorDrawingEnabled } from './state';
 import { TOOL_INFO, toolArtwork } from './tool-art';
 
 let root:HTMLElement|null=null,signature='';
@@ -31,11 +31,11 @@ export function initWorkspaceUi():void {
 export function updateWorkspaceUi():void {
   if(!root)return;root.hidden=photoEditing;if(photoEditing)return;
   const selected=state.tool==='scissors'&&hasSelection(),b=selectionBounds(),pieces=selectedObjects(),beyond=outside();
-  const next=JSON.stringify([state.tool,state.applicator,state.brushWidth,state.stampScale,state.opacity,state.drawingMode,selected,b,beyond,canRedo(),pieces.map(p=>[p.id,p.kind])]);if(signature===next)return;signature=next;
+  const next=JSON.stringify([state.tool,state.applicator,state.brushWidth,state.stampScale,state.opacity,state.drawingMode,state.workspaceMode,selected,b,beyond,canRedo(),pieces.map(p=>[p.id,p.kind])]);if(signature===next)return;signature=next;
   document.getElementById('workspaceIdle')!.hidden=selected;document.getElementById('workspaceSelection')!.hidden=!selected;
   root.classList.toggle('selection-active',selected);root.classList.toggle('selection-outside',beyond);
   const info=TOOL_INFO[state.tool];document.getElementById('workspaceToolArt')!.innerHTML=toolArtwork(state.tool);document.getElementById('workspaceToolName')!.textContent=info.label;
-  document.getElementById('workspaceToolDetail')!.textContent=`${state.tool==='stamp'?`${state.stampScale.toFixed(1)}×`:['draw','spray','eraser','sponge','shapes','spiro'].includes(state.tool)?`${state.brushWidth} px`:state.drawingMode==='vector'?'Editable pieces':'Pixels'} · ${Math.round(state.opacity*100)}%`;
+  document.getElementById('workspaceToolDetail')!.textContent=`${state.tool==='stamp'?`${state.stampScale.toFixed(1)}×`:['draw','spray','eraser','sponge','shapes','spiro'].includes(state.tool)?`${state.brushWidth} px`:vectorDrawingEnabled()?'Editable pieces':'Pixels'} · ${Math.round(state.opacity*100)}%`;
   document.getElementById('workspaceIdle')!.title=info.hint;
   (document.getElementById('workspaceRedo') as HTMLButtonElement).disabled=!canRedo();
   const rasterCount=pieces.filter(p=>p.kind==='raster').length,kind=pieces.length>1?`${pieces.length} pieces`:pieces.length===1?pieces[0].kind==='raster'?'Raster piece':'Vector piece':'Raster selection';

@@ -1,0 +1,15 @@
+.drawing-mode-field { display:flex;align-items:center;gap:10px;font-size:13px;font-weight:800; }
+#workspaceOverlay {position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;}
+.drawing-mode-field select { min-width:0;flex:1;padding:8px;border:2px solid var(--ink);border-radius:10px;background:#fff;min-height:40px; }
+#objectPanel { display:none;flex-direction:column;gap:10px; }
+.object-selection-mode #selectionDrawer>:not(strong):not(#objectPanel):not(.drawer-close) { display:none; }
+.object-selection-mode #objectPanel { display:flex; }
+.object-selection-mode #selectionQuick { display:none!important; }
+#objectPanel .object-actions { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px; }
+#objectPanel .choice { min-width:0;padding:8px 3px;font-size:11px; }
+#objectPanel .extra-choices[open] { display:flex;flex-direction:column;gap:8px;padding-bottom:8px; }
+#objectBadge { position:absolute;bottom:8px;left:8px;z-index:6;background:#eee2ff;max-width:calc(100% - 110px);padding:7px 10px;min-height:36px;font-size:11px; }
+#objectBadge[hidden] { display:none; }
+#ringField input[type=number] { width:90px;max-width:50%; }
+@media(max-width:600px),(max-height:500px) and (max-width:1000px) { #objectBadge {font-size:10px;min-height:36px;} #objectPanel {gap:6px;} #objectHelp {font-size:11px;} }
+@media(max-height:500px) and (max-width:1000px) { #objectPanel:has(details[open])>#objectHelp,#objectPanel:has(details[open])>.object-actions {display:none;} }

@@ -2,7 +2,7 @@
 #workspaceOverlay {position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;}
 .drawing-mode-field select { min-width:0;flex:1;padding:8px;border:2px solid var(--ink);border-radius:10px;background:#fff;min-height:40px; }
 #objectPanel { display:none;flex-direction:column;gap:10px; }
-.object-selection-mode #selectionDrawer>:not(strong):not(#objectPanel):not(.drawer-close) { display:none; }
+.object-selection-mode #selectionDrawer>:not(strong):not(#objectPanel):not(#editCallout):not(.drawer-close) { display:none; }
 .object-selection-mode #objectPanel { display:flex; }
 .object-selection-mode #selectionQuick { display:none!important; }
 #objectPanel .object-actions { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px; }

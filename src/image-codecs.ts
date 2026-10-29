@@ -42,33 +42,48 @@ export function encodeTiff(image: ImageData): Blob {
   bytes.set(image.data, pixelsOffset); return new Blob([bytes], { type: 'image/tiff' });
 }
 export function decodeTiff(buffer: ArrayBuffer): HTMLCanvasElement {
+  const damaged = () => new Error('This TIFF is damaged or incomplete. Try another copy or convert it to PNG.');
+  const requireBytes = (offset: number, length: number) => {
+    if (!Number.isSafeInteger(offset) || !Number.isSafeInteger(length) || offset < 0 || length < 0 || offset > buffer.byteLength - length) throw damaged();
+  };
+  requireBytes(0, 8);
   const view = new DataView(buffer), little = view.getUint16(0) === 0x4949;
   if ((!little && view.getUint16(0) !== 0x4d4d) || view.getUint16(2, little) !== 42) throw new Error('This is not a TIFF image.');
-  const directory = view.getUint32(4, little), count = view.getUint16(directory, little), tags = new Map<number, number[]>();
+  const directory = view.getUint32(4, little); requireBytes(directory, 2);
+  const count = view.getUint16(directory, little), tags = new Map<number, number[]>();
+  requireBytes(directory + 2, count * 12 + 4);
   for (let i = 0; i < count; i++) {
     const at = directory + 2 + i * 12, tag = view.getUint16(at, little), type = view.getUint16(at + 2, little), length = view.getUint32(at + 4, little);
     if (type !== 3 && type !== 4) continue;
     if (length > 65536) throw new Error('TIFF directory is too large.');
     const size = type === 3 ? 2 : 4, offset = length * size <= 4 ? at + 8 : view.getUint32(at + 8, little);
+    requireBytes(offset, length * size);
     tags.set(tag, Array.from({ length }, (_, j) => size === 2 ? view.getUint16(offset + j * size, little) : view.getUint32(offset + j * size, little)));
   }
   const width = tags.get(256)?.[0] ?? 0, height = tags.get(257)?.[0] ?? 0, channels = tags.get(277)?.[0] ?? 1, compression = tags.get(259)?.[0] ?? 1;
   if (width < 1 || height < 1 || width > 4096 || height > 4096) throw new Error('TIFF dimensions must be 1–4096 pixels.');
-  if (compression !== 1 || (tags.get(284)?.[0] ?? 1) !== 1 || tags.get(258)?.some(n => n !== 8)) throw new Error('This TIFF uses unsupported compression or colour depth. Open an uncompressed 8-bit TIFF or convert it to PNG.');
+  if (compression !== 1 || (tags.get(284)?.[0] ?? 1) !== 1 || !tags.get(258)?.length || tags.get(258)!.some(n => n !== 8)) throw new Error('This TIFF uses unsupported compression or colour depth. Open an uncompressed 8-bit TIFF or convert it to PNG.');
   const photometric = tags.get(262)?.[0] ?? 2;
   if (![0, 1, 2].includes(photometric) || ![1, 3, 4].includes(channels) || (photometric === 2 && channels < 3)) throw new Error('This TIFF colour format is not supported.');
-  const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
-  const ctx = canvas.getContext('2d')!, image = ctx.createImageData(width, height), rows = tags.get(278)?.[0] ?? height;
+  const rows = tags.get(278)?.[0] ?? height;
   const offsets = tags.get(273) ?? [], lengths = tags.get(279) ?? [];
+  if (!rows || offsets.length !== Math.ceil(height / rows) || lengths.length !== offsets.length) throw damaged();
+  // Validate the complete strip table before allocating or copying any pixels.
+  // A missing final strip must not turn into a successfully imported clear row.
+  for (let strip = 0; strip < offsets.length; strip++) {
+    const pixels = Math.min(rows, height - strip * rows) * width;
+    if (lengths[strip] < pixels * channels) throw damaged();
+    requireBytes(offsets[strip], lengths[strip]);
+  }
+  const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+  const ctx = canvas.getContext('2d')!, image = ctx.createImageData(width, height);
   for (let strip = 0; strip < offsets.length; strip++) {
     const startPixel = strip * rows * width, pixels = Math.min(rows * width, width * height - startPixel);
-    if (lengths[strip] < pixels * channels) throw new Error('TIFF pixel data is incomplete.');
     for (let p = 0; p < pixels; p++) {
       const at = offsets[strip] + p * channels, out = (startPixel + p) * 4;
       for (let c = 0; c < 3; c++) image.data[out + c] = photometric === 2 ? view.getUint8(at + c) : photometric === 0 ? 255 - view.getUint8(at) : view.getUint8(at);
       image.data[out + 3] = channels === 4 ? view.getUint8(at + 3) : 255;
     }
   }
-  if (!offsets.length) throw new Error('TIFF pixel data is missing.');
   ctx.putImageData(image, 0, 0); return canvas;
 }

@@ -1,0 +1,167 @@
+{
+  "at": "2026-10-20T17:39:29.929022+00:00",
+  "case": "PAINT-004",
+  "status": "Pre-execution plan, not a result",
+  "rows": [
+    {
+      "id": "p1",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 1,
+      "strength": 0.15
+    },
+    {
+      "id": "p2",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 22,
+      "strength": 1
+    },
+    {
+      "id": "p3",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 96,
+      "strength": 0.15
+    },
+    {
+      "id": "p4",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 1,
+      "strength": 1
+    },
+    {
+      "id": "p5",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 0.15
+    },
+    {
+      "id": "p6",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 96,
+      "strength": 1
+    },
+    {
+      "id": "p7",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 1
+    },
+    {
+      "id": "p8",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 1,
+      "strength": 0.15
+    },
+    {
+      "id": "p9",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 22,
+      "strength": 1
+    },
+    {
+      "id": "p10",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 96,
+      "strength": 0.15
+    },
+    {
+      "id": "p11",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 1,
+      "strength": 1
+    },
+    {
+      "id": "p12",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 0.15
+    },
+    {
+      "id": "p13",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 96,
+      "strength": 1
+    },
+    {
+      "id": "p14",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 1
+    }
+  ],
+  "pairwise_proof": [
+    {
+      "factors": [
+        "viewport",
+        "size"
+      ],
+      "pairs": 12
+    },
+    {
+      "factors": [
+        "viewport",
+        "strength"
+      ],
+      "pairs": 8
+    },
+    {
+      "factors": [
+        "size",
+        "strength"
+      ],
+      "pairs": 6
+    }
+  ],
+  "boundary_geometry": {
+    "slow": "Quadratic from150,280 through400,160 to650,280;41 native points,15ms delay between points",
+    "fast": "Same quadratic shifted160px up;41 native points, no inserted delay",
+    "tap": [
+      800,
+      200
+    ]
+  },
+  "main": "Four standard22/full rows run an additional fresh PLAY phase. Actual Red Marker reference curve at y-160; full Poster curve at normal y;15% Poster curve at y+200 then same weak curve again. Switch tools, zoom out/back in, four separate Undo/Redo and actual fresh input.",
+  "geometry": "All curves quadratic150,280 through400,160 to650,280,41 native points, translated only by the declared y offset. Same source geometry retained through view changes.",
+  "oracle": "Independent connected deltas and source nib tube radius+2px; dense centreline coverage with2px AA neighbourhood. All changes confined to the intended gesture, old source/header exact. At22/full Poster core must have at least3 distinct RGB values, green-channel range>=3 and differ from the flat Marker core at >=10% of interior samples. Weak second contribution follows independent source-over I2=(2-a)*I1-(1-a)*255 with a=.15 within2/255 over core samples; first weak stroke remains non-opaque. Zoom and tool selection preserve every saved field/pixel and create no extra history. Exact full-source gesture Undo/Redo and actual fresh saved-file RGBA. No tolerance changes after execution; mouse only."
+}

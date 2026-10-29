@@ -1,0 +1,45 @@
+{
+  "at": "2026-10-20T21:27:45.014082+00:00",
+  "status": "Verified native layered/live fixture only; not a PAINT-013 result",
+  "producer": "headless/SMUDGE-producer/SMUDGE-producer-ui.json",
+  "records": [
+    {
+      "kind": "settled",
+      "path": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "source_layer_id": 2,
+      "guide_layer_id": 3,
+      "raw_image_alpha_exact": true,
+      "working_target_valid": true,
+      "complete_fresh_source_and_fixed_frame_RGBA_exact": true
+    },
+    {
+      "kind": "moving-water-evidence",
+      "reference_time_ms": 10000,
+      "changes": [
+        {
+          "render_time_ms": 10371,
+          "changed_water_pixels": 8830
+        },
+        {
+          "render_time_ms": 11113,
+          "changed_water_pixels": 8617
+        }
+      ]
+    },
+    {
+      "kind": "live",
+      "path": "headless\\SMUDGE-producer\\SMUDGE-live.retropaint",
+      "sha256": "171a9613445558ea5b91c682472c6f0a7a544695e380b304f0cb0b5297fd1da7",
+      "source_layer_id": 2,
+      "guide_layer_id": 3,
+      "raw_image_alpha_exact": true,
+      "working_target_valid": true,
+      "complete_fresh_source_and_fixed_frame_RGBA_exact": true
+    }
+  ],
+  "actual_downloads_verified": 8,
+  "source_png_sha256": "b945924f62452a2c125b37875a2b8ee8d9a953bfb6db07959865fa767854ab31",
+  "controlled_time_note": "Render timestamps and performance.now reads fixed at10000ms only for deterministic live-frame comparisons; real RAF scheduling, timers, Date and native input remain. No age/latency/performance claim. Actual Water animation separately changes at10371/11113ms. Smudge is distance based.",
+  "clock_helper_sha256": "300393aed9faaa1b090d30cd6bf7590512612c027e22fe264ba08b108530bc99"
+}

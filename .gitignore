@@ -2,3 +2,10 @@ node_modules
 .DS_Store
 *.local
 .vite
+test-results/
+__pycache__/
+*.pyc
+/.cad-repair-backup.retropaint
+/APP-USE-CASES/runs/*/backups/
+/APP-USE-CASES/runs/*/headless/
+/APP-USE-CASES/runs/*/evidence/

@@ -8,7 +8,7 @@ import { bakeLive } from './live';
 import { cancelSelection, commitSelection, editSelectionPixels, flipSelection, hasClipboard, hasSelection, pasteImage, pasteSelection, resizeSelection, rotateSelection, selectionBounds, transformSelection } from './selection';
 import { motorOn } from './spiro';
 import { isBusy } from './effects';
-import { state } from './state';
+import { state, vectorDrawingEnabled } from './state';
 import { hasText, placeText } from './text-tool';
 import { exportImage, printImage } from './export';
 import { decodeTiff } from './image-codecs';
@@ -16,8 +16,10 @@ import { openProjectFile, saveProjectFile } from './project';
 import { finishPath } from './input';
 import { initLayersUi, refreshLayersUi } from './layer-ui';
 import { photoEditing } from './photo-preview';
+import { bindNewPicture } from './new-picture';
 import { initPhotoUi } from './photo-ui';
 import { beginObjectPixelEdit, editObjectPixels, editableObjects, ensureObjectLayer, finishObjectStroke, hasObjectSelection, selectAllObjects } from './objects';
+import { beginOpen, requireCurrentOpen } from './open-guard';
 
 let statusTimer = 0, inserting = false;
 export function message(text: string): void {
@@ -94,13 +96,15 @@ export async function decodeImage(file: Blob): Promise<HTMLCanvasElement> {
 }
 export async function importImage(file: Blob, insert = false): Promise<void> {
   if (!editable()) return;
+  const isCurrent = beginOpen();
   const image = await decodeImage(file);
+  requireCurrentOpen(isCurrent);
   if (!editable()) return;
   settle();
   if (insert) { pasteImage(image); state.tool = 'scissors'; emit('tool-request'); }
   else {
     pushHistory(); resetLayers(image.width, image.height, null); baseCtx.drawImage(image, 0, 0); artwork.markWork();
-    if(state.drawingMode==='vector')ensureObjectLayer();
+    if(vectorDrawingEnabled())ensureObjectLayer();
     if (file instanceof File) (document.getElementById('fileName') as HTMLInputElement).value = file.name.replace(/\.[^.]+$/, '');
   }
   emit('close-options'); message(insert ? 'Image inserted. Drag it, resize it, then Place.' : 'Image opened. Undo brings back the previous picture.');
@@ -153,7 +157,16 @@ export function bindEditor(): void {
   bus.addEventListener('export-state',event=>{const busy=(event as CustomEvent<boolean>).detail;for(const id of ['saveBtn','saveAs'])(document.getElementById(id) as HTMLButtonElement).disabled=busy;document.getElementById('saveBtn')!.setAttribute('aria-busy',String(busy));document.getElementById('saveBtn')!.innerHTML=busy?'Saving…':saveLabel;});
   initLayersUi({ editable, settle, message });
   initPhotoUi({ editable, settle, message, open:requestOpen });
-  bindAction('newPicture', () => { settle(); pushHistory(); resetLayers(); artwork.reset(); message('Fresh paper! Undo brings your previous picture back.'); });
+  bindNewPicture(field<HTMLButtonElement>('newPicture'), {
+    allowed: editable, size: () => [W, H], validate: dimensions,
+    create: (width, height) => {
+      settle(); pushHistory(); resetLayers(width, height);
+      if (vectorDrawingEnabled()) ensureObjectLayer();
+      artwork.reset(); refreshImageFields();
+      emit('close-options'); message('Fresh paper! Undo brings your previous picture back.');
+    },
+    created: () => view.focus({ preventScroll: true }),
+  });
   bindAction('openPicture', () => requestOpen()); bindAction('insertPicture', () => requestOpen(true)); bindAction('pasteExternal', pasteExternal);
   bindAction('redoBtn', () => { emit('settle-input'); cancelSelection(); redo(); });
   bindAction('saveAs', async () => { settle(); await exportImage(field<HTMLSelectElement>('fileFormat').value, field<HTMLInputElement>('fileName').value); });

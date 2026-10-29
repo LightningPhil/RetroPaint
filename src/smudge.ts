@@ -10,6 +10,7 @@ export function advect(source: Uint8ClampedArray, width: number, height: number,
 export function advectMany(source: Uint8ClampedArray, width: number, height: number,
   dabs: SmudgeDab[], radius: number, strength: number, sampleLimit?: (x:number,y:number,sx:number,sy:number)=>{x:number;y:number}): Uint8ClampedArray {
   const out=new Uint8ClampedArray(source), size=width*height;
+  if(strength===0)return out;
   const vx=new Float32Array(size),vy=new Float32Array(size),weight=new Float32Array(size),peak=new Float32Array(size);
   const touched:number[]=[];
   for(const dab of dabs) {
@@ -27,12 +28,14 @@ export function advectMany(source: Uint8ClampedArray, width: number, height: num
     const factor=peak[i]*strength/weight[i],x=i%width,y=Math.floor(i/width);
     let sx=Math.max(0,Math.min(width-1,x-vx[i]*factor)),sy=Math.max(0,Math.min(height-1,y-vy[i]*factor));
     if (sampleLimit) { const p=sampleLimit(x,y,sx,sy); sx=Math.max(0,Math.min(width-1,p.x)); sy=Math.max(0,Math.min(height-1,p.y)); }
+    if(sx===x&&sy===y)continue;
     const x0=Math.floor(sx),y0=Math.floor(sy),x1=Math.min(width-1,x0+1),y1=Math.min(height-1,y0+1),fx=sx-x0,fy=sy-y0;
-    for(let c=0;c<4;c++) {
-      const top=source[(y0*width+x0)*4+c]*(1-fx)+source[(y0*width+x1)*4+c]*fx;
-      const bottom=source[(y1*width+x0)*4+c]*(1-fx)+source[(y1*width+x1)*4+c]*fx;
-      out[i*4+c]=top*(1-fy)+bottom*fy;
-    }
+    const corners=[(y0*width+x0)*4,(y0*width+x1)*4,(y1*width+x0)*4,(y1*width+x1)*4];
+    const weights=[(1-fx)*(1-fy),fx*(1-fy),(1-fx)*fy,fx*fy];
+    const alpha=corners.reduce((sum,p,j)=>sum+source[p+3]*weights[j],0);
+    out[i*4+3]=alpha;
+    // Interpolate associated colour: clear neighbours have no pigment to mix.
+    for(let c=0;c<3;c++)out[i*4+c]=alpha>0?corners.reduce((sum,p,j)=>sum+source[p+c]*source[p+3]*weights[j],0)/alpha:0;
   }
   return out;
 }

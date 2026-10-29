@@ -3,7 +3,7 @@ import init, { type OpenCascadeInstance } from 'replicad-opencascadejs';
 import wasmUrl from 'replicad-opencascadejs/wasm?url';
 import * as r from 'replicad';
 import type { Manifold, ManifoldToplevel } from 'manifold-3d';
-import { attachedPlane } from './cad-attachment';
+import { attachedPlane, resolveSupportPlane } from './cad-attachment';
 import { checkProfile, pathBeziers, profilePlane, sweepPlane } from './cad-profiles';
 import { solveSketch } from './cad-sketch-constraints';
 import { type CadBody, type CadEdge, type CadFace, type CadMesh, type CadSolid, type V2, type V3, type Workplane } from './cad-model';
@@ -35,7 +35,15 @@ class Build {
   body(item:CadBody,support?:Support):Support{
     // Absorb primitive sizing before building; this keeps cylinders analytic after resizing.
     const s=item.solid,abs=item.scale.map(Math.abs) as V3,absorb=s.kind==='primitive'&&['box','sphere','cylinder','tube','pyramid','wedge'].includes(s.shape);
-    let shape=this.solid(absorb?{...s,size:s.size.map((v,i)=>v*abs[i]) as V3,wall:s.wall*Math.min(abs[0],abs[1])}:s,support);
+    // Stretch both inner ellipse axes along with the outside. A scalar wall
+    // multiplied by the smaller scale silently widens the hole on the other
+    // axis, changing material volume when a precision feature is introduced.
+    let shape:r.Shape3D;
+    if(s.kind==='primitive'&&s.shape==='tube'){
+      if(s.wall>=Math.min(s.size[0],s.size[1])/2)throw new Error('Tube wall must be less than half its width and depth. Choose a thinner wall or a larger tube.');
+      const [x,y,z]=s.size.map((v,i)=>v*abs[i]);
+      shape=this.tube(x,y,z,(s.size[0]/2-s.wall)*abs[0],(s.size[1]/2-s.wall)*abs[1]);
+    }else shape=this.solid(absorb?{...s,size:s.size.map((v,i)=>v*abs[i]) as V3,wall:s.wall*Math.min(abs[0],abs[1])}:s,support);
     const bounds=this.bounds(shape),scale=absorb?item.scale.map(v=>Math.sign(v)) as V3:item.scale;
     if(scale.some(v=>Math.abs(v-1)>.0000001))shape=this.scale(shape,scale);
     for(let i=0;i<3;i++)if(item.rotation[i])shape=this.own(shape.rotate(item.rotation[i],[0,0,0],(['X','Y','Z'] as const)[i]));
@@ -55,6 +63,11 @@ class Build {
     for(let i=0;i<mesh.triangles.length;i+=3){const triangle=mesh.triangles.slice(i,i+3).map(index=>points[index]);if(scale[0]*scale[1]*scale[2]<0)triangle.reverse();faces.push(this.own(r.makePolygon(triangle)));}
     const sewn=this.own(r.makeSolid(faces)),unify=this.own(new oc.ShapeUpgrade_UnifySameDomain(sewn.wrapped,true,true,false));unify.Build();const result=this.own(r.cast(unify.Shape()));if(!r.isShape3D(result))throw new Error('Could not preserve this scaled solid. Edit its original dimensions in History.');return result;
   }
+  private tube(x:number,y:number,z:number,innerX:number,innerY:number):r.Shape3D{
+    const outer=this.own(this.ellipse(x/2,y/2).extrude(z).translateZ(-z/2));
+    const inner=this.own(this.ellipse(innerX,innerY).extrude(z+.2).translateZ(-z/2-.1));
+    return this.own(outer.cut(inner));
+  }
   private polygon(points:V2[],plane:Workplane):r.Sketch{
     const vertices=points.map(([x,y])=>plane.origin.map((v,i)=>v+plane.u[i]*x+plane.v[i]*y) as V3);
     const edges=vertices.map((p,i)=>this.own(r.makeLine(p,vertices[(i+1)%vertices.length]))),wire=this.own(r.assembleWire(edges));
@@ -73,12 +86,13 @@ class Build {
   private extrude(s:Extract<CadSolid,{kind:'extrude'}>,support?:Support):r.Shape3D{
     let plane=s.plane,height=s.height;
     if(s.feature?.attachment){const a=s.feature.attachment;if(!support||a.reference!==support.item.id)throw new Error('This sketch has lost its supporting solid. Restore it or choose a fixed workplane.');plane=attachedPlane(support.item,support.bounds,a);
-      const base=this.manifold(support.shape);try{const b=base.boundingBox(),distance=Math.hypot(...sub(b.max,b.min))+1,start=plane.origin.map((v,i)=>v+plane.normal[i]*distance) as V3,end=plane.origin.map((v,i)=>v-plane.normal[i]*distance) as V3,hits=base.rayCast(start,end).filter(h=>dot(h.normal,plane.normal)>.999).sort((a,b)=>length(sub(a.position,plane.origin))-length(sub(b.position,plane.origin)));if(!hits.length)throw new Error('The sketch’s supporting flat face no longer exists. Restore it or choose a fixed plane.');plane={...plane,origin:[...hits[0].position]};if(s.feature.through){if(distance>1999)throw new Error('The through cut exceeds the workspace limit.');height=-distance;}const shift=height>0?-.02:.02;plane={...plane,origin:plane.origin.map((v,i)=>v+plane.normal[i]*shift) as V3};height+=height>0?.02:-.04;}finally{base.delete();}}
+      const base=this.manifold(support.shape);try{const b=base.boundingBox(),distance=Math.hypot(...sub(b.max,b.min))+1;plane=resolveSupportPlane(plane,solveSketch(s.points,s.feature?.constraints,s.feature?.sketch),distance,(start,end)=>base.rayCast(start,end));if(s.feature.through){if(distance>1999)throw new Error('The through cut exceeds the workspace limit.');height=-distance;}const shift=height>0?-.02:.02;plane={...plane,origin:plane.origin.map((v,i)=>v+plane.normal[i]*shift) as V3};height-=shift;}finally{base.delete();}}
     // Existing negative pulls extrude the profile from the lower plane.
     if(height<0)plane={...plane,origin:plane.origin.map((v,i)=>v+plane.normal[i]*height) as V3};
     return this.own(this.sketch(solveSketch(s.points,s.feature?.constraints,s.feature?.sketch),plane).extrude(Math.abs(height),{extrusionProfile:s.taper!==1?{endFactor:s.taper,profile:'linear'}:undefined,twistAngle:s.twist||undefined}));
   }
   solid(s:CadSolid,support?:Support):r.Shape3D{
+    if(s.kind==='mesh'){if(s.indices.length/3>3000)throw new Error('This imported mesh is too detailed for precision edge or shell tools. Use Join, Subtract or sketch cuts, or import a simpler STL.');const points=Array.from({length:s.positions.length/3},(_,i)=>s.positions.slice(i*3,i*3+3) as V3);return this.polyhedron(points,Array.from({length:s.indices.length/3},(_,i)=>s.indices.slice(i*3,i*3+3)));}
     if(s.kind==='loft'||s.kind==='sweep'){
       try{
         let result:r.Shape3D;
@@ -117,7 +131,8 @@ class Build {
     if(s.shape==='cylinder'||s.shape==='tube'){
       const outer=this.own(this.ellipse(x/2,y/2).extrude(z).translateZ(-z/2));
       if(s.shape==='cylinder')return outer;
-      const wall=Math.min(s.wall,x/2-.05,y/2-.05),inner=this.own(this.ellipse(x/2-wall,y/2-wall).extrude(z+.2).translateZ(-z/2-.1));return this.own(outer.cut(inner));
+      if(s.wall>=Math.min(x,y)/2)throw new Error('Tube wall must be less than half its width and depth. Choose a thinner wall or a larger tube.');
+      const wall=s.wall,inner=this.own(this.ellipse(x/2-wall,y/2-wall).extrude(z+.2).translateZ(-z/2-.1));return this.own(outer.cut(inner));
     }
     if(s.shape==='cone'){const plane={origin:[0,0,0] as V3,u:[1,0,0] as V3,v:[0,0,1] as V3,normal:[0,-1,0] as V3};let shape=this.own(this.polygon([[0,-z/2],[x/2,-z/2],[0,z/2]],plane).revolve([0,0,1],{origin:[0,0,0],angle:360}));if(x!==y)shape=this.scale(shape,[1,y/x,1]);return shape;}
     if(s.shape==='pyramid')return this.polyhedron([[x/2,0,-z/2],[0,y/2,-z/2],[-x/2,0,-z/2],[0,-y/2,-z/2],[0,0,z/2]],[[3,2,1,0],[0,1,4],[1,2,4],[2,3,4],[3,0,4]]);
@@ -152,10 +167,25 @@ class Build {
     }
     try{
       const solids=shape.solids.map(s=>this.own(s));if(solids.length!==1)throw new Error('Select one connected solid.');
-      const filter=this.own(new r.FaceFinder()).inList(selected.map(f=>this.own(f.clone()))),offset=this.own(shape.shell({filter,thickness:recipe.thickness}));
-      // With no removed faces OCC returns the inward offset; subtract it for a sealed cavity.
-      const result=recipe.faces.length?offset:this.own(shape.cut(offset)),checker=this.own(new oc.BRepCheck_Analyzer(result.wrapped)),before=r.measureVolume(shape),after=r.measureVolume(result);
-      if(!checker.IsValid()||after<=.000001||after>=before-.000001)throw new Error('Invalid wall thickness');return result;
+      const before=r.measureVolume(shape);
+      const checked=(offset:r.Shape3D):r.Shape3D=>{
+        // With no removed faces OCC returns the inward offset; subtract it for a sealed cavity.
+        const result=recipe.faces.length?offset:this.own(shape.cut(offset)),checker=this.own(new oc.BRepCheck_Analyzer(result.wrapped)),after=r.measureVolume(result);
+        if(!checker.IsValid()||after<=.000001||after>=before-.000001)throw new Error('Invalid wall thickness');return result;
+      };
+      try{
+        const filter=this.own(new r.FaceFinder()).inList(selected.map(f=>this.own(f.clone())));
+        return checked(this.own(shape.shell({filter,thickness:recipe.thickness})));
+      }catch{
+        // Boolean outlines can lose small shoulder faces during an inward
+        // offset. Intersect all offset surfaces so OCC trims those crossings
+        // instead of silently returning the unchanged input solid.
+        const removed=this.own(new oc.NCollection_List_TopoDS_Shape());for(const face of selected)removed.Append(face.wrapped);
+        const builder=this.own(new oc.BRepOffsetAPI_MakeThickSolid());
+        builder.MakeThickSolidByJoin(shape.wrapped,removed,-recipe.thickness,.001,oc.BRepOffset_Mode.BRepOffset_Skin,true,false,oc.GeomAbs_JoinType.GeomAbs_Arc,true);
+        if(!builder.IsDone())throw new Error('Offset intersections could not be resolved');
+        const offset=this.own(r.cast(builder.Shape()));if(!r.isShape3D(offset))throw new Error('Offset is not a solid');return checked(offset);
+      }
     }catch{throw new Error(`Cannot shell this solid at ${recipe.thickness} mm. Try a thinner wall or different open faces. Your original solid is unchanged.`);}
   }
   private finish(shape:r.Shape3D,recipe:Finish):r.Shape3D{

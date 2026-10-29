@@ -1,6 +1,11 @@
-.studio-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.studio-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; padding-right:48px; }
+.studio-heading strong { font-size:14px; }
 .advanced-switch { display:flex; align-items:center; gap:5px; font-size:12px; font-weight:800; }
 .advanced-switch input { width:22px; height:22px; accent-color:#7952b8; }
+.advanced-switch { min-height:44px; cursor:pointer; flex-shrink:0; font-size:11px; }
+#workspaceModeDescription,#basicArtworkHint { margin:0; line-height:1.4; }
+#basicArtworkHint { padding:8px 10px; border-radius:8px; background:#eee2ff; }
+body:not(.advanced-mode) #objectPanel .extra-choices { display:none; }
 #toolBin,body.advanced-mode #toolBin { grid-template-rows:none;grid-auto-rows:clamp(44px,calc((100% - 60px) / 7),calc(64px * var(--ui-scale)));align-content:start; }
 #toolBin #layersToggle,#toolBin #photoToggle { position:relative; inset:auto; width:auto; max-width:none; min-height:44px; padding:4px 2px; gap:4px; border-radius:12px; font-size:11px; }
 #toolBin #layersToggle { background:#eee2ff; }

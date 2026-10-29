@@ -7,12 +7,13 @@ import { activeInkId, captureStrokeSpec, fillSpecFor } from './materials';
 import { drawObject, multiply, objectBounds, objectCapture, setObjectCapture, type Bounds, type ObjectInk, type PaintObject, type PathObject, type RasterObject } from './object-scene';
 import { invalidatePhotoCanvas } from './photo-render';
 import { shapePoints } from './shapes';
-import { state } from './state';
+import { state, vectorDrawingEnabled } from './state';
 import { mirrorPoints, symmetryTransforms } from './symmetry';
 import { lanePolygon } from './symmetry-mask';
 import type { ShapeKind } from './types';
 import { drips } from './effects';
 import { trimRasterToPaper } from './selection-commit';
+import { calloutHandles } from './callout';
 
 let sequence=0;
 export const objectId=():string=>`object-${Date.now().toString(36)}-${++sequence}`;
@@ -21,7 +22,7 @@ const editedSelection=new Set<string>();
 let clipboard:PaintObject[]=[];
 let capture:{layer:number;live:LiveSnapshot;name:string;blend?:'destination-out';index?:number}|null=null;
 const surface=(width=W,height=H)=>{const c=document.createElement('canvas');c.width=width;c.height=height;return c;};
-export function editableObjects():boolean { return state.drawingMode==='vector'||Boolean(activeLayer().objects?.length); }
+export function editableObjects():boolean { return vectorDrawingEnabled()||Boolean(activeLayer().objects?.length); }
 export function selectedObjects():PaintObject[] { return selectionLayer===activeLayerId?(activeLayer().objects??[]).filter(object=>selected.has(object.id)):[]; }
 export function hasObjectSelection():boolean { return selectedObjects().length>0; }
 export function objectSelectionBounds():Bounds|null {
@@ -68,7 +69,7 @@ export function ensureObjectLayer():void {
 export function setDrawingMode(mode:'raster'|'vector'):void {
   emit('settle-input');emit('settle-artwork');state.drawingMode=mode;
   if(mode==='vector'){pushHistory();ensureObjectLayer();}
-  clearObjectSelection();document.body.classList.toggle('vector-mode',mode==='vector');
+  clearObjectSelection();document.body.classList.toggle('vector-mode',vectorDrawingEnabled());
   const field=document.getElementById('drawingMode') as HTMLSelectElement|null;if(field)field.value=mode;
   emit('objects');
 }
@@ -174,12 +175,20 @@ export function reorderObjects(direction:number):void {if(!hasObjectSelection())
 
 let drag:{objects:PaintObject[];bounds:Bounds;x:number;y:number;handle:number;history:boolean}|null=null;
 export function objectHandle(x:number,y:number):number {
+  const picked=selectedObjects();if(picked.length===1&&picked[0].kind==='text'&&picked[0].callout){const index=calloutHandles(picked[0]).findIndex(p=>Math.hypot(p.x-x,p.y-y)<=12*W/Math.max(1,view.getBoundingClientRect().width));if(index>=0)return 8+index;}
   const b=objectSelectionBounds();if(!b)return -1;const points=[[b.x,b.y],[b.x+b.width/2,b.y],[b.x+b.width,b.y],[b.x+b.width,b.y+b.height/2],[b.x+b.width,b.y+b.height],[b.x+b.width/2,b.y+b.height],[b.x,b.y+b.height],[b.x,b.y+b.height/2]],radius=12*W/Math.max(1,view.getBoundingClientRect().width);
   return points.findIndex(([px,py])=>Math.hypot(px-x,py-y)<=radius);
 }
 export function beginObjectDrag(x:number,y:number,handle=-1):void {const b=objectSelectionBounds();if(b)drag={objects:selectedObjects(),bounds:b,x,y,handle,history:false};}
 export function dragObjects(x:number,y:number,shift=false):void {
   if(!drag)return;const d=drag,dx=x-d.x,dy=y-d.y;if(Math.abs(dx)+Math.abs(dy)<.01)return;if(!d.history){pushHistory();d.history=true;}
+  const original=d.objects[0];
+  if(d.handle>=8&&original?.kind==='text'&&original.callout){
+    const m=original.matrix,det=m[0]*m[3]-m[1]*m[2],lx=(m[3]*dx-m[2]*dy)/det,ly=(-m[1]*dx+m[0]*dy)/det;
+    const replacement={...original,matrix:[...m] as typeof m,callout:{...original.callout,tip:{x:original.callout.tip.x+(d.handle===8?lx:-lx),y:original.callout.tip.y+(d.handle===8?ly:-ly)}}};
+    if(d.handle===9){replacement.matrix[4]+=dx;replacement.matrix[5]+=dy;}
+    activeLayer().objects=activeLayer().objects?.map(o=>o.id===original.id?replacement:o);changed();return;
+  }
   if(d.handle<0){transformSelected([1,0,0,1,shift&&Math.abs(dy)>Math.abs(dx)?0:dx,shift&&Math.abs(dx)>=Math.abs(dy)?0:dy],d.objects);return;}
   const b=d.bounds,left=[0,6,7].includes(d.handle),right=[2,3,4].includes(d.handle),top=[0,1,2].includes(d.handle),bottom=[4,5,6].includes(d.handle);
   let sx=left?Math.max(1,b.width-dx)/b.width:right?Math.max(1,b.width+dx)/b.width:1,sy=top?Math.max(1,b.height-dy)/b.height:bottom?Math.max(1,b.height+dy)/b.height:1;
@@ -190,8 +199,11 @@ export function endObjectDrag(cancel=false):void {if(cancel&&drag?.history){cons
 export function renderObjectSelection(ctx:CanvasRenderingContext2D):void {
   if(state.tool!=='scissors')return;const b=objectSelectionBounds();if(!b)return;const scale=W/Math.max(1,view.getBoundingClientRect().width);
   ctx.save();ctx.lineWidth=3*scale;ctx.strokeStyle='#fff';ctx.strokeRect(b.x,b.y,b.width,b.height);ctx.lineWidth=1.5*scale;ctx.strokeStyle='#7952b8';ctx.setLineDash([6*scale,4*scale]);ctx.strokeRect(b.x,b.y,b.width,b.height);ctx.setLineDash([]);ctx.fillStyle='#ffd16f';
-  for(const [x,y] of [[b.x,b.y],[b.x+b.width/2,b.y],[b.x+b.width,b.y],[b.x+b.width,b.y+b.height/2],[b.x+b.width,b.y+b.height],[b.x+b.width/2,b.y+b.height],[b.x,b.y+b.height],[b.x,b.y+b.height/2]]){ctx.fillRect(x-5*scale,y-5*scale,10*scale,10*scale);ctx.strokeRect(x-5*scale,y-5*scale,10*scale,10*scale);}ctx.restore();
+  for(const [x,y] of [[b.x,b.y],[b.x+b.width/2,b.y],[b.x+b.width,b.y],[b.x+b.width,b.y+b.height/2],[b.x+b.width,b.y+b.height],[b.x+b.width/2,b.y+b.height],[b.x,b.y+b.height],[b.x,b.y+b.height/2]]){ctx.fillRect(x-5*scale,y-5*scale,10*scale,10*scale);ctx.strokeRect(x-5*scale,y-5*scale,10*scale,10*scale);}
+  const picked=selectedObjects();if(picked.length===1&&picked[0].kind==='text')for(const p of calloutHandles(picked[0])){ctx.fillStyle='#30c5ff';ctx.beginPath();ctx.arc(p.x,p.y,7*scale,0,Math.PI*2);ctx.fill();ctx.stroke();}ctx.restore();
 }
+
+export function replaceSelectedText(object:import('./object-scene').TextObject):void {pushHistory();activeLayer().objects=activeLayer().objects?.map(o=>o.id===object.id?object:o);changed();}
 
 /** Pixel tools edit a selected piece while retaining every neighbouring object. */
 export function beginObjectPixelEdit(group=false):boolean {

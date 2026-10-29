@@ -1,0 +1,91 @@
+{
+  "at": "2026-10-21T00:21:55.611442+00:00",
+  "case": "INK-002",
+  "status": "Additional required history proof recorded before execution, not a case result",
+  "parent_plan": "fixtures/INK-002-plan.json",
+  "parent_plan_sha256": "74b657c6ecf17d87ab0f42d17f8d9ca3533fa8ef80a1a5f84cb705384e2bc79a",
+  "fixture": "headless\\MIX-final\\MIX-enriched.retropaint",
+  "fixture_sha256": "f8c43d9484467068f974b40c00f9e4a968c6cb180f7b89dbddf4dc7830cb9280",
+  "rows": [
+    {
+      "id": "v1",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "id": "v2",
+      "viewport": [
+        320,
+        568
+      ]
+    },
+    {
+      "id": "v3",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "v4",
+      "viewport": [
+        844,
+        390
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "composite-edge",
+      "sample": [
+        101.5,
+        140.5
+      ],
+      "mark": [
+        650.5,
+        300.5
+      ],
+      "hide_character": false,
+      "control_point": [
+        400.5,
+        80.5
+      ]
+    },
+    {
+      "id": "plain-backdrop",
+      "sample": [
+        600.5,
+        220.5
+      ],
+      "mark": [
+        750.5,
+        300.5
+      ],
+      "hide_character": false,
+      "control_point": [
+        500.5,
+        80.5
+      ]
+    },
+    {
+      "id": "hidden-character",
+      "sample": [
+        150.5,
+        140.5
+      ],
+      "mark": [
+        850.5,
+        300.5
+      ],
+      "hide_character": true,
+      "control_point": [
+        600.5,
+        80.5
+      ]
+    }
+  ],
+  "expected_downloads_per_row": 28,
+  "oracle": "At each of4 layouts and3 original visible/hidden sample scenarios, keep full genuine MIX and a clear borrowed-swatches target. Apply declared Character visibility first. Save complete before-control state,choose standard Red and make one separate actual native Marker control tap at known clear target coordinates. Save actual control source/PNG. Sample the original visible colour through real Pick colour. Public pixels must stay exact. A single actual Undo must remove the known control mark and restore complete before-control source/RGBA; if sampling inserted an empty history action,this Undo would leave the control mark and fail. Redo restores exact control state. All other layers/photo/live/object/hidden state stay exact. Final control project is actually reopened in a separate context. Original main run136 downloads retains magnifier/sample/mark checks; this separate probe112 downloads closes history gap, never replaces failed criteria. Fixed completed-art phase10000 only; no age/performance claim. All raw bytes hashed, independent Pillow/NumPy/source data comparison; only previously recorded exact optional no-clip absent-to-null default on fresh input is permitted. No application history/picker/kernel/serializer call."
+}

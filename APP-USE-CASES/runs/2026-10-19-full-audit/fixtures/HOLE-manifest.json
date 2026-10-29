@@ -1,0 +1,51 @@
+{
+  "at": "2026-10-20T23:21:44.505982+00:00",
+  "status": "Verified native Black Hole fixtures only; not PAINT015 Pass",
+  "dimensions": [
+    960,
+    640
+  ],
+  "source": "Real SMUDGE project resized through actual controls with smoothing off; defined white Paper made by actual checkbox/merge. Independent Pillow nearest/elementary opaque composition exact.",
+  "records": [
+    {
+      "kind": "clear",
+      "path": "headless\\HOLE-producer\\HOLE-clear.retropaint",
+      "sha256": "6af660fd52623dcab756dde1b1a380f1e7ee511967fecae6221e530421f2f09e",
+      "target_layer_id": 2,
+      "layers": 2
+    },
+    {
+      "kind": "Paper",
+      "path": "headless\\HOLE-producer\\HOLE-Paper.retropaint",
+      "sha256": "b7b3166544b23269224afe559d28717aa5b416b873674d0454ff5573cc03f9ce",
+      "target_layer_id": 3,
+      "layers": 1
+    }
+  ],
+  "known_Red_box": [
+    120,
+    160,
+    420,
+    480
+  ],
+  "known_Blue_box": [
+    480,
+    160,
+    780,
+    480
+  ],
+  "underlying_Green_RGBA": [
+    67,
+    160,
+    71,
+    255
+  ],
+  "clear_target_has_no_Green_or_opaque_Black": true,
+  "defined_Paper_colour_RGB": [
+    255,
+    255,
+    255
+  ],
+  "complete_fresh_source_RGBA_exact": true,
+  "actual_downloads_verified": 8
+}

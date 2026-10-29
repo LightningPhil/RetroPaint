@@ -1,7 +1,8 @@
 import type { Applicator, BlendMode, Drive, EraserMode, ShapeKind, StatorShape, SymmetryMode, ToolId } from './types';
 
 export const state = {
-  cad: { open: false, gesture: false, selected: [] as string[], preview: null as import('./cad-model').CadBody | null, editing: false, edgeSelection:[] as import('./cad-model').CadEdgeRef[], faceSelection:[] as import('./cad-model').CadFaceRef[], tool: 'translate' as 'translate' | 'rotate' | 'scale' | 'face' | 'rectangle' | 'circle' | 'polygon' | 'edge' | 'shellFace', snap: true, grid: 1, angle: 15 },
+  workspaceMode: 'basic' as 'basic' | 'advanced',
+  cad: { open: false, gesture: false, selected: [] as string[], preview: null as import('./cad-model').CadBody | null, editing: false, edgeSelection:[] as import('./cad-model').CadEdgeRef[], faceSelection:[] as import('./cad-model').CadFaceRef[], tool: 'translate' as 'translate' | 'rotate' | 'scale' | 'face' | 'rectangle' | 'circle' | 'polygon' | 'edge' | 'shellFace' | 'measure', snap: true, grid: 1, angle: 15 },
   drawingMode: 'raster' as 'raster' | 'vector',
   tool: 'draw' as ToolId,
   applicator: 'marker' as Applicator,
@@ -65,6 +66,11 @@ export function currentWidth(): number {
 
 export function currentAlpha(): number {
   return state.opacity;
+}
+
+/** Keep the document's preferred drawing mode while Basic creates raster art. */
+export function vectorDrawingEnabled(): boolean {
+  return state.workspaceMode === 'advanced' && state.drawingMode === 'vector';
 }
 
 export function strokeApplicator(): Applicator {

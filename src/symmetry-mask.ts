@@ -88,7 +88,7 @@ export function clipPolygon(ctx: CanvasRenderingContext2D, polygon: Point[] | nu
 export function clipLane(ctx: CanvasRenderingContext2D, lane: number): void { clipPolygon(ctx,lanePolygon(lane)); }
 
 /** Apply a local pixel effect to the source slice and reflect its footprint. */
-export function paintSectorPatch(ctx: CanvasRenderingContext2D, patch: ImageData, left: number, top: number, x: number, y: number, radius: number): void {
+export function paintSectorPatch(ctx: CanvasRenderingContext2D, patch: ImageData, left: number, top: number, x: number, y: number, radius: number, replace=false): void {
   const sector=activeSector();
   if (!sector) { ctx.putImageData(patch,left,top); return; }
   const tile=document.createElement('canvas'); tile.width=patch.width; tile.height=patch.height;
@@ -97,6 +97,7 @@ export function paintSectorPatch(ctx: CanvasRenderingContext2D, patch: ImageData
     ctx.save(); ctx.translate(W/2,H/2); ctx.transform(t.a,t.c,t.b,t.d,0,0); ctx.translate(-W/2,-H/2);
     clipPolygon(ctx,sectorPolygon(sector));
     ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.clip();
+    if(replace)ctx.clearRect(left,top,patch.width,patch.height);
     ctx.drawImage(tile,left,top);ctx.restore();
   }
 }

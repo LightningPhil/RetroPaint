@@ -268,7 +268,7 @@ export function initPhotoUi(callbacks:Actions):void{
   bus.addEventListener('photo-end',()=>{panel.hidden=true;field('photoControls').replaceChildren();toggle.setAttribute('aria-expanded','false');toggle.classList.remove('active');picking=horizon=false;cropDrag=null;curvePointer=null;setPhotoGuides(null);view.classList.remove('photo-picking');lockDrawing(false);emit('restore-layers',restoreLayers);emit('photo-panel',false);if(!toggle.hidden)toggle.focus({preventScroll:true});});
   bus.addEventListener('advanced-mode',()=>{if(!advancedEnabled())cancelPhoto();});
   bus.addEventListener('close-photo',()=>cancelPhoto());
-  bus.addEventListener('image-opened',()=>{if(pendingImport){pendingImport=false;importDraft=null;category='light';group='light-basic';open();}});
+  bus.addEventListener('image-opened',()=>{if(pendingImport){pendingImport=false;importDraft=null;open();}});
   bus.addEventListener('image-open-cancelled',()=>{if(pendingImport){pendingImport=false;const draft=importDraft;importDraft=null;open();if(photoSession&&draft){Object.assign(photoSession,draft);buildControls();changed(false);}}});
   bus.addEventListener('photo-undo',event=>{if(photoSession){event.preventDefault();cancelPhoto();}});
   document.addEventListener('keydown',event=>{

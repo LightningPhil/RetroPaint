@@ -1,0 +1,1252 @@
+{
+  "at": "2026-10-20T22:22:01.032873+00:00",
+  "case": "PAINT-014",
+  "status": "Pre-execution plan, not a result",
+  "fixture": "headless\\ERASE-producer\\ERASE-MIX.retropaint",
+  "fixture_sha256": "e1140ada0def0049f37b7209a82ad32a36d6354b11179420a6fdda8c5ebc94ae",
+  "rows": [
+    {
+      "id": "paper-p1",
+      "target": "Paper",
+      "kind": "tap-boundary",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 1,
+      "strength": 0.15,
+      "hidden_target": false,
+      "isolate_Paper": true,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "paper-p2",
+      "target": "Paper",
+      "kind": "tap-boundary",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 22,
+      "strength": 1,
+      "hidden_target": false,
+      "isolate_Paper": true,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "paper-p3",
+      "target": "Paper",
+      "kind": "tap-boundary",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 96,
+      "strength": 0.15,
+      "hidden_target": false,
+      "isolate_Paper": true,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "paper-p4",
+      "target": "Paper",
+      "kind": "tap-boundary",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 1,
+      "strength": 1,
+      "hidden_target": false,
+      "isolate_Paper": true,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "paper-p5",
+      "target": "Paper",
+      "kind": "tap-boundary",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 0.15,
+      "hidden_target": false,
+      "isolate_Paper": true,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "paper-p6",
+      "target": "Paper",
+      "kind": "tap-boundary",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 96,
+      "strength": 1,
+      "hidden_target": false,
+      "isolate_Paper": true,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "paper-p7",
+      "target": "Paper",
+      "kind": "tap-boundary",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 1,
+      "hidden_target": false,
+      "isolate_Paper": true,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "paper-p8",
+      "target": "Paper",
+      "kind": "tap-boundary",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 1,
+      "strength": 0.15,
+      "hidden_target": false,
+      "isolate_Paper": true,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "paper-p9",
+      "target": "Paper",
+      "kind": "tap-boundary",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 22,
+      "strength": 1,
+      "hidden_target": false,
+      "isolate_Paper": true,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "paper-p10",
+      "target": "Paper",
+      "kind": "tap-boundary",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 96,
+      "strength": 0.15,
+      "hidden_target": false,
+      "isolate_Paper": true,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "paper-p11",
+      "target": "Paper",
+      "kind": "tap-boundary",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 1,
+      "strength": 1,
+      "hidden_target": false,
+      "isolate_Paper": true,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "paper-p12",
+      "target": "Paper",
+      "kind": "tap-boundary",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 0.15,
+      "hidden_target": false,
+      "isolate_Paper": true,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "paper-p13",
+      "target": "Paper",
+      "kind": "tap-boundary",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 96,
+      "strength": 1,
+      "hidden_target": false,
+      "isolate_Paper": true,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "paper-p14",
+      "target": "Paper",
+      "kind": "tap-boundary",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 1,
+      "hidden_target": false,
+      "isolate_Paper": true,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "character-p1",
+      "target": "Character",
+      "kind": "tap-boundary",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 1,
+      "strength": 0.15,
+      "hidden_target": false,
+      "isolate_Paper": false,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "character-p2",
+      "target": "Character",
+      "kind": "tap-boundary",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 22,
+      "strength": 1,
+      "hidden_target": false,
+      "isolate_Paper": false,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "character-p3",
+      "target": "Character",
+      "kind": "tap-boundary",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 96,
+      "strength": 0.15,
+      "hidden_target": false,
+      "isolate_Paper": false,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "character-p4",
+      "target": "Character",
+      "kind": "tap-boundary",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 1,
+      "strength": 1,
+      "hidden_target": false,
+      "isolate_Paper": false,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "character-p5",
+      "target": "Character",
+      "kind": "tap-boundary",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 0.15,
+      "hidden_target": false,
+      "isolate_Paper": false,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "character-p6",
+      "target": "Character",
+      "kind": "tap-boundary",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 96,
+      "strength": 1,
+      "hidden_target": false,
+      "isolate_Paper": false,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "character-p7",
+      "target": "Character",
+      "kind": "tap-boundary",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 1,
+      "hidden_target": false,
+      "isolate_Paper": false,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "character-p8",
+      "target": "Character",
+      "kind": "tap-boundary",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 1,
+      "strength": 0.15,
+      "hidden_target": false,
+      "isolate_Paper": false,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "character-p9",
+      "target": "Character",
+      "kind": "tap-boundary",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 22,
+      "strength": 1,
+      "hidden_target": false,
+      "isolate_Paper": false,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "character-p10",
+      "target": "Character",
+      "kind": "tap-boundary",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 96,
+      "strength": 0.15,
+      "hidden_target": false,
+      "isolate_Paper": false,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "character-p11",
+      "target": "Character",
+      "kind": "tap-boundary",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 1,
+      "strength": 1,
+      "hidden_target": false,
+      "isolate_Paper": false,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "character-p12",
+      "target": "Character",
+      "kind": "tap-boundary",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 0.15,
+      "hidden_target": false,
+      "isolate_Paper": false,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "character-p13",
+      "target": "Character",
+      "kind": "tap-boundary",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 96,
+      "strength": 1,
+      "hidden_target": false,
+      "isolate_Paper": false,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "character-p14",
+      "target": "Character",
+      "kind": "tap-boundary",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 1,
+      "hidden_target": false,
+      "isolate_Paper": false,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "paper-scrub-v1",
+      "target": "Paper",
+      "kind": "main-scrub",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 22,
+      "strength": 1,
+      "hidden_target": false,
+      "isolate_Paper": true,
+      "points": [
+        [
+          120.5,
+          140.5
+        ],
+        [
+          124.5,
+          140.5
+        ],
+        [
+          128.5,
+          140.5
+        ],
+        [
+          132.5,
+          140.5
+        ],
+        [
+          136.5,
+          140.5
+        ],
+        [
+          140.5,
+          140.5
+        ],
+        [
+          144.5,
+          140.5
+        ],
+        [
+          148.5,
+          140.5
+        ],
+        [
+          152.5,
+          140.5
+        ],
+        [
+          156.5,
+          140.5
+        ],
+        [
+          160.5,
+          140.5
+        ],
+        [
+          164.5,
+          140.5
+        ],
+        [
+          168.5,
+          140.5
+        ],
+        [
+          172.5,
+          140.5
+        ],
+        [
+          176.5,
+          140.5
+        ],
+        [
+          180.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "character-scrub-v1",
+      "target": "Character",
+      "kind": "main-scrub",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 22,
+      "strength": 1,
+      "hidden_target": false,
+      "isolate_Paper": false,
+      "points": [
+        [
+          120.5,
+          140.5
+        ],
+        [
+          124.5,
+          140.5
+        ],
+        [
+          128.5,
+          140.5
+        ],
+        [
+          132.5,
+          140.5
+        ],
+        [
+          136.5,
+          140.5
+        ],
+        [
+          140.5,
+          140.5
+        ],
+        [
+          144.5,
+          140.5
+        ],
+        [
+          148.5,
+          140.5
+        ],
+        [
+          152.5,
+          140.5
+        ],
+        [
+          156.5,
+          140.5
+        ],
+        [
+          160.5,
+          140.5
+        ],
+        [
+          164.5,
+          140.5
+        ],
+        [
+          168.5,
+          140.5
+        ],
+        [
+          172.5,
+          140.5
+        ],
+        [
+          176.5,
+          140.5
+        ],
+        [
+          180.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "hidden-character-v1",
+      "target": "Character",
+      "kind": "hidden-sheet-negative",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 22,
+      "strength": 1,
+      "hidden_target": true,
+      "isolate_Paper": false,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "paper-scrub-v2",
+      "target": "Paper",
+      "kind": "main-scrub",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 1,
+      "hidden_target": false,
+      "isolate_Paper": true,
+      "points": [
+        [
+          120.5,
+          140.5
+        ],
+        [
+          124.5,
+          140.5
+        ],
+        [
+          128.5,
+          140.5
+        ],
+        [
+          132.5,
+          140.5
+        ],
+        [
+          136.5,
+          140.5
+        ],
+        [
+          140.5,
+          140.5
+        ],
+        [
+          144.5,
+          140.5
+        ],
+        [
+          148.5,
+          140.5
+        ],
+        [
+          152.5,
+          140.5
+        ],
+        [
+          156.5,
+          140.5
+        ],
+        [
+          160.5,
+          140.5
+        ],
+        [
+          164.5,
+          140.5
+        ],
+        [
+          168.5,
+          140.5
+        ],
+        [
+          172.5,
+          140.5
+        ],
+        [
+          176.5,
+          140.5
+        ],
+        [
+          180.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "character-scrub-v2",
+      "target": "Character",
+      "kind": "main-scrub",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 1,
+      "hidden_target": false,
+      "isolate_Paper": false,
+      "points": [
+        [
+          120.5,
+          140.5
+        ],
+        [
+          124.5,
+          140.5
+        ],
+        [
+          128.5,
+          140.5
+        ],
+        [
+          132.5,
+          140.5
+        ],
+        [
+          136.5,
+          140.5
+        ],
+        [
+          140.5,
+          140.5
+        ],
+        [
+          144.5,
+          140.5
+        ],
+        [
+          148.5,
+          140.5
+        ],
+        [
+          152.5,
+          140.5
+        ],
+        [
+          156.5,
+          140.5
+        ],
+        [
+          160.5,
+          140.5
+        ],
+        [
+          164.5,
+          140.5
+        ],
+        [
+          168.5,
+          140.5
+        ],
+        [
+          172.5,
+          140.5
+        ],
+        [
+          176.5,
+          140.5
+        ],
+        [
+          180.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "hidden-character-v2",
+      "target": "Character",
+      "kind": "hidden-sheet-negative",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 1,
+      "hidden_target": true,
+      "isolate_Paper": false,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "paper-scrub-v3",
+      "target": "Paper",
+      "kind": "main-scrub",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 22,
+      "strength": 1,
+      "hidden_target": false,
+      "isolate_Paper": true,
+      "points": [
+        [
+          120.5,
+          140.5
+        ],
+        [
+          124.5,
+          140.5
+        ],
+        [
+          128.5,
+          140.5
+        ],
+        [
+          132.5,
+          140.5
+        ],
+        [
+          136.5,
+          140.5
+        ],
+        [
+          140.5,
+          140.5
+        ],
+        [
+          144.5,
+          140.5
+        ],
+        [
+          148.5,
+          140.5
+        ],
+        [
+          152.5,
+          140.5
+        ],
+        [
+          156.5,
+          140.5
+        ],
+        [
+          160.5,
+          140.5
+        ],
+        [
+          164.5,
+          140.5
+        ],
+        [
+          168.5,
+          140.5
+        ],
+        [
+          172.5,
+          140.5
+        ],
+        [
+          176.5,
+          140.5
+        ],
+        [
+          180.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "character-scrub-v3",
+      "target": "Character",
+      "kind": "main-scrub",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 22,
+      "strength": 1,
+      "hidden_target": false,
+      "isolate_Paper": false,
+      "points": [
+        [
+          120.5,
+          140.5
+        ],
+        [
+          124.5,
+          140.5
+        ],
+        [
+          128.5,
+          140.5
+        ],
+        [
+          132.5,
+          140.5
+        ],
+        [
+          136.5,
+          140.5
+        ],
+        [
+          140.5,
+          140.5
+        ],
+        [
+          144.5,
+          140.5
+        ],
+        [
+          148.5,
+          140.5
+        ],
+        [
+          152.5,
+          140.5
+        ],
+        [
+          156.5,
+          140.5
+        ],
+        [
+          160.5,
+          140.5
+        ],
+        [
+          164.5,
+          140.5
+        ],
+        [
+          168.5,
+          140.5
+        ],
+        [
+          172.5,
+          140.5
+        ],
+        [
+          176.5,
+          140.5
+        ],
+        [
+          180.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "hidden-character-v3",
+      "target": "Character",
+      "kind": "hidden-sheet-negative",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 22,
+      "strength": 1,
+      "hidden_target": true,
+      "isolate_Paper": false,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "paper-scrub-v4",
+      "target": "Paper",
+      "kind": "main-scrub",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 1,
+      "hidden_target": false,
+      "isolate_Paper": true,
+      "points": [
+        [
+          120.5,
+          140.5
+        ],
+        [
+          124.5,
+          140.5
+        ],
+        [
+          128.5,
+          140.5
+        ],
+        [
+          132.5,
+          140.5
+        ],
+        [
+          136.5,
+          140.5
+        ],
+        [
+          140.5,
+          140.5
+        ],
+        [
+          144.5,
+          140.5
+        ],
+        [
+          148.5,
+          140.5
+        ],
+        [
+          152.5,
+          140.5
+        ],
+        [
+          156.5,
+          140.5
+        ],
+        [
+          160.5,
+          140.5
+        ],
+        [
+          164.5,
+          140.5
+        ],
+        [
+          168.5,
+          140.5
+        ],
+        [
+          172.5,
+          140.5
+        ],
+        [
+          176.5,
+          140.5
+        ],
+        [
+          180.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "character-scrub-v4",
+      "target": "Character",
+      "kind": "main-scrub",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 1,
+      "hidden_target": false,
+      "isolate_Paper": false,
+      "points": [
+        [
+          120.5,
+          140.5
+        ],
+        [
+          124.5,
+          140.5
+        ],
+        [
+          128.5,
+          140.5
+        ],
+        [
+          132.5,
+          140.5
+        ],
+        [
+          136.5,
+          140.5
+        ],
+        [
+          140.5,
+          140.5
+        ],
+        [
+          144.5,
+          140.5
+        ],
+        [
+          148.5,
+          140.5
+        ],
+        [
+          152.5,
+          140.5
+        ],
+        [
+          156.5,
+          140.5
+        ],
+        [
+          160.5,
+          140.5
+        ],
+        [
+          164.5,
+          140.5
+        ],
+        [
+          168.5,
+          140.5
+        ],
+        [
+          172.5,
+          140.5
+        ],
+        [
+          176.5,
+          140.5
+        ],
+        [
+          180.5,
+          140.5
+        ]
+      ]
+    },
+    {
+      "id": "hidden-character-v4",
+      "target": "Character",
+      "kind": "hidden-sheet-negative",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 1,
+      "hidden_target": true,
+      "isolate_Paper": false,
+      "points": [
+        [
+          150.5,
+          140.5
+        ]
+      ]
+    }
+  ],
+  "expected_rows": 40,
+  "expected_actual_downloads": 400,
+  "oracle": "Every before state comes from the independently verified real MIX fixture and actual layer/eye controls. Paper-only variants hide the three upper layers before recording the before state, so the actual defined white Paper and its Red mark are visible; these visibility preparations are never used to hide an effect failure. Character variants preserve the original0.5 opacity and visible opaque Blue Backdrop, Caption text/stamp and other source data. The original Red core is229/57/53, all known source data is retained. Every native tap/scrub has a local raw-source change mask confined to the declared path plus0.575*Size radius and2px native antialias allowance. Full22/96 tap and full main-scrub core must be exact defined white RGB/alpha255 on Paper and zero-alpha/zero-RGB on Character; min1px uses a coverage-weighted comparison. A weak tap core must be independently White-over-Red source-over or destination-out at chosen Strength, within1/255 for opaque channels/alpha and2/255 for unpremultiplied partial-alpha RGB. The one-tap edge weight cannot exceed Strength plus2/255; no repeated weak-scrub assumption is made. All non-target layers/objects/fields and every outside-source pixel stay exact. Character-clear centres expose exact Blue30/136/229/255; independent0.5-opacity/Blue blending is checked around the known patch within1/255. A hidden working Character may reveal itself for painting, but must never erase a visible neighbour; complete whole-gesture Undo must restore the recorded original source including its visibility, and Redo/fresh source/RGBA must be exact. Hidden visibility is not normalised away. All actual gestures are trusted mouse input, all file states are actual downloads, and fresh input is performed in a separate context.40 rows cover28 Paper/clear size/Strength/layout boundary taps,8 main sweeps and4 hidden-target negatives;400 expected downloads. No app painter or serializer produces expected pixels."
+}

@@ -1,0 +1,893 @@
+{
+  "at": "2026-10-20T23:56:50.213252+00:00",
+  "case": "INK-001",
+  "status": "Plan before execution; not a result",
+  "rows": [
+    {
+      "id": "v1",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "id": "v2",
+      "viewport": [
+        320,
+        568
+      ]
+    },
+    {
+      "id": "v3",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "v4",
+      "viewport": [
+        844,
+        390
+      ]
+    }
+  ],
+  "swatches": [
+    {
+      "index": 0,
+      "name": "Red",
+      "hex": "#E53935",
+      "rgb": [
+        229,
+        57,
+        53
+      ],
+      "points": [
+        [
+          150,
+          200
+        ],
+        [
+          155,
+          200
+        ],
+        [
+          160,
+          200
+        ],
+        [
+          165,
+          200
+        ],
+        [
+          170,
+          200
+        ],
+        [
+          175,
+          200
+        ],
+        [
+          180,
+          200
+        ],
+        [
+          185,
+          200
+        ],
+        [
+          190,
+          200
+        ],
+        [
+          195,
+          200
+        ],
+        [
+          200,
+          200
+        ],
+        [
+          205,
+          200
+        ],
+        [
+          210,
+          200
+        ]
+      ],
+      "return_to_first": false
+    },
+    {
+      "index": 1,
+      "name": "Yellow",
+      "hex": "#FDD835",
+      "rgb": [
+        253,
+        216,
+        53
+      ],
+      "points": [
+        [
+          280,
+          200
+        ],
+        [
+          285,
+          200
+        ],
+        [
+          290,
+          200
+        ],
+        [
+          295,
+          200
+        ],
+        [
+          300,
+          200
+        ],
+        [
+          305,
+          200
+        ],
+        [
+          310,
+          200
+        ],
+        [
+          315,
+          200
+        ],
+        [
+          320,
+          200
+        ],
+        [
+          325,
+          200
+        ],
+        [
+          330,
+          200
+        ],
+        [
+          335,
+          200
+        ],
+        [
+          340,
+          200
+        ]
+      ],
+      "return_to_first": false
+    },
+    {
+      "index": 2,
+      "name": "Blue",
+      "hex": "#1E88E5",
+      "rgb": [
+        30,
+        136,
+        229
+      ],
+      "points": [
+        [
+          410,
+          200
+        ],
+        [
+          415,
+          200
+        ],
+        [
+          420,
+          200
+        ],
+        [
+          425,
+          200
+        ],
+        [
+          430,
+          200
+        ],
+        [
+          435,
+          200
+        ],
+        [
+          440,
+          200
+        ],
+        [
+          445,
+          200
+        ],
+        [
+          450,
+          200
+        ],
+        [
+          455,
+          200
+        ],
+        [
+          460,
+          200
+        ],
+        [
+          465,
+          200
+        ],
+        [
+          470,
+          200
+        ]
+      ],
+      "return_to_first": false
+    },
+    {
+      "index": 3,
+      "name": "Green",
+      "hex": "#43A047",
+      "rgb": [
+        67,
+        160,
+        71
+      ],
+      "points": [
+        [
+          540,
+          200
+        ],
+        [
+          545,
+          200
+        ],
+        [
+          550,
+          200
+        ],
+        [
+          555,
+          200
+        ],
+        [
+          560,
+          200
+        ],
+        [
+          565,
+          200
+        ],
+        [
+          570,
+          200
+        ],
+        [
+          575,
+          200
+        ],
+        [
+          580,
+          200
+        ],
+        [
+          585,
+          200
+        ],
+        [
+          590,
+          200
+        ],
+        [
+          595,
+          200
+        ],
+        [
+          600,
+          200
+        ]
+      ],
+      "return_to_first": false
+    },
+    {
+      "index": 4,
+      "name": "Black",
+      "hex": "#1A1A1A",
+      "rgb": [
+        26,
+        26,
+        26
+      ],
+      "points": [
+        [
+          670,
+          200
+        ],
+        [
+          675,
+          200
+        ],
+        [
+          680,
+          200
+        ],
+        [
+          685,
+          200
+        ],
+        [
+          690,
+          200
+        ],
+        [
+          695,
+          200
+        ],
+        [
+          700,
+          200
+        ],
+        [
+          705,
+          200
+        ],
+        [
+          710,
+          200
+        ],
+        [
+          715,
+          200
+        ],
+        [
+          720,
+          200
+        ],
+        [
+          725,
+          200
+        ],
+        [
+          730,
+          200
+        ]
+      ],
+      "return_to_first": false
+    },
+    {
+      "index": 5,
+      "name": "Pink",
+      "hex": "#EF476F",
+      "rgb": [
+        239,
+        71,
+        111
+      ],
+      "points": [
+        [
+          800,
+          200
+        ],
+        [
+          805,
+          200
+        ],
+        [
+          810,
+          200
+        ],
+        [
+          815,
+          200
+        ],
+        [
+          820,
+          200
+        ],
+        [
+          825,
+          200
+        ],
+        [
+          830,
+          200
+        ],
+        [
+          835,
+          200
+        ],
+        [
+          840,
+          200
+        ],
+        [
+          845,
+          200
+        ],
+        [
+          850,
+          200
+        ],
+        [
+          855,
+          200
+        ],
+        [
+          860,
+          200
+        ]
+      ],
+      "return_to_first": false
+    },
+    {
+      "index": 6,
+      "name": "Mint",
+      "hex": "#06D6A0",
+      "rgb": [
+        6,
+        214,
+        160
+      ],
+      "points": [
+        [
+          150,
+          300
+        ],
+        [
+          155,
+          300
+        ],
+        [
+          160,
+          300
+        ],
+        [
+          165,
+          300
+        ],
+        [
+          170,
+          300
+        ],
+        [
+          175,
+          300
+        ],
+        [
+          180,
+          300
+        ],
+        [
+          185,
+          300
+        ],
+        [
+          190,
+          300
+        ],
+        [
+          195,
+          300
+        ],
+        [
+          200,
+          300
+        ],
+        [
+          205,
+          300
+        ],
+        [
+          210,
+          300
+        ]
+      ],
+      "return_to_first": false
+    },
+    {
+      "index": 7,
+      "name": "Teal",
+      "hex": "#118AB2",
+      "rgb": [
+        17,
+        138,
+        178
+      ],
+      "points": [
+        [
+          280,
+          300
+        ],
+        [
+          285,
+          300
+        ],
+        [
+          290,
+          300
+        ],
+        [
+          295,
+          300
+        ],
+        [
+          300,
+          300
+        ],
+        [
+          305,
+          300
+        ],
+        [
+          310,
+          300
+        ],
+        [
+          315,
+          300
+        ],
+        [
+          320,
+          300
+        ],
+        [
+          325,
+          300
+        ],
+        [
+          330,
+          300
+        ],
+        [
+          335,
+          300
+        ],
+        [
+          340,
+          300
+        ]
+      ],
+      "return_to_first": false
+    },
+    {
+      "index": 8,
+      "name": "Gold",
+      "hex": "#FFD166",
+      "rgb": [
+        255,
+        209,
+        102
+      ],
+      "points": [
+        [
+          410,
+          300
+        ],
+        [
+          415,
+          300
+        ],
+        [
+          420,
+          300
+        ],
+        [
+          425,
+          300
+        ],
+        [
+          430,
+          300
+        ],
+        [
+          435,
+          300
+        ],
+        [
+          440,
+          300
+        ],
+        [
+          445,
+          300
+        ],
+        [
+          450,
+          300
+        ],
+        [
+          455,
+          300
+        ],
+        [
+          460,
+          300
+        ],
+        [
+          465,
+          300
+        ],
+        [
+          470,
+          300
+        ]
+      ],
+      "return_to_first": false
+    },
+    {
+      "index": 9,
+      "name": "Purple",
+      "hex": "#9D4EDD",
+      "rgb": [
+        157,
+        78,
+        221
+      ],
+      "points": [
+        [
+          540,
+          300
+        ],
+        [
+          545,
+          300
+        ],
+        [
+          550,
+          300
+        ],
+        [
+          555,
+          300
+        ],
+        [
+          560,
+          300
+        ],
+        [
+          565,
+          300
+        ],
+        [
+          570,
+          300
+        ],
+        [
+          575,
+          300
+        ],
+        [
+          580,
+          300
+        ],
+        [
+          585,
+          300
+        ],
+        [
+          590,
+          300
+        ],
+        [
+          595,
+          300
+        ],
+        [
+          600,
+          300
+        ]
+      ],
+      "return_to_first": false
+    },
+    {
+      "index": 10,
+      "name": "Orange",
+      "hex": "#FF9F1C",
+      "rgb": [
+        255,
+        159,
+        28
+      ],
+      "points": [
+        [
+          670,
+          300
+        ],
+        [
+          675,
+          300
+        ],
+        [
+          680,
+          300
+        ],
+        [
+          685,
+          300
+        ],
+        [
+          690,
+          300
+        ],
+        [
+          695,
+          300
+        ],
+        [
+          700,
+          300
+        ],
+        [
+          705,
+          300
+        ],
+        [
+          710,
+          300
+        ],
+        [
+          715,
+          300
+        ],
+        [
+          720,
+          300
+        ],
+        [
+          725,
+          300
+        ],
+        [
+          730,
+          300
+        ]
+      ],
+      "return_to_first": false
+    },
+    {
+      "index": 11,
+      "name": "White",
+      "hex": "#FFFFFF",
+      "rgb": [
+        255,
+        255,
+        255
+      ],
+      "points": [
+        [
+          800,
+          300
+        ],
+        [
+          805,
+          300
+        ],
+        [
+          810,
+          300
+        ],
+        [
+          815,
+          300
+        ],
+        [
+          820,
+          300
+        ],
+        [
+          825,
+          300
+        ],
+        [
+          830,
+          300
+        ],
+        [
+          835,
+          300
+        ],
+        [
+          840,
+          300
+        ],
+        [
+          845,
+          300
+        ],
+        [
+          850,
+          300
+        ],
+        [
+          855,
+          300
+        ],
+        [
+          860,
+          300
+        ]
+      ],
+      "return_to_first": false
+    },
+    {
+      "index": 12,
+      "name": "Red",
+      "hex": "#E53935",
+      "rgb": [
+        229,
+        57,
+        53
+      ],
+      "points": [
+        [
+          150,
+          400
+        ],
+        [
+          155,
+          400
+        ],
+        [
+          160,
+          400
+        ],
+        [
+          165,
+          400
+        ],
+        [
+          170,
+          400
+        ],
+        [
+          175,
+          400
+        ],
+        [
+          180,
+          400
+        ],
+        [
+          185,
+          400
+        ],
+        [
+          190,
+          400
+        ],
+        [
+          195,
+          400
+        ],
+        [
+          200,
+          400
+        ],
+        [
+          205,
+          400
+        ],
+        [
+          210,
+          400
+        ]
+      ],
+      "return_to_first": true
+    }
+  ],
+  "background_hex": "#52677B",
+  "background_rgb": [
+    82,
+    103,
+    123
+  ],
+  "size": 22,
+  "strength": 1,
+  "maximum_footprint_radius": 13,
+  "expected_downloads_per_row": 12,
+  "oracle": "All12 standard named swatches at every layout, including White and a return to Red:52 distinct native public-control selections/marks. Fresh PLAY is independently checked white/raster/960x640/one Paper/no live/photo/CAD/objects, then actual Colour wheel custom#52677B and native Bucket prepare a nonwhite background unlike any of the12 standard colours. Each selected button must visibly carry selected class and current ink preview RGB agrees. Before selection/after selection public pixels stay exact; each short native Marker mark must have known chosen RGB in its solid core, remain local to radius13 of its predeclared source segment, and preserve every older mark/background pixel. Every mark has its own actual UI Undo/Redo with public source-image equality. After all13 marks, actual project/PNG saved; all13 actions undo back to prepared source and redo to exact final data/RGBA; fresh-context actual file input/save matches. Final raw embedded RGBA is independently decoded; native antialias only at edges permits a single common source-over pigment factor with1/255 native quantization, no expected pixels from app brush/material/serializer. Actual complete downloads12 per layout are hashed. No computer use, OS/physical touch/pen/AT claim."
+}

@@ -694,6 +694,8 @@ function layoutStage(): void {
   const bin = document.getElementById('toolBin');
   if (!slot || !stage || !bin) return;
   const rect = slot.getBoundingClientRect();
+  // The compact layer list must leave the toolbar's Save/Open entry reachable.
+  slot.style.setProperty('--layers-top', `${Math.ceil(document.getElementById('topBar')!.getBoundingClientRect().bottom) + 8}px`);
   const uiScale = Number(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')) || 1;
   const pad = phoneLayout.matches ? 0 : 12 * uiScale;
   const photoPanel = document.getElementById('photoPanel');
@@ -709,14 +711,18 @@ function layoutStage(): void {
     canvas.style.left=`${-frame.x/frame.width*100}%`;canvas.style.top=`${-frame.y/frame.height*100}%`;
     canvas.style.width=`${W/frame.width*100}%`;canvas.style.height=`${H/frame.height*100}%`;
   }
-  let width = availW;
-  let height = width / aspect;
-  if (height > availH) {
-    height = availH;
-    width = height * aspect;
+  const stageStyle = getComputedStyle(stage);
+  const borderX = parseFloat(stageStyle.borderLeftWidth) + parseFloat(stageStyle.borderRightWidth);
+  const borderY = parseFloat(stageStyle.borderTopWidth) + parseFloat(stageStyle.borderBottomWidth);
+  let contentWidth = Math.max(1, availW - borderX);
+  let contentHeight = contentWidth / aspect;
+  if (contentHeight > availH - borderY) {
+    contentHeight = Math.max(1, availH - borderY);
+    contentWidth = contentHeight * aspect;
   }
-  stage.style.width = `${Math.max(1,Math.floor(width))}px`;
-  stage.style.height = `${Math.max(1,Math.floor(height))}px`;
+  const width = contentWidth + borderX, height = contentHeight + borderY;
+  stage.style.width = `${width}px`;
+  stage.style.height = `${height}px`;
   const compact = phoneLayout.matches;
   const landscape = compact && window.innerWidth > window.innerHeight;
   stage.style.left = `${Math.floor(landscape ? drawingWidth - width : (drawingWidth - width) / 2)}px`;
@@ -1055,6 +1061,12 @@ function decorateControls(): void {
   const finish = document.createElement('button'); finish.id = 'finishQuick'; finish.type = 'button'; finish.className = 'choice';
   labelIcon(finish, 'done', 'Finish path'); finish.addEventListener('click', () => finishPath());
   document.getElementById('canvasSlot')!.append(finish);
-  document.getElementById('view')!.addEventListener('pointerdown', () => { if (openDrawer) { openDrawer = null; sync(); } });
+  document.getElementById('view')!.addEventListener('pointerdown', event => {
+    if (!openDrawer) return;
+    const dismissOnly = openDrawer === 'studioDrawer';
+    openDrawer = null; sync();
+    // More is navigation; tool gestures still position text, pick colour or draw.
+    if (dismissOnly) { event.preventDefault(); event.stopImmediatePropagation(); }
+  });
   document.querySelectorAll<HTMLButtonElement>('.belt-slot').forEach((button, i) => button.setAttribute('aria-label', 'Remove live ink colour ' + (i + 1)));
 }

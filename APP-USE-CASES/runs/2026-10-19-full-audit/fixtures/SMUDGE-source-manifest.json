@@ -1,0 +1,35 @@
+{
+  "at": "2026-10-20T21:20:21.517513+00:00",
+  "status": "Independent source fixture only; not a case result",
+  "encoder": "Pillow 12.3.0",
+  "source": "SMUDGE.png",
+  "size": [
+    320,
+    240
+  ],
+  "sha256": "b945924f62452a2c125b37875a2b8ee8d9a953bfb6db07959865fa767854ab31",
+  "decoded_RGBA_sha256": "cdd2706d844499fe7758ca5341d1dfd6bf6f94fc91f79e8417036ddcd9fa6fd0",
+  "red_rectangle": [
+    40,
+    60,
+    100,
+    120
+  ],
+  "blue_rectangle": [
+    160,
+    60,
+    100,
+    120
+  ],
+  "clear_gap_x": [
+    140,
+    160
+  ],
+  "clear_margins": true,
+  "guide_expected_RGB": [
+    67,
+    160,
+    71
+  ],
+  "intended_native_fixture": "Actual UI imports source, creates/renames an opaque Green guide below it and reselects Smudge source. A separate live copy adds real water ink through Bucket to the Blue rectangle. Actual saved/fresh project files and moving water frames must be independently verified before use."
+}

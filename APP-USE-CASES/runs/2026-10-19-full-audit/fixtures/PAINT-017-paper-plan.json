@@ -1,0 +1,403 @@
+{
+  "at": "2026-10-20T22:14:28.775872+00:00",
+  "case": "PAINT-017",
+  "mode": "invert",
+  "status": "Pre-execution required Paper-state extension, not a result",
+  "rows": [
+    {
+      "id": "paper-p1",
+      "kind": "known-pattern",
+      "paper": true,
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 1,
+      "strength": 0.15,
+      "fixture": "APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\FILTER-paper.png",
+      "fixture_sha256": "d5abb42ae4b904b808e4cc24b0cb83918aa0092bdc003d575cd7cbaca723e14d",
+      "dimensions": [
+        960,
+        640
+      ],
+      "gestures": [
+        {
+          "label": "tap",
+          "points": [
+            [
+              180,
+              180
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paper-p2",
+      "kind": "known-pattern",
+      "paper": true,
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 22,
+      "strength": 1,
+      "fixture": "APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\FILTER-paper.png",
+      "fixture_sha256": "d5abb42ae4b904b808e4cc24b0cb83918aa0092bdc003d575cd7cbaca723e14d",
+      "dimensions": [
+        960,
+        640
+      ],
+      "gestures": [
+        {
+          "label": "tap",
+          "points": [
+            [
+              180,
+              180
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paper-p3",
+      "kind": "known-pattern",
+      "paper": true,
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 96,
+      "strength": 0.15,
+      "fixture": "APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\FILTER-paper.png",
+      "fixture_sha256": "d5abb42ae4b904b808e4cc24b0cb83918aa0092bdc003d575cd7cbaca723e14d",
+      "dimensions": [
+        960,
+        640
+      ],
+      "gestures": [
+        {
+          "label": "tap",
+          "points": [
+            [
+              180,
+              180
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paper-p4",
+      "kind": "known-pattern",
+      "paper": true,
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 1,
+      "strength": 1,
+      "fixture": "APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\FILTER-paper.png",
+      "fixture_sha256": "d5abb42ae4b904b808e4cc24b0cb83918aa0092bdc003d575cd7cbaca723e14d",
+      "dimensions": [
+        960,
+        640
+      ],
+      "gestures": [
+        {
+          "label": "tap",
+          "points": [
+            [
+              180,
+              180
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paper-p5",
+      "kind": "known-pattern",
+      "paper": true,
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 0.15,
+      "fixture": "APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\FILTER-paper.png",
+      "fixture_sha256": "d5abb42ae4b904b808e4cc24b0cb83918aa0092bdc003d575cd7cbaca723e14d",
+      "dimensions": [
+        960,
+        640
+      ],
+      "gestures": [
+        {
+          "label": "tap",
+          "points": [
+            [
+              180,
+              180
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paper-p6",
+      "kind": "known-pattern",
+      "paper": true,
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 96,
+      "strength": 1,
+      "fixture": "APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\FILTER-paper.png",
+      "fixture_sha256": "d5abb42ae4b904b808e4cc24b0cb83918aa0092bdc003d575cd7cbaca723e14d",
+      "dimensions": [
+        960,
+        640
+      ],
+      "gestures": [
+        {
+          "label": "tap",
+          "points": [
+            [
+              180,
+              180
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paper-p7",
+      "kind": "known-pattern",
+      "paper": true,
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 1,
+      "fixture": "APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\FILTER-paper.png",
+      "fixture_sha256": "d5abb42ae4b904b808e4cc24b0cb83918aa0092bdc003d575cd7cbaca723e14d",
+      "dimensions": [
+        960,
+        640
+      ],
+      "gestures": [
+        {
+          "label": "tap",
+          "points": [
+            [
+              180,
+              180
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paper-p8",
+      "kind": "known-pattern",
+      "paper": true,
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 1,
+      "strength": 0.15,
+      "fixture": "APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\FILTER-paper.png",
+      "fixture_sha256": "d5abb42ae4b904b808e4cc24b0cb83918aa0092bdc003d575cd7cbaca723e14d",
+      "dimensions": [
+        960,
+        640
+      ],
+      "gestures": [
+        {
+          "label": "tap",
+          "points": [
+            [
+              180,
+              180
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paper-p9",
+      "kind": "known-pattern",
+      "paper": true,
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 22,
+      "strength": 1,
+      "fixture": "APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\FILTER-paper.png",
+      "fixture_sha256": "d5abb42ae4b904b808e4cc24b0cb83918aa0092bdc003d575cd7cbaca723e14d",
+      "dimensions": [
+        960,
+        640
+      ],
+      "gestures": [
+        {
+          "label": "tap",
+          "points": [
+            [
+              180,
+              180
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paper-p10",
+      "kind": "known-pattern",
+      "paper": true,
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 96,
+      "strength": 0.15,
+      "fixture": "APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\FILTER-paper.png",
+      "fixture_sha256": "d5abb42ae4b904b808e4cc24b0cb83918aa0092bdc003d575cd7cbaca723e14d",
+      "dimensions": [
+        960,
+        640
+      ],
+      "gestures": [
+        {
+          "label": "tap",
+          "points": [
+            [
+              180,
+              180
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paper-p11",
+      "kind": "known-pattern",
+      "paper": true,
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 1,
+      "strength": 1,
+      "fixture": "APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\FILTER-paper.png",
+      "fixture_sha256": "d5abb42ae4b904b808e4cc24b0cb83918aa0092bdc003d575cd7cbaca723e14d",
+      "dimensions": [
+        960,
+        640
+      ],
+      "gestures": [
+        {
+          "label": "tap",
+          "points": [
+            [
+              180,
+              180
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paper-p12",
+      "kind": "known-pattern",
+      "paper": true,
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 0.15,
+      "fixture": "APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\FILTER-paper.png",
+      "fixture_sha256": "d5abb42ae4b904b808e4cc24b0cb83918aa0092bdc003d575cd7cbaca723e14d",
+      "dimensions": [
+        960,
+        640
+      ],
+      "gestures": [
+        {
+          "label": "tap",
+          "points": [
+            [
+              180,
+              180
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paper-p13",
+      "kind": "known-pattern",
+      "paper": true,
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 96,
+      "strength": 1,
+      "fixture": "APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\FILTER-paper.png",
+      "fixture_sha256": "d5abb42ae4b904b808e4cc24b0cb83918aa0092bdc003d575cd7cbaca723e14d",
+      "dimensions": [
+        960,
+        640
+      ],
+      "gestures": [
+        {
+          "label": "tap",
+          "points": [
+            [
+              180,
+              180
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paper-p14",
+      "kind": "known-pattern",
+      "paper": true,
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 1,
+      "fixture": "APP-USE-CASES\\runs\\2026-10-19-full-audit\\fixtures\\FILTER-paper.png",
+      "fixture_sha256": "d5abb42ae4b904b808e4cc24b0cb83918aa0092bdc003d575cd7cbaca723e14d",
+      "dimensions": [
+        960,
+        640
+      ],
+      "gestures": [
+        {
+          "label": "tap",
+          "points": [
+            [
+              180,
+              180
+            ]
+          ]
+        }
+      ]
+    }
+  ],
+  "expected_rows": 14,
+  "expected_actual_downloads": 140,
+  "oracle": "The actual imported independent checker/White composite is made an opaque Paper through the real Layer options transparent-sheet checkbox and named Paper; every saved source cell must havealpha255 and paper must be#ffffff. Each of14 existing size1/22/96/15/100%/layout pairwise rows gets an independent before state, native tap, exact whole-source alpha/footprint/history/fresh checks and ten real downloads. Pixelate checker core radius-minus8 averages32/224 to128 at chosen Strength within1/255; Emboss orders rising/falling edges against equal-grey flat equivalents; Invert core radius-minus1 uses independently calculated255-channel complement blended once by chosen Strength within1/255, with full complement exact. Original transparent-sheet evidence and its tests remain unchanged. This extension closes the Eraser modes matrix requirement for a defined opaque Paper in addition to a transparent-capable sheet; no acceptance result is granted from preparation or opaque pixels on a clear sheet."
+}

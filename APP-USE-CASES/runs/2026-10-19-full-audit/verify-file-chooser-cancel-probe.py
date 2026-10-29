@@ -1,0 +1,8 @@
+from pathlib import Path
+from datetime import datetime,timezone
+from PIL import Image
+import numpy as np,json,hashlib
+root=Path(__file__).resolve().parent;location=root/'headless/FILE-002-native-cancel-probe';read=lambda name:json.loads((location/name).read_text(encoding='utf-8'));ui=read('report.json');assert ui['status'].startswith('Observed native cancel') and len(ui['native_events'])==1 and ui['native_events'][0]['type']=='cancel' and ui['native_events'][0]['trusted'] and ui['native_events'][0]['files']==0
+assert read('before.retropaint')==read('cancelled.retropaint');before=np.asarray(Image.open(location/'before.png').convert('RGBA'));after=np.asarray(Image.open(location/'cancelled.png').convert('RGBA'));assert np.array_equal(before,after) and np.any(before!=255);downloads=[e for e in read('events.json') if e['action']=='download'];assert len(downloads)==4
+for item in downloads:assert hashlib.sha256(Path(item['path']).read_bytes()).hexdigest()==item['sha256']
+report=dict(at=datetime.now(timezone.utc).isoformat(),scope='Native Chrome chooser cancellation capability only; FILE-002 is not complete or passed.',native_trusted_cancel_observed=True,complete_previous_source_and_RGBA_exact=True,actual_downloads_verified=4,limitation='Browser protocol cancels the chooser request natively; no OS chooser visual behavior or physical keyboard/device certification. No empty setFiles or fabricated DOM event.');(root/'evidence/FILE-002-native-cancel-probe-verification.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8');print('Verified native chooser cancel capability and four unchanged actual source/PNG downloads; no full FILE-002 Pass.')

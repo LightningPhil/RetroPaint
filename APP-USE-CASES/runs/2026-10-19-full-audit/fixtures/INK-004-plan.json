@@ -1,0 +1,242 @@
+{
+  "at": "2026-10-21T00:37:27.397650+00:00",
+  "case": "INK-004",
+  "status": "Pre-execution plan,not a result",
+  "fixture": "fixtures\\PATCH.png",
+  "fixture_sha256": "b4464813183d7122dfde28a33be00660dfe18e4aa255a92fd234bd8488199175",
+  "rows": [
+    {
+      "id": "v1",
+      "viewport": [
+        1280,
+        720
+      ]
+    },
+    {
+      "id": "v2",
+      "viewport": [
+        320,
+        568
+      ]
+    },
+    {
+      "id": "v3",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "v4",
+      "viewport": [
+        844,
+        390
+      ]
+    }
+  ],
+  "operations": [
+    {
+      "id": "valid-1",
+      "kind": "valid",
+      "typed": "#123ABC",
+      "expected_hex": "#123ABC",
+      "point": [
+        100.5,
+        220.5
+      ],
+      "expected_rgb": [
+        18,
+        58,
+        188
+      ]
+    },
+    {
+      "id": "valid-2",
+      "kind": "valid",
+      "typed": "#000000",
+      "expected_hex": "#000000",
+      "point": [
+        205.5,
+        220.5
+      ],
+      "expected_rgb": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "valid-3",
+      "kind": "valid",
+      "typed": "#FFFFFF",
+      "expected_hex": "#FFFFFF",
+      "point": [
+        310.5,
+        220.5
+      ],
+      "expected_rgb": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "id": "valid-4",
+      "kind": "valid",
+      "typed": "#aBcDeF",
+      "expected_hex": "#ABCDEF",
+      "point": [
+        415.5,
+        220.5
+      ],
+      "expected_rgb": [
+        171,
+        205,
+        239
+      ]
+    },
+    {
+      "id": "valid-5",
+      "kind": "valid",
+      "typed": "#E53935",
+      "expected_hex": "#E53935",
+      "point": [
+        520.5,
+        220.5
+      ],
+      "expected_rgb": [
+        229,
+        57,
+        53
+      ]
+    },
+    {
+      "id": "invalid-1",
+      "kind": "invalid-corrected",
+      "typed": "#123",
+      "correction": "#123ABC",
+      "expected_hex": "#123ABC",
+      "point": [
+        625.5,
+        220.5
+      ],
+      "expected_rgb": [
+        18,
+        58,
+        188
+      ]
+    },
+    {
+      "id": "invalid-2",
+      "kind": "invalid-corrected",
+      "typed": "#12",
+      "correction": "#123ABC",
+      "expected_hex": "#123ABC",
+      "point": [
+        730.5,
+        220.5
+      ],
+      "expected_rgb": [
+        18,
+        58,
+        188
+      ]
+    },
+    {
+      "id": "invalid-3",
+      "kind": "invalid-corrected",
+      "typed": "123ABC",
+      "correction": "#123ABC",
+      "expected_hex": "#123ABC",
+      "point": [
+        835.5,
+        220.5
+      ],
+      "expected_rgb": [
+        18,
+        58,
+        188
+      ]
+    },
+    {
+      "id": "invalid-4",
+      "kind": "invalid-corrected",
+      "typed": "#GGGGGG",
+      "correction": "#123ABC",
+      "expected_hex": "#123ABC",
+      "point": [
+        100.5,
+        460.5
+      ],
+      "expected_rgb": [
+        18,
+        58,
+        188
+      ]
+    },
+    {
+      "id": "invalid-5",
+      "kind": "invalid-corrected",
+      "typed": "",
+      "correction": "#123ABC",
+      "expected_hex": "#123ABC",
+      "point": [
+        205.5,
+        460.5
+      ],
+      "expected_rgb": [
+        18,
+        58,
+        188
+      ]
+    },
+    {
+      "id": "invalid-6",
+      "kind": "invalid-corrected",
+      "typed": "#12345G",
+      "correction": "#123ABC",
+      "expected_hex": "#123ABC",
+      "point": [
+        310.5,
+        460.5
+      ],
+      "expected_rgb": [
+        18,
+        58,
+        188
+      ]
+    },
+    {
+      "id": "invalid-7",
+      "kind": "invalid-corrected",
+      "typed": "#-12345",
+      "correction": "#123ABC",
+      "expected_hex": "#123ABC",
+      "point": [
+        415.5,
+        460.5
+      ],
+      "expected_rgb": [
+        18,
+        58,
+        188
+      ]
+    }
+  ],
+  "cancellations": [
+    {
+      "kind": "Cancel",
+      "draft": "#00FFFF"
+    },
+    {
+      "kind": "Escape",
+      "draft": "#FF00FF"
+    }
+  ],
+  "size": 22,
+  "strength": 1,
+  "maximum_footprint_radius": 13,
+  "marker_percentage_tolerance": 0.05,
+  "expected_downloads_per_row": 10,
+  "oracle": "Actual PATCH input at4 layouts. Through real Colour wheel enter exact#123ABC,Black,White,mixed-case#abcdef andstandardRed,with visible preview/hex/RGB/HSV marker agreement; commit,reopen and paint one actual opaque Marker tap per choice. Seven malformed/incomplete inputs must keep dialog open with invalid hex,leave actual active colour/source unchanged and be correctable to#123ABC;each corrected choice also paints a distinct known-clear tap. Separate Cancel and native Escape reject valid uncommitted draft colours without changing active colour/source. All12 native marks remain local to radius13,fully opaque cores equal independently parsed RGB andevery prior mark/PATCH cell outside the current footprint stays exact. Every mark has separate actual Undo/Redo/public RGBA;all12 real actions then Undo to original complete PATCH source/project andRedo to exact final output,proving material/dialog actions add no empty history entries. Final actual project/PNG and fresh-context project input source/RGBA match;10 actual downloads per layout/40 total,all hashed. Expected RGB from Python hex parsing and HSV/marker geometry from standard-library colorsys/math,not app converters. DOM marker percentage tolerance0.05 percentage points is predeclared;all saved cores/source/history are exact. Every target preflighted after history resets paper view,using actual Zoom out if needed. No app colour/history/renderer/serializer call,synthetic input,OS/desktop or user browser/profile access."
+}

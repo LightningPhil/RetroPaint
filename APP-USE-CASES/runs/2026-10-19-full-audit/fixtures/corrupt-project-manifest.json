@@ -1,0 +1,105 @@
+{
+  "source": "Real UI project downloads, preserved independently; copied inputs only",
+  "files": [
+    {
+      "file": "missing-active-layer.retropaint",
+      "sha256": "d0bf293cf9b5a93f0b6292edd3038a91f826ea0e8849c960456ba6701aff6324",
+      "changed_property": "missing-active-layer"
+    },
+    {
+      "file": "singular-object-transform.retropaint",
+      "sha256": "24835f35bc070d484696d5f264f390a014cf97b6f5cd4458d566d4b49f94995e",
+      "changed_property": "singular-object-transform"
+    },
+    {
+      "file": "malformed-layer-image.retropaint",
+      "sha256": "1b086da3a98dfcfd8b48edc707c860878725c875cffc960f67d6be4188d05c38",
+      "changed_property": "malformed-layer-image"
+    },
+    {
+      "file": "invalid-number.retropaint",
+      "sha256": "36df3671a43611ddff89ac5facb3fb83ff65776ce6979f60bf9d59bbc55614ab",
+      "changed_property": "invalid-number"
+    },
+    {
+      "file": "invalid-crop.retropaint",
+      "sha256": "e0b70e465a8612698c4744a614dd2b7a84d297b7be5e8a5fedc10396d69e8cd6",
+      "changed_property": "invalid-crop"
+    },
+    {
+      "file": "unknown-future-version.retropaint",
+      "sha256": "0f988654ab0f95538559ebbb87ec5140545b4a6f0d753a4257057e43ff0502d4",
+      "changed_property": "unknown-future-version"
+    },
+    {
+      "file": "duplicate-layer-ids.retropaint",
+      "sha256": "598723ab125f20d1cad5194278a5fdeb874949353ff3501839a58ffeb645f79c",
+      "changed_property": "duplicate-layer-ids"
+    },
+    {
+      "file": "fractional-inactive-id.retropaint",
+      "sha256": "f2ea9b772f6308235058ea6005592b0690f97b1508809d185cebb7bc7e4ac932",
+      "changed_property": "fractional-inactive-id"
+    },
+    {
+      "file": "singular-cad-scale.retropaint",
+      "sha256": "945110f137f49815e9657e2aee54165ffc445c6ba97bbf063fd86229976947c8",
+      "changed_property": "singular-cad-scale"
+    },
+    {
+      "file": "unknown-solid-recipe.retropaint",
+      "sha256": "ecb83d4eaf8353e4e0a227a368aeaa75882febb2ecc1685c5edb12127d4d8812",
+      "changed_property": "unknown-solid-recipe"
+    },
+    {
+      "file": "truncated-project.retropaint",
+      "sha256": "9ef100cf926c0063f544dca0ca932c946536018c57f3cc9ec1693e1ec3c44494",
+      "changed_property": "truncated-project"
+    },
+    {
+      "file": "invalid-nan-json.retropaint",
+      "sha256": "a16b95b6a3e512d83c3a32f40f4876f2a9def03ac0141b83b38cee277cb85ebf",
+      "changed_property": "invalid-nan-json"
+    },
+    {
+      "file": "photo-exposure-type.retropaint",
+      "sha256": "a6ba07c32cbea96b1501cae4aa694eb8083e598bd4453c1edf57403c255073d6",
+      "changed_property": "layers[0].photo.settings.exposure"
+    },
+    {
+      "file": "photo-unordered-curve.retropaint",
+      "sha256": "da7b46405a146ef6178494d131fc7e512653531591cebab4acc8af3e81603cf1",
+      "changed_property": "layers[0].photo.settings.curves.red"
+    },
+    {
+      "file": "photo-unknown-look.retropaint",
+      "sha256": "c965e81cfdda74d829db825e33ac4d274bb4271319400a11ddb9b5d8169506a9",
+      "changed_property": "layers[0].photo.look"
+    },
+    {
+      "file": "live-unknown-kind.retropaint",
+      "sha256": "ae676a82ac3c98fe1588004a5dc7b99d5b75f52cb3da9dd9ea758e8f89ed5d5c",
+      "changed_property": "layers[0].live.strokes[0].spec.kind"
+    },
+    {
+      "file": "live-unknown-mode.retropaint",
+      "sha256": "86e6a418b20911b137b92bd207816d34fff1e53a8b083eb4a4f1fb5448cf4d6a",
+      "changed_property": "layers[0].live.strokes[0].spec.mode"
+    },
+    {
+      "file": "live-unknown-brush.retropaint",
+      "sha256": "b023910924a6017148fb047fa7ca345ea7890701be09cd97facd8bbe3100903e",
+      "changed_property": "layers[0].live.strokes[0].applicator"
+    },
+    {
+      "file": "cad-parallel-workplane.retropaint",
+      "sha256": "dc13da81fc1a124f8bc6bcd1cc587efd0e34196422a5fdb8f2bd40f4d4f55177",
+      "changed_property": "CAD prism workplane v parallel to u"
+    },
+    {
+      "file": "cad-left-handed-workplane.retropaint",
+      "sha256": "0c906f79e53146e404a115e213153cacdf2c821eea2286fadd7346358381ea61",
+      "changed_property": "CAD prism workplane normal opposite u cross v"
+    }
+  ]
+}

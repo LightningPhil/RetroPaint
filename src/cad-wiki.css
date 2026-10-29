@@ -1,0 +1,31 @@
+#cadWiki,#cadWikiPreview{box-sizing:border-box;width:min(1220px,96vw);height:min(920px,94dvh);max-width:96vw;max-height:94dvh;padding:18px;border:2px solid #344454;border-radius:18px;background:#fffdf7;color:#263747;overflow:hidden;}
+#cadWiki[open],#cadWikiPreview[open]{display:flex;flex-direction:column;gap:12px;}
+#cadWiki::backdrop,#cadWikiPreview::backdrop{background:#172a3ecc;}
+#cadWiki header,#cadWikiPreview header{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-shrink:0;}
+#cadWiki h2,#cadWikiPreview h2{margin:0;font-size:22px;}#cadWiki header p,#cadWikiPreview header p{margin:4px 0 0;font-size:13px;}
+#cadWiki .choice,#cadWikiPreview .choice{min-height:44px;padding:8px 12px;font-size:13px;white-space:normal;flex-shrink:0;}
+.cad-wiki-search{display:grid;grid-template-columns:minmax(0,1fr) minmax(160px,.45fr);gap:12px;flex-shrink:0;}
+#cadWiki label{display:flex;flex-direction:column;gap:4px;font-size:13px;min-width:0;}
+#cadWiki input,#cadWiki select{width:100%;min-width:0;box-sizing:border-box;border:1px solid #647a88;border-radius:8px;padding:9px;background:white;color:#263747;min-height:44px;font-size:14px;}
+.cad-wiki-history,.cad-wiki-related{display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex-shrink:0;}
+#cadWikiCount{font-size:12px;}
+.cad-wiki-layout{flex:1;min-height:0;display:grid;grid-template-columns:260px minmax(0,1fr);gap:16px;}
+#cadWikiTopics{overflow:auto;display:flex;flex-direction:column;gap:5px;min-height:0;}
+#cadWiki .cad-wiki-topic{flex-shrink:0;text-align:left;padding:10px 12px;min-height:44px;font-size:13px;line-height:1.4;background:#edf3ef;border:1px solid #c4d1cb;border-radius:8px;color:#263747;overflow-wrap:anywhere;}
+#cadWiki .cad-wiki-topic[aria-current=true]{background:#284d50;color:white;border-color:#284d50;}
+#cadWikiArticle{overflow:auto;min-width:0;padding:4px 14px 20px 4px;line-height:1.6;font-size:15px;overflow-wrap:anywhere;}
+#cadWikiArticle h3{font-size:25px;line-height:1.25;margin:0 0 12px;}#cadWikiArticle h4{font-size:17px;margin:22px 0 8px;}#cadWikiArticle p{font-size:15px;line-height:1.65;margin:12px 0;}
+#cadWikiArticle .cad-wiki-kicker{font-size:12px;font-weight:bold;color:#476b66;margin:0 0 8px;}#cadWikiArticle .cad-wiki-lead{font-size:16px;}
+#cadWikiArticle pre{white-space:pre-wrap;overflow-wrap:anywhere;tab-size:2;font:13px/1.6 Consolas,monospace;background:#132432;color:#e5f3ed;border-radius:9px;padding:14px;max-width:100%;box-sizing:border-box;}
+#cadWikiArticle dl{display:grid;grid-template-columns:minmax(90px,.3fr) minmax(0,1fr);gap:9px 16px;margin:12px 0 20px;}#cadWikiArticle dt{font-weight:bold;font-family:Consolas,monospace;}#cadWikiArticle dd{margin:0;white-space:pre-wrap;}
+#cadWikiArticle li{margin:7px 0;}#cadWikiArticle .cad-wiki-example{border-top:1px solid #c4d1cb;margin-top:24px;padding-top:4px;}
+#cadWikiArticle h5{font-size:16px;line-height:1.45;margin:18px 0 8px;}#cadWikiArticle h4[id]{scroll-margin-top:8px;border-top:2px solid #c4d1cb;padding-top:16px;}
+#cadWikiArticle .cad-wiki-jumps{margin:16px 0;}#cadWikiArticle .cad-wiki-jumps .choice{background:#edf3ef;color:#263747;}
+#cadWikiArticle .cad-wiki-experiment{border-left:4px solid #487676;background:#edf3ef;padding:12px 14px;border-radius:0 8px 8px 0;}
+#cadWikiArticle summary{cursor:pointer;font-weight:bold;min-height:44px;display:flex;align-items:center;}#cadWikiArticle .cad-wiki-library-source{max-height:420px;overflow:auto;}
+#cadWikiArticle a{color:#145e75;text-decoration:underline;}#cadWikiArticle .cad-wiki-sources{font-size:12px;border-top:1px solid #c4d1cb;padding-top:15px;}
+#cadWikiArticle output{font-size:13px;}#cadWiki :focus-visible,#cadWikiPreview :focus-visible{outline:3px solid #7762bb;outline-offset:2px;}
+#cadWikiPreview{width:min(920px,96vw);height:min(740px,90dvh);}#cadWikiPreviewCanvas{flex:1;min-height:160px;overflow:hidden;background:#eef3f0;border-radius:12px;}#cadWikiPreviewCanvas canvas{display:block;width:100%;height:100%;touch-action:none;}
+#cadWikiPreviewStatus{font:13px/1.5 Consolas,monospace;white-space:pre-wrap;max-height:110px;overflow:auto;flex-shrink:0;}
+@media(max-width:650px){#cadWiki,#cadWikiPreview{padding:10px;gap:8px;}#cadWiki h2,#cadWikiPreview h2{font-size:19px;}#cadWiki header p,#cadWikiPreview header p{display:none;}.cad-wiki-search{grid-template-columns:1fr;gap:6px;}.cad-wiki-layout{display:flex;flex-direction:column;gap:8px;}#cadWikiTopics{max-height:112px;min-height:60px;flex:0 0 112px;}#cadWikiArticle{flex:1;padding:4px 4px 12px;}#cadWikiArticle h3{font-size:21px;}#cadWikiArticle dl{grid-template-columns:1fr;gap:3px;}#cadWikiArticle dd{margin-bottom:10px;}#cadWikiCount{width:100%;}.cad-wiki-history{gap:5px;}}
+@media(max-height:500px){#cadWiki{height:96dvh;max-height:96dvh;padding:8px;gap:6px;}#cadWiki header p{display:none;}#cadWiki h2{font-size:18px;}.cad-wiki-search{grid-template-columns:minmax(0,1fr) minmax(140px,.4fr);}#cadWiki label{font-size:11px;}.cad-wiki-history .choice{min-height:36px;padding:4px 8px;}.cad-wiki-layout{grid-template-columns:220px minmax(0,1fr);}#cadWikiArticle h3{font-size:21px;}#cadWikiPreview{padding:8px;gap:6px;}#cadWikiPreviewCanvas{min-height:80px;}#cadWikiPreviewStatus{max-height:64px;}}

@@ -1,0 +1,588 @@
+﻿source,line,attribute,literal,mapped_areas,status
+index.html,11,id,topBar,START JOURNEY,Source reference only; not executed
+index.html,12,id,wordmark,START JOURNEY,Source reference only; not executed
+index.html,13,id,saveBtn,START JOURNEY,Source reference only; not executed
+index.html,14,id,undoBtn,START JOURNEY,Source reference only; not executed
+index.html,15,id,sizeControl,START JOURNEY,Source reference only; not executed
+index.html,15,id,brushSize,START JOURNEY,Source reference only; not executed
+index.html,16,id,opacityControl,START JOURNEY,Source reference only; not executed
+index.html,16,id,opacity,START JOURNEY,Source reference only; not executed
+index.html,17,id,clearBtn,START JOURNEY,Source reference only; not executed
+index.html,18,id,studioBtn,START JOURNEY,Source reference only; not executed
+index.html,21,id,toolBin,START JOURNEY,Source reference only; not executed
+index.html,22,data-tool,draw,START JOURNEY,Source reference only; not executed
+index.html,23,data-tool,shapes,START JOURNEY,Source reference only; not executed
+index.html,24,data-tool,bucket,START JOURNEY,Source reference only; not executed
+index.html,25,data-tool,spray,START JOURNEY,Source reference only; not executed
+index.html,26,data-tool,sponge,START JOURNEY,Source reference only; not executed
+index.html,27,data-tool,scissors,START JOURNEY,Source reference only; not executed
+index.html,28,data-tool,eraser,START JOURNEY,Source reference only; not executed
+index.html,29,data-tool,stamp,START JOURNEY,Source reference only; not executed
+index.html,30,id,symBtn,START JOURNEY,Source reference only; not executed
+index.html,31,data-tool,spiro,START JOURNEY,Source reference only; not executed
+index.html,32,data-tool,text,START JOURNEY,Source reference only; not executed
+index.html,33,data-tool,picker,START JOURNEY,Source reference only; not executed
+index.html,34,id,layersToggle,START JOURNEY,Source reference only; not executed
+index.html,34,id,activeLayerName,START JOURNEY,Source reference only; not executed
+index.html,34,id,layerCount,START JOURNEY,Source reference only; not executed
+index.html,37,id,canvasSlot,START JOURNEY,Source reference only; not executed
+index.html,38,id,stage,START JOURNEY,Source reference only; not executed
+index.html,41,id,layersPanel,START JOURNEY,Source reference only; not executed
+index.html,42,id,layersTitle,START JOURNEY,Source reference only; not executed
+index.html,42,id,closeLayers,START JOURNEY,Source reference only; not executed
+index.html,42,aria-label,Close layers,START JOURNEY,Source reference only; not executed
+index.html,43,id,addLayer,START JOURNEY,Source reference only; not executed
+index.html,44,id,layersHint,START JOURNEY,Source reference only; not executed
+index.html,45,id,layerList,START JOURNEY,Source reference only; not executed
+index.html,45,aria-label,"Layers, top to bottom",START JOURNEY,Source reference only; not executed
+index.html,47,id,layerOptions,START JOURNEY,Source reference only; not executed
+index.html,50,id,layerName,START JOURNEY,Source reference only; not executed
+index.html,51,id,layerOpacityValue,START JOURNEY,Source reference only; not executed
+index.html,52,id,layerOpacity,START JOURNEY,Source reference only; not executed
+index.html,52,aria-label,Layer opacity,START JOURNEY,Source reference only; not executed
+index.html,53,id,duplicateLayer,START JOURNEY,Source reference only; not executed
+index.html,53,id,deleteLayer,START JOURNEY,Source reference only; not executed
+index.html,53,id,layerUp,START JOURNEY,Source reference only; not executed
+index.html,53,id,layerDown,START JOURNEY,Source reference only; not executed
+index.html,53,id,mergeLayer,START JOURNEY,Source reference only; not executed
+index.html,54,id,transparentLayer,START JOURNEY,Source reference only; not executed
+index.html,61,id,bottomTray,START JOURNEY,Source reference only; not executed
+index.html,62,id,paletteToggle,START JOURNEY,Source reference only; not executed
+index.html,62,id,currentInk,START JOURNEY,Source reference only; not executed
+index.html,63,id,trayContents,START JOURNEY,Source reference only; not executed
+index.html,64,id,materialTabs,START JOURNEY,Source reference only; not executed
+index.html,65,data-target,tray-solids,START JOURNEY,Source reference only; not executed
+index.html,66,data-target,tray-textures,START JOURNEY,Source reference only; not executed
+index.html,67,data-target,tray-gradients,START JOURNEY,Source reference only; not executed
+index.html,68,data-target,tray-live,START JOURNEY,Source reference only; not executed
+index.html,70,id,tray-solids,START JOURNEY,Source reference only; not executed
+index.html,71,id,tray-textures,START JOURNEY,Source reference only; not executed
+index.html,72,id,tray-gradients,START JOURNEY,Source reference only; not executed
+index.html,73,id,gradToggle,START JOURNEY,Source reference only; not executed
+index.html,74,id,gradFrom,START JOURNEY,Source reference only; not executed
+index.html,75,id,gradTo,START JOURNEY,Source reference only; not executed
+index.html,76,id,gradPresets,START JOURNEY,Source reference only; not executed
+index.html,78,id,tray-live,START JOURNEY,Source reference only; not executed
+index.html,79,id,beltPicks,START JOURNEY,Source reference only; not executed
+index.html,80,id,beltTrack,START JOURNEY,Source reference only; not executed
+index.html,81,data-slot,0,START JOURNEY,Source reference only; not executed
+index.html,82,data-slot,1,START JOURNEY,Source reference only; not executed
+index.html,83,data-slot,2,START JOURNEY,Source reference only; not executed
+index.html,84,data-slot,3,START JOURNEY,Source reference only; not executed
+index.html,85,data-slot,4,START JOURNEY,Source reference only; not executed
+index.html,86,data-slot,5,START JOURNEY,Source reference only; not executed
+index.html,87,data-slot,6,START JOURNEY,Source reference only; not executed
+index.html,88,data-slot,7,START JOURNEY,Source reference only; not executed
+index.html,90,id,addBeltBtn,START JOURNEY,Source reference only; not executed
+index.html,91,id,clearBeltBtn,START JOURNEY,Source reference only; not executed
+index.html,92,id,beltSpeed,START JOURNEY,Source reference only; not executed
+index.html,92,aria-label,Belt speed,START JOURNEY,Source reference only; not executed
+index.html,93,id,beltMode,START JOURNEY,Source reference only; not executed
+index.html,98,id,penDrawer,START JOURNEY,Source reference only; not executed
+index.html,101,data-applicator,marker,START JOURNEY,Source reference only; not executed
+index.html,102,data-applicator,biro,START JOURNEY,Source reference only; not executed
+index.html,103,data-applicator,callig,START JOURNEY,Source reference only; not executed
+index.html,104,data-applicator,gouache,START JOURNEY,Source reference only; not executed
+index.html,105,data-applicator,watercolor,START JOURNEY,Source reference only; not executed
+index.html,106,data-applicator,pencil,START JOURNEY,Source reference only; not executed
+index.html,107,data-applicator,brush,START JOURNEY,Source reference only; not executed
+index.html,108,data-applicator,oil,START JOURNEY,Source reference only; not executed
+index.html,109,data-applicator,crayon,START JOURNEY,Source reference only; not executed
+index.html,110,data-applicator,natural,START JOURNEY,Source reference only; not executed
+index.html,114,id,sprayDrawer,START JOURNEY,Source reference only; not executed
+index.html,117,data-applicator,mist,START JOURNEY,Source reference only; not executed
+index.html,118,data-applicator,splatter,START JOURNEY,Source reference only; not executed
+index.html,119,data-applicator,confetti,START JOURNEY,Source reference only; not executed
+index.html,123,id,shapesDrawer,START JOURNEY,Source reference only; not executed
+index.html,126,data-shape,line,START JOURNEY,Source reference only; not executed
+index.html,127,data-shape,rect,START JOURNEY,Source reference only; not executed
+index.html,128,data-shape,circle,START JOURNEY,Source reference only; not executed
+index.html,129,data-shape,poly,START JOURNEY,Source reference only; not executed
+index.html,130,data-shape,spline,START JOURNEY,Source reference only; not executed
+index.html,131,data-shape,ellipse,START JOURNEY,Source reference only; not executed
+index.html,132,data-shape,roundRect,START JOURNEY,Source reference only; not executed
+index.html,133,data-shape,polygon,START JOURNEY,Source reference only; not executed
+index.html,134,data-shape,triangle,START JOURNEY,Source reference only; not executed
+index.html,135,data-shape,rightTriangle,START JOURNEY,Source reference only; not executed
+index.html,136,data-shape,diamond,START JOURNEY,Source reference only; not executed
+index.html,137,data-shape,pentagon,START JOURNEY,Source reference only; not executed
+index.html,138,data-shape,hexagon,START JOURNEY,Source reference only; not executed
+index.html,139,data-shape,star4,START JOURNEY,Source reference only; not executed
+index.html,140,data-shape,star5,START JOURNEY,Source reference only; not executed
+index.html,141,data-shape,star6,START JOURNEY,Source reference only; not executed
+index.html,142,data-shape,heart,START JOURNEY,Source reference only; not executed
+index.html,143,data-shape,lightning,START JOURNEY,Source reference only; not executed
+index.html,144,data-shape,arrowRight,START JOURNEY,Source reference only; not executed
+index.html,145,data-shape,arrowLeft,START JOURNEY,Source reference only; not executed
+index.html,146,data-shape,arrowUp,START JOURNEY,Source reference only; not executed
+index.html,147,data-shape,arrowDown,START JOURNEY,Source reference only; not executed
+index.html,148,data-shape,callout,START JOURNEY,Source reference only; not executed
+index.html,149,data-shape,ovalCallout,START JOURNEY,Source reference only; not executed
+index.html,150,data-shape,cloud,START JOURNEY,Source reference only; not executed
+index.html,153,id,shapeOutline,START JOURNEY,Source reference only; not executed
+index.html,154,id,shapeFill,START JOURNEY,Source reference only; not executed
+index.html,156,id,finishPath,START JOURNEY,Source reference only; not executed
+index.html,160,id,selectionDrawer,START JOURNEY,Source reference only; not executed
+index.html,163,data-select,rect,START JOURNEY,Source reference only; not executed
+index.html,164,data-select,lasso,START JOURNEY,Source reference only; not executed
+index.html,165,data-select,wand,START JOURNEY,Source reference only; not executed
+index.html,167,id,transparentSelection,START JOURNEY,Source reference only; not executed
+index.html,169,id,copySelection,START JOURNEY,Source reference only; not executed
+index.html,170,id,cutSelection,START JOURNEY,Source reference only; not executed
+index.html,171,id,pasteSelection,START JOURNEY,Source reference only; not executed
+index.html,172,id,doneSelection,START JOURNEY,Source reference only; not executed
+index.html,173,id,cancelSelection,START JOURNEY,Source reference only; not executed
+index.html,174,id,selectAll,START JOURNEY,Source reference only; not executed
+index.html,175,id,invertSelection,START JOURNEY,Source reference only; not executed
+index.html,176,id,deleteSelection,START JOURNEY,Source reference only; not executed
+index.html,179,id,selectionFlipH,START JOURNEY,Source reference only; not executed
+index.html,180,id,selectionFlipV,START JOURNEY,Source reference only; not executed
+index.html,181,id,selectionRotate,START JOURNEY,Source reference only; not executed
+index.html,182,id,cropSelection,START JOURNEY,Source reference only; not executed
+index.html,188,id,eraserDrawer,START JOURNEY,Source reference only; not executed
+index.html,191,data-eraser,scrub,START JOURNEY,Source reference only; not executed
+index.html,192,data-eraser,blackhole,START JOURNEY,Source reference only; not executed
+index.html,193,data-eraser,pixelate,START JOURNEY,Source reference only; not executed
+index.html,194,data-eraser,invert,START JOURNEY,Source reference only; not executed
+index.html,195,data-eraser,emboss,START JOURNEY,Source reference only; not executed
+index.html,199,id,symDrawer,START JOURNEY,Source reference only; not executed
+index.html,202,data-sym,v,START JOURNEY,Source reference only; not executed
+index.html,203,data-sym,h,START JOURNEY,Source reference only; not executed
+index.html,204,data-sym,4,START JOURNEY,Source reference only; not executed
+index.html,205,data-sym,8,START JOURNEY,Source reference only; not executed
+index.html,206,data-sym,6,START JOURNEY,Source reference only; not executed
+index.html,207,data-sym,10,START JOURNEY,Source reference only; not executed
+index.html,208,data-sym,12,START JOURNEY,Source reference only; not executed
+index.html,209,data-sym,off,START JOURNEY,Source reference only; not executed
+index.html,210,id,symmetryMask,START JOURNEY,Source reference only; not executed
+index.html,214,id,stampDrawer,START JOURNEY,Source reference only; not executed
+index.html,216,id,stampTabs,START JOURNEY,Source reference only; not executed
+index.html,217,id,stampGrid,START JOURNEY,Source reference only; not executed
+index.html,219,id,stampScale,START JOURNEY,Source reference only; not executed
+index.html,220,id,spinMode,START JOURNEY,Source reference only; not executed
+index.html,221,id,flipH,START JOURNEY,Source reference only; not executed
+index.html,222,id,flipV,START JOURNEY,Source reference only; not executed
+index.html,226,id,spiroDrawer,START JOURNEY,Source reference only; not executed
+index.html,228,id,ringField,START JOURNEY,Source reference only; not executed
+index.html,228,id,ringSize,START JOURNEY,Source reference only; not executed
+index.html,228,aria-label,Spiro ring radius in pixels,START JOURNEY,Source reference only; not executed
+index.html,229,id,outerField,START JOURNEY,Source reference only; not executed
+index.html,229,id,outerTeeth,START JOURNEY,Source reference only; not executed
+index.html,230,id,outerChoices,START JOURNEY,Source reference only; not executed
+index.html,231,id,innerField,START JOURNEY,Source reference only; not executed
+index.html,231,id,innerTeeth,START JOURNEY,Source reference only; not executed
+index.html,232,id,gearBox,START JOURNEY,Source reference only; not executed
+index.html,233,id,driveChoices,START JOURNEY,Source reference only; not executed
+index.html,234,data-drive,manual,START JOURNEY,Source reference only; not executed
+index.html,235,data-drive,auto,START JOURNEY,Source reference only; not executed
+index.html,237,id,statorChoices,START JOURNEY,Source reference only; not executed
+index.html,238,data-stator,circle,START JOURNEY,Source reference only; not executed
+index.html,239,data-stator,oval,START JOURNEY,Source reference only; not executed
+index.html,240,data-stator,square,START JOURNEY,Source reference only; not executed
+index.html,241,data-stator,cross,START JOURNEY,Source reference only; not executed
+index.html,243,id,spiroActions,START JOURNEY,Source reference only; not executed
+index.html,244,id,windBtn,START JOURNEY,Source reference only; not executed
+index.html,245,id,spiroReset,START JOURNEY,Source reference only; not executed
+index.html,251,id,textDrawer,START JOURNEY,Source reference only; not executed
+index.html,253,id,textContent,START JOURNEY,Source reference only; not executed
+index.html,253,aria-label,Text to paint,START JOURNEY,Source reference only; not executed
+index.html,255,id,textFont,START JOURNEY,Source reference only; not executed
+index.html,256,id,textSize,START JOURNEY,Source reference only; not executed
+index.html,257,id,textWidth,START JOURNEY,Source reference only; not executed
+index.html,260,data-text-style,bold,START JOURNEY,Source reference only; not executed
+index.html,261,data-text-style,italic,START JOURNEY,Source reference only; not executed
+index.html,262,data-text-style,underline,START JOURNEY,Source reference only; not executed
+index.html,263,data-text-style,strike,START JOURNEY,Source reference only; not executed
+index.html,264,id,textAlign,START JOURNEY,Source reference only; not executed
+index.html,264,aria-label,Text alignment,START JOURNEY,Source reference only; not executed
+index.html,266,id,textOpaque,START JOURNEY,Source reference only; not executed
+index.html,267,id,placeText,START JOURNEY,Source reference only; not executed
+index.html,267,id,cancelText,START JOURNEY,Source reference only; not executed
+index.html,271,id,pickerDrawer,START JOURNEY,Source reference only; not executed
+index.html,274,id,secondaryColour,START JOURNEY,Source reference only; not executed
+index.html,274,id,swapColours,START JOURNEY,Source reference only; not executed
+index.html,278,id,studioDrawer,START JOURNEY,Source reference only; not executed
+index.html,279,id,advancedMode,START JOURNEY,Source reference only; not executed
+index.html,280,id,drawingMode,START JOURNEY,Source reference only; not executed
+index.html,280,aria-label,Vectors or raster,START JOURNEY,Source reference only; not executed
+index.html,281,id,openCad,START JOURNEY,Source reference only; not executed
+index.html,282,aria-label,Paint toolbox,START JOURNEY,Source reference only; not executed
+index.html,283,data-studio,file,START JOURNEY,Source reference only; not executed
+index.html,284,data-studio,image,START JOURNEY,Source reference only; not executed
+index.html,285,data-studio,layers,START JOURNEY,Source reference only; not executed
+index.html,286,data-studio,view,START JOURNEY,Source reference only; not executed
+index.html,288,data-studio-panel,file,START JOURNEY,Source reference only; not executed
+index.html,289,id,newPicture,START JOURNEY,Source reference only; not executed
+index.html,289,id,openPicture,START JOURNEY,Source reference only; not executed
+index.html,289,id,insertPicture,START JOURNEY,Source reference only; not executed
+index.html,289,id,pasteExternal,START JOURNEY,Source reference only; not executed
+index.html,289,id,redoBtn,START JOURNEY,Source reference only; not executed
+index.html,290,id,fileName,START JOURNEY,Source reference only; not executed
+index.html,290,id,fileFormat,START JOURNEY,Source reference only; not executed
+index.html,291,id,saveAs,START JOURNEY,Source reference only; not executed
+index.html,291,id,printPicture,START JOURNEY,Source reference only; not executed
+index.html,291,id,saveProject,START JOURNEY,Source reference only; not executed
+index.html,291,id,openProject,START JOURNEY,Source reference only; not executed
+index.html,294,data-studio-panel,image,START JOURNEY,Source reference only; not executed
+index.html,295,id,imageDimensions,START JOURNEY,Source reference only; not executed
+index.html,296,id,editSelection,START JOURNEY,Source reference only; not executed
+index.html,297,id,imageWidth,START JOURNEY,Source reference only; not executed
+index.html,297,id,imageHeight,START JOURNEY,Source reference only; not executed
+index.html,297,id,resizeUnit,START JOURNEY,Source reference only; not executed
+index.html,298,id,keepAspect,START JOURNEY,Source reference only; not executed
+index.html,299,id,smoothResize,START JOURNEY,Source reference only; not executed
+index.html,300,id,resizePicture,START JOURNEY,Source reference only; not executed
+index.html,300,id,resizeCanvas,START JOURNEY,Source reference only; not executed
+index.html,300,id,cropPicture,START JOURNEY,Source reference only; not executed
+index.html,301,id,rotateAngle,START JOURNEY,Source reference only; not executed
+index.html,301,id,rotatePicture,START JOURNEY,Source reference only; not executed
+index.html,301,id,flipPictureH,START JOURNEY,Source reference only; not executed
+index.html,301,id,flipPictureV,START JOURNEY,Source reference only; not executed
+index.html,302,id,skewX,START JOURNEY,Source reference only; not executed
+index.html,302,id,skewY,START JOURNEY,Source reference only; not executed
+index.html,302,id,skewPicture,START JOURNEY,Source reference only; not executed
+index.html,303,id,invertColours,START JOURNEY,Source reference only; not executed
+index.html,303,id,removeBackground,START JOURNEY,Source reference only; not executed
+index.html,304,id,fillTolerance,START JOURNEY,Source reference only; not executed
+index.html,307,data-studio-panel,layers,START JOURNEY,Source reference only; not executed
+index.html,309,id,openLayers,START JOURNEY,Source reference only; not executed
+index.html,310,id,openSuperResolution,START JOURNEY,Source reference only; not executed
+index.html,313,data-studio-panel,view,START JOURNEY,Source reference only; not executed
+index.html,314,id,viewZoomOut,START JOURNEY,Source reference only; not executed
+index.html,314,id,viewZoomIn,START JOURNEY,Source reference only; not executed
+index.html,314,id,viewFit,START JOURNEY,Source reference only; not executed
+index.html,314,id,viewActual,START JOURNEY,Source reference only; not executed
+index.html,315,id,pixelGrid,START JOURNEY,Source reference only; not executed
+index.html,316,id,rulers,START JOURNEY,Source reference only; not executed
+index.html,317,id,fullScreen,START JOURNEY,Source reference only; not executed
+index.html,322,id,editorStatus,START JOURNEY,Source reference only; not executed
+index.html,323,id,imageInput,START JOURNEY,Source reference only; not executed
+index.html,324,id,projectInput,START JOURNEY,Source reference only; not executed
+index.html,325,id,gearGhost,START JOURNEY,Source reference only; not executed
+src/cad-feature-ui.ts,35,id,cadPagehistory,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,36,id,cadFeatureContent,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,38,id,cadTimeline,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,63,id,cadHistoryBody,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,63,aria-label,Editable solid features,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,63,id,cadFeatureDependencies,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,93,id,cadTimelinePosition,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,93,id,cadHistoryPlayhead,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,93,aria-label,History playhead,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,124,id,cadFeatureForm,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,127,id,cadFeatureConstraints,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,129,id,cadFeatureSketch,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,129,aria-label,Editable original sketch,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,129,id,cadFeaturePoint,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,129,id,cadFeaturePoints,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,130,id,cadFeatureSketchMode,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,130,id,cadFeatureSketchControls,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,130,id,cadFeaturePlane,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,130,id,cadFeaturePlaneOrigin,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,132,id,cadFeatureDirection,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,132,id,cadFeatureThrough,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,134,id,cadFeatureFaceCount,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,134,id,cadFeatureFaceActions,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,135,id,cadFeatureFinishMode,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,135,id,cadFeatureEdgeCount,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,135,id,cadFeatureEdgeActions,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,136,id,cadFeatureBoolean,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,137,id,cadFeatureNameRow,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,137,id,cadFeatureName,FEATURE,Source reference only; not executed
+src/cad-feature-ui.ts,137,id,cadFeatureError,FEATURE,Source reference only; not executed
+src/cad-inspect-ui.ts,19,id,cadPageinspect,DELIVER,Source reference only; not executed
+src/cad-inspect-ui.ts,20,id,cadInspectPage,DELIVER,Source reference only; not executed
+src/cad-inspect-ui.ts,21,data-cad-inspect,picture,DELIVER,Source reference only; not executed
+src/cad-inspect-ui.ts,21,id,cadPictureMode,DELIVER,Source reference only; not executed
+src/cad-inspect-ui.ts,22,data-cad-inspect,camera,DELIVER,Source reference only; not executed
+src/cad-inspect-ui.ts,22,id,cadProjection,DELIVER,Source reference only; not executed
+src/cad-inspect-ui.ts,22,id,cadExactView,DELIVER,Source reference only; not executed
+src/cad-inspect-ui.ts,23,data-cad-inspect,measure,DELIVER,Source reference only; not executed
+src/cad-inspect-ui.ts,23,id,cadMeasureReport,DELIVER,Source reference only; not executed
+src/cad-inspect-ui.ts,23,id,cadInspectBounds,DELIVER,Source reference only; not executed
+src/cad-inspect-ui.ts,24,data-cad-inspect,section,DELIVER,Source reference only; not executed
+src/cad-inspect-ui.ts,24,id,cadAppearance,DELIVER,Source reference only; not executed
+src/cad-inspect-ui.ts,24,id,cadSectionOn,DELIVER,Source reference only; not executed
+src/cad-inspect-ui.ts,24,id,cadSectionAxis,DELIVER,Source reference only; not executed
+src/cad-inspect-ui.ts,24,id,cadSectionOffset,DELIVER,Source reference only; not executed
+src/cad-inspect-ui.ts,24,id,cadSectionFlip,DELIVER,Source reference only; not executed
+src/cad-inspect-ui.ts,25,data-cad-inspect,import,DELIVER,Source reference only; not executed
+src/cad-inspect-ui.ts,25,id,cadStlUnits,DELIVER,Source reference only; not executed
+src/cad-inspect-ui.ts,25,id,cadStlCentre,DELIVER,Source reference only; not executed
+src/cad-inspect-ui.ts,25,id,cadStlInput,DELIVER,Source reference only; not executed
+src/cad-sketch-ui.ts,39,aria-label,Sketch lines and dimensions,SKETCH,Source reference only; not executed
+src/cad-ui.ts,75,id,cadWorkshop,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,78,id,cadView,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,78,aria-label,Camera views,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,79,id,cadEmpty,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,80,aria-label,3D manipulation,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,80,data-cad-tool,translate,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,80,data-cad-tool,rotate,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,80,data-cad-tool,scale,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,80,id,cadDrop,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,81,id,cadViewTip,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,84,id,cadActiveLayer,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,84,id,cadPieceCount,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,85,aria-label,3D workshop tools,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,86,id,cadPageadd,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,86,data-cad-panel,add,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,87,id,cadPagemove,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,87,data-cad-panel,move,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,87,id,cadEditTitle,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,87,id,cadBodyName,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,87,data-cad-edit,transform,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,87,data-cad-edit,size,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,88,data-cad-edit-page,transform,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,89,data-cad-edit-page,size,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,89,id,cadKeepRatio,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,89,id,cadColour,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,89,aria-label,Custom piece colour,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,90,id,cadSelectedInfo,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,91,id,cadPagesketch,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,91,data-cad-panel,sketch,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,91,data-cad-sketch-kind,extrude,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,91,data-cad-sketch-kind,revolve,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,92,id,cadExtrudePage,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,92,id,cadPlane,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,92,id,cadSketchHint,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,93,id,cadRevolvePage,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,93,id,cadProfilePreset,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,93,id,cadProfile,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,93,aria-label,"Revolve profile: radius horizontally, height vertically",LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,93,id,cadProfilePoints,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,93,aria-label,Revolve profile coordinates,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,94,id,cadSketchFinish,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,94,id,cadFeatureAmountLabel,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,94,id,cadFeatureAmount,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,94,id,cadFeatureOperation,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,94,id,cadThroughRow,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,94,id,cadThrough,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,94,id,cadExtrudeExtras,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,94,id,cadFeatureSummary,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,95,id,cadPagebuild,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,95,data-cad-panel,build,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,95,id,cadBuildPage,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,96,data-cad-build-page,combine,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,96,id,cadBooleanTarget,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,96,aria-label,Boolean target piece,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,97,data-cad-build-page,align,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,97,id,cadAlignTarget,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,97,id,cadAlignAxis,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,97,id,cadAlignMode,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,97,id,cadMateHint,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,98,data-cad-build-page,repeat,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,99,id,cadPagelayers,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,99,data-cad-panel,layers,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,99,id,cadLayerSelect,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,99,id,cadLayerName,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,99,id,cadLayerVisible,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,99,id,cadBodyList,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,99,id,cadObjectPage,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,99,id,cadDestinationLayer,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,99,aria-label,Destination 3D layer,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,100,id,cadPageprint,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,100,data-cad-panel,print,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,100,id,cadPrintScope,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,100,id,cadPrintBed,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,100,id,cadPrintReport,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,101,id,cadSnap,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,101,id,cadGrid,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,101,id,cadAngle,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,102,id,cadStatus,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,104,id,cadToolsToggle,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,105,id,cadHideTools,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,106,id,cadHelpDialog,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,106,id,cadHelpTitle,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,107,id,cadHelp,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,109,id,cadEditHistory,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,110,id,cadFinishMode,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,110,id,cadEdgeCount,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,111,id,cadShellFaceCount,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,113,id,cadSketchConstraintPage,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/cad-ui.ts,113,id,cadSketchConstraintEditor,LAYER SOLID SKETCH DELIVER JOURNEY,Source reference only; not executed
+src/clear-confirmation.ts,14,id,clearTitle,START,Source reference only; not executed
+src/clear-confirmation.ts,15,id,clearMessage,START,Source reference only; not executed
+src/colour-wheel.ts,27,id,colourWheelTitle,INK,Source reference only; not executed
+src/colour-wheel.ts,29,id,colourWheel,INK,Source reference only; not executed
+src/colour-wheel.ts,29,aria-label,Colour wheel,INK,Source reference only; not executed
+src/colour-wheel.ts,33,id,wheelPreview,INK,Source reference only; not executed
+src/colour-wheel.ts,34,id,wheelHex,INK,Source reference only; not executed
+src/colour-wheel.ts,34,aria-label,Hex colour,INK,Source reference only; not executed
+src/colour-wheel.ts,35,id,wheelR,INK,Source reference only; not executed
+src/colour-wheel.ts,35,id,wheelG,INK,Source reference only; not executed
+src/colour-wheel.ts,35,id,wheelB,INK,Source reference only; not executed
+src/colour-wheel.ts,37,id,wheelBrightness,INK,Source reference only; not executed
+src/colour-wheel.ts,41,id,colourWheelKeys,INK,Source reference only; not executed
+src/object-ui.ts,9,id,objectPanel,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,id,objectHelp,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,id,objectPicker,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,aria-label,Choose a piece on this layer,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,id,objectSelectAll,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,id,objectDuplicate,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,id,objectDelete,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,id,objectDone,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,aria-label,Piece controls,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,data-object-tab,size,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,data-object-tab,position,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,data-object-tab,arrange,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,data-object-panel,size,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,id,objectWidth,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,id,objectHeight,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,id,objectAspect,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,id,objectResize,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,data-object-panel,position,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,id,objectX,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,id,objectY,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,id,objectPosition,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,id,objectCentre,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,data-object-panel,arrange,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,id,objectAngle,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,id,objectTurn,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,id,objectFront,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,9,id,objectBack,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,13,id,objectBadge,VECTOR JOURNEY,Source reference only; not executed
+src/object-ui.ts,13,data-tool,scissors,VECTOR JOURNEY,Source reference only; not executed
+src/photo-ui.ts,95,id,photoAuto,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,96,id,photoAutoBalance,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,96,id,photoNeutral,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,97,id,photoMixColour,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,97,aria-label,Colour range,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,100,id,photoCurveChannel,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,100,aria-label,Curve channel,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,100,id,photoCurvePreset,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,100,aria-label,Curve preset,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,100,id,photoCurve,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,100,aria-label,Tone curve. Tap to add points; drag to adjust. Arrow keys adjust the selected point; Delete removes it.,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,100,id,curve-x,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,100,aria-label,Curve input,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,100,id,curve-y,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,100,aria-label,Curve output,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,100,id,photoCurveRemove,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,103,id,photoCropRatio,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,103,aria-label,Crop aspect ratio,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,103,id,photoCropReset,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,105,data-photo-flip,flipX,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,105,data-photo-flip,flipY,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,105,id,photoHorizon,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,243,id,photoPanel,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,id,photoTitle,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,id,photoOpen,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,aria-label,Open a photo,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,id,photoClose,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,aria-label,Cancel photo edits,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,id,photoTarget,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,id,photoLook,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,aria-label,Photo look,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,id,photoHistogram,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,aria-label,RGB histogram,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,id,photoMini,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,id,photoMiniCanvas,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,aria-label,Photo preview,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,id,photoTabs,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,aria-label,Photo adjustments,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,id,photoGroupRow,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,id,photoGroup,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,aria-label,Adjustment group,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,id,photoGroupReset,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,aria-label,Reset this adjustment group,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,id,photoControls,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,id,photoStatus,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,id,photoCompare,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,id,photoReset,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,id,photoCancel,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,244,id,photoApply,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,246,id,photoToggle,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,256,id,openPhotoLab,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/photo-ui.ts,256,data-studio-panel,layers,LAYER PHOTO COLOUR FINISH JOURNEY,Source reference only; not executed
+src/preferences-ui.ts,14,id,preferencesDialog,ACCESS,Source reference only; not executed
+src/preferences-ui.ts,15,id,preferencesTitle,ACCESS,Source reference only; not executed
+src/preferences-ui.ts,15,id,preferencesClose,ACCESS,Source reference only; not executed
+src/preferences-ui.ts,15,aria-label,Close preferences,ACCESS,Source reference only; not executed
+src/preferences-ui.ts,15,aria-label,Preferences,ACCESS,Source reference only; not executed
+src/preferences-ui.ts,15,data-preference-tab,sound,ACCESS,Source reference only; not executed
+src/preferences-ui.ts,15,data-preference-tab,desk,ACCESS,Source reference only; not executed
+src/preferences-ui.ts,15,data-preference-panel,sound,ACCESS,Source reference only; not executed
+src/preferences-ui.ts,15,id,soundEnabled,ACCESS,Source reference only; not executed
+src/preferences-ui.ts,15,id,soundVolumeValue,ACCESS,Source reference only; not executed
+src/preferences-ui.ts,15,id,soundVolume,ACCESS,Source reference only; not executed
+src/preferences-ui.ts,15,aria-label,Sound volume,ACCESS,Source reference only; not executed
+src/preferences-ui.ts,15,id,drawingSounds,ACCESS,Source reference only; not executed
+src/preferences-ui.ts,15,id,soundPreview,ACCESS,Source reference only; not executed
+src/preferences-ui.ts,15,data-preference-panel,desk,ACCESS,Source reference only; not executed
+src/preferences-ui.ts,15,aria-label,Desk colour,ACCESS,Source reference only; not executed
+src/preferences-ui.ts,15,id,reducedMotion,ACCESS,Source reference only; not executed
+src/preferences-ui.ts,15,id,preferencesDone,ACCESS,Source reference only; not executed
+src/preferences-ui.ts,17,data-studio-panel,view,ACCESS,Source reference only; not executed
+src/preferences-ui.ts,18,id,openPreferences,ACCESS,Source reference only; not executed
+src/preferences-ui.ts,19,id,openShortcuts,ACCESS,Source reference only; not executed
+src/preferences-ui.ts,21,id,soundToggle,ACCESS,Source reference only; not executed
+src/recovery-ui.ts,82,id,draftStatus,FILE,Source reference only; not executed
+src/recovery-ui.ts,83,id,openRecovery,FILE,Source reference only; not executed
+src/recovery-ui.ts,84,id,recoveryDialog,FILE,Source reference only; not executed
+src/recovery-ui.ts,85,id,recoveryTitle,FILE,Source reference only; not executed
+src/recovery-ui.ts,85,aria-label,Close recent drafts,FILE,Source reference only; not executed
+src/recovery-ui.ts,85,id,recoveryList,FILE,Source reference only; not executed
+src/recovery-ui.ts,85,id,recoveryEmpty,FILE,Source reference only; not executed
+src/recovery-ui.ts,85,id,recoveryPagination,FILE,Source reference only; not executed
+src/recovery-ui.ts,85,id,recoveryPrevious,FILE,Source reference only; not executed
+src/recovery-ui.ts,85,aria-label,Previous drafts,FILE,Source reference only; not executed
+src/recovery-ui.ts,85,id,recoveryPage,FILE,Source reference only; not executed
+src/recovery-ui.ts,85,id,recoveryNext,FILE,Source reference only; not executed
+src/recovery-ui.ts,85,aria-label,Next drafts,FILE,Source reference only; not executed
+src/recovery-ui.ts,85,id,recoveryDone,FILE,Source reference only; not executed
+src/recovery-ui.ts,89,id,recoveryBanner,FILE,Source reference only; not executed
+src/recovery-ui.ts,89,aria-label,Dismiss resume suggestion,FILE,Source reference only; not executed
+src/shortcuts-ui.ts,6,id,shortcutsDialog,ACCESS,Source reference only; not executed
+src/shortcuts-ui.ts,13,id,shortcutsTitle,ACCESS,Source reference only; not executed
+src/shortcuts-ui.ts,13,id,shortcutsClose,ACCESS,Source reference only; not executed
+src/shortcuts-ui.ts,13,aria-label,Close shortcuts,ACCESS,Source reference only; not executed
+src/shortcuts-ui.ts,13,aria-label,Shortcut group,ACCESS,Source reference only; not executed
+src/shortcuts-ui.ts,13,id,shortcutsDone,ACCESS,Source reference only; not executed
+src/super-resolution-area.ts,12,id,enhanceArea,ENHANCE,Source reference only; not executed
+src/super-resolution-area.ts,12,aria-label,Choose preview area. Click or drag the yellow box; arrow keys move it.,ENHANCE,Source reference only; not executed
+src/super-resolution-area.ts,12,id,enhanceAreaSize,ENHANCE,Source reference only; not executed
+src/super-resolution-area.ts,12,aria-label,Preview area size,ENHANCE,Source reference only; not executed
+src/super-resolution-ui.ts,11,id,superResolutionDialog,ENHANCE,Source reference only; not executed
+src/super-resolution-ui.ts,12,id,superResolutionTitle,ENHANCE,Source reference only; not executed
+src/super-resolution-ui.ts,12,id,enhanceClose,ENHANCE,Source reference only; not executed
+src/super-resolution-ui.ts,12,aria-label,Close super resolution,ENHANCE,Source reference only; not executed
+src/super-resolution-ui.ts,12,aria-label,Enhancement scale,ENHANCE,Source reference only; not executed
+src/super-resolution-ui.ts,12,data-enhance-scale,2,ENHANCE,Source reference only; not executed
+src/super-resolution-ui.ts,12,data-enhance-scale,4,ENHANCE,Source reference only; not executed
+src/super-resolution-ui.ts,12,id,enhanceDimensions,ENHANCE,Source reference only; not executed
+src/super-resolution-ui.ts,12,id,enhancePreview,ENHANCE,Source reference only; not executed
+src/super-resolution-ui.ts,12,aria-label,Centre detail preview,ENHANCE,Source reference only; not executed
+src/super-resolution-ui.ts,12,id,enhanceBefore,ENHANCE,Source reference only; not executed
+src/super-resolution-ui.ts,12,id,enhanceAfter,ENHANCE,Source reference only; not executed
+src/super-resolution-ui.ts,12,id,enhanceProgress,ENHANCE,Source reference only; not executed
+src/super-resolution-ui.ts,12,aria-label,Enhancement progress,ENHANCE,Source reference only; not executed
+src/super-resolution-ui.ts,12,id,enhanceStatus,ENHANCE,Source reference only; not executed
+src/super-resolution-ui.ts,12,id,enhanceDetail,ENHANCE,Source reference only; not executed
+src/super-resolution-ui.ts,12,id,enhanceFull,ENHANCE,Source reference only; not executed
+src/super-resolution-ui.ts,12,id,enhanceSave,ENHANCE,Source reference only; not executed
+src/ui.ts,843,data-ink,sparkle,START PAINT PLAY JOURNEY,Source reference only; not executed
+src/ui.ts,933,data-target,tray-gradients,START PAINT PLAY JOURNEY,Source reference only; not executed
+src/workspace-overlay.ts,17,id,workspaceOverlay,EDIT,Source reference only; not executed
+src/workspace-ui.ts,16,id,workspaceBar,EDIT VECTOR,Source reference only; not executed
+src/workspace-ui.ts,17,id,workspaceIdle,EDIT VECTOR,Source reference only; not executed
+src/workspace-ui.ts,17,id,workspaceToolArt,EDIT VECTOR,Source reference only; not executed
+src/workspace-ui.ts,17,id,workspaceToolName,EDIT VECTOR,Source reference only; not executed
+src/workspace-ui.ts,17,id,workspaceToolDetail,EDIT VECTOR,Source reference only; not executed
+src/workspace-ui.ts,17,id,workspaceZoom,EDIT VECTOR,Source reference only; not executed
+src/workspace-ui.ts,17,id,workspaceRedo,EDIT VECTOR,Source reference only; not executed
+src/workspace-ui.ts,17,aria-label,Redo,EDIT VECTOR,Source reference only; not executed
+src/workspace-ui.ts,17,id,workspaceSelection,EDIT VECTOR,Source reference only; not executed
+src/workspace-ui.ts,17,id,workspaceSelectionType,EDIT VECTOR,Source reference only; not executed
+src/workspace-ui.ts,17,id,workspaceSelectionSize,EDIT VECTOR,Source reference only; not executed
+src/workspace-ui.ts,17,id,workspacePlace,EDIT VECTOR,Source reference only; not executed
+src/workspace-ui.ts,17,id,workspaceCentre,EDIT VECTOR,Source reference only; not executed
+src/workspace-ui.ts,17,aria-label,Bring selection to paper,EDIT VECTOR,Source reference only; not executed
+src/workspace-ui.ts,17,id,workspaceCopy,EDIT VECTOR,Source reference only; not executed
+src/workspace-ui.ts,17,aria-label,Copy selection,EDIT VECTOR,Source reference only; not executed
+src/workspace-ui.ts,17,id,workspaceDuplicate,EDIT VECTOR,Source reference only; not executed
+src/workspace-ui.ts,17,aria-label,Duplicate selection,EDIT VECTOR,Source reference only; not executed
+src/workspace-ui.ts,17,id,workspaceDelete,EDIT VECTOR,Source reference only; not executed
+src/workspace-ui.ts,17,aria-label,Delete selection,EDIT VECTOR,Source reference only; not executed
+src/workspace-ui.ts,17,id,workspaceCancel,EDIT VECTOR,Source reference only; not executed
+src/workspace-ui.ts,17,aria-label,Cancel selection,EDIT VECTOR,Source reference only; not executed
+src/workspace-ui.ts,17,id,workspaceMore,EDIT VECTOR,Source reference only; not executed
+src/workspace-ui.ts,17,aria-label,Selection options,EDIT VECTOR,Source reference only; not executed

@@ -1,0 +1,378 @@
+{
+  "at": "2026-10-20T23:50:14.125268+00:00",
+  "case": "PAINT-019",
+  "status": "Plan before execution, not a result",
+  "rows": [
+    {
+      "id": "marker-release-outside-v1",
+      "viewport": [
+        1280,
+        720
+      ],
+      "applicator": "marker",
+      "mode": "release-outside"
+    },
+    {
+      "id": "marker-touch-cancel-v1",
+      "viewport": [
+        1280,
+        720
+      ],
+      "applicator": "marker",
+      "mode": "touch-cancel"
+    },
+    {
+      "id": "marker-lost-capture-v1",
+      "viewport": [
+        1280,
+        720
+      ],
+      "applicator": "marker",
+      "mode": "lost-capture"
+    },
+    {
+      "id": "marker-native-blur-v1",
+      "viewport": [
+        1280,
+        720
+      ],
+      "applicator": "marker",
+      "mode": "native-blur"
+    },
+    {
+      "id": "marker-release-outside-v2",
+      "viewport": [
+        320,
+        568
+      ],
+      "applicator": "marker",
+      "mode": "release-outside"
+    },
+    {
+      "id": "marker-touch-cancel-v2",
+      "viewport": [
+        320,
+        568
+      ],
+      "applicator": "marker",
+      "mode": "touch-cancel"
+    },
+    {
+      "id": "marker-lost-capture-v2",
+      "viewport": [
+        320,
+        568
+      ],
+      "applicator": "marker",
+      "mode": "lost-capture"
+    },
+    {
+      "id": "marker-native-blur-v2",
+      "viewport": [
+        320,
+        568
+      ],
+      "applicator": "marker",
+      "mode": "native-blur"
+    },
+    {
+      "id": "marker-release-outside-v3",
+      "viewport": [
+        390,
+        844
+      ],
+      "applicator": "marker",
+      "mode": "release-outside"
+    },
+    {
+      "id": "marker-touch-cancel-v3",
+      "viewport": [
+        390,
+        844
+      ],
+      "applicator": "marker",
+      "mode": "touch-cancel"
+    },
+    {
+      "id": "marker-lost-capture-v3",
+      "viewport": [
+        390,
+        844
+      ],
+      "applicator": "marker",
+      "mode": "lost-capture"
+    },
+    {
+      "id": "marker-native-blur-v3",
+      "viewport": [
+        390,
+        844
+      ],
+      "applicator": "marker",
+      "mode": "native-blur"
+    },
+    {
+      "id": "marker-release-outside-v4",
+      "viewport": [
+        844,
+        390
+      ],
+      "applicator": "marker",
+      "mode": "release-outside"
+    },
+    {
+      "id": "marker-touch-cancel-v4",
+      "viewport": [
+        844,
+        390
+      ],
+      "applicator": "marker",
+      "mode": "touch-cancel"
+    },
+    {
+      "id": "marker-lost-capture-v4",
+      "viewport": [
+        844,
+        390
+      ],
+      "applicator": "marker",
+      "mode": "lost-capture"
+    },
+    {
+      "id": "marker-native-blur-v4",
+      "viewport": [
+        844,
+        390
+      ],
+      "applicator": "marker",
+      "mode": "native-blur"
+    },
+    {
+      "id": "callig-release-outside-v1",
+      "viewport": [
+        1280,
+        720
+      ],
+      "applicator": "callig",
+      "mode": "release-outside"
+    },
+    {
+      "id": "callig-touch-cancel-v2",
+      "viewport": [
+        320,
+        568
+      ],
+      "applicator": "callig",
+      "mode": "touch-cancel"
+    },
+    {
+      "id": "callig-lost-capture-v3",
+      "viewport": [
+        390,
+        844
+      ],
+      "applicator": "callig",
+      "mode": "lost-capture"
+    },
+    {
+      "id": "callig-native-blur-v4",
+      "viewport": [
+        844,
+        390
+      ],
+      "applicator": "callig",
+      "mode": "native-blur"
+    },
+    {
+      "id": "pencil-release-outside-v3",
+      "viewport": [
+        390,
+        844
+      ],
+      "applicator": "pencil",
+      "mode": "release-outside"
+    },
+    {
+      "id": "pencil-touch-cancel-v4",
+      "viewport": [
+        844,
+        390
+      ],
+      "applicator": "pencil",
+      "mode": "touch-cancel"
+    },
+    {
+      "id": "pencil-lost-capture-v1",
+      "viewport": [
+        1280,
+        720
+      ],
+      "applicator": "pencil",
+      "mode": "lost-capture"
+    },
+    {
+      "id": "pencil-native-blur-v2",
+      "viewport": [
+        320,
+        568
+      ],
+      "applicator": "pencil",
+      "mode": "native-blur"
+    }
+  ],
+  "first_points": [
+    [
+      400,
+      360
+    ],
+    [
+      440,
+      360
+    ],
+    [
+      480,
+      360
+    ],
+    [
+      520,
+      360
+    ],
+    [
+      560,
+      360
+    ],
+    [
+      600,
+      360
+    ],
+    [
+      640,
+      360
+    ],
+    [
+      680,
+      360
+    ],
+    [
+      720,
+      360
+    ],
+    [
+      760,
+      360
+    ],
+    [
+      800,
+      360
+    ],
+    [
+      840,
+      360
+    ],
+    [
+      880,
+      360
+    ],
+    [
+      920,
+      360
+    ],
+    [
+      960,
+      360
+    ],
+    [
+      1000,
+      360
+    ],
+    [
+      1040,
+      360
+    ]
+  ],
+  "next_points": [
+    [
+      200,
+      160
+    ],
+    [
+      205,
+      160
+    ],
+    [
+      210,
+      160
+    ],
+    [
+      215,
+      160
+    ],
+    [
+      220,
+      160
+    ],
+    [
+      225,
+      160
+    ],
+    [
+      230,
+      160
+    ],
+    [
+      235,
+      160
+    ],
+    [
+      240,
+      160
+    ],
+    [
+      245,
+      160
+    ],
+    [
+      250,
+      160
+    ],
+    [
+      255,
+      160
+    ],
+    [
+      260,
+      160
+    ],
+    [
+      265,
+      160
+    ],
+    [
+      270,
+      160
+    ],
+    [
+      275,
+      160
+    ],
+    [
+      280,
+      160
+    ]
+  ],
+  "size": 22,
+  "strength": 1,
+  "colour": [
+    229,
+    57,
+    53
+  ],
+  "source_dimensions": [
+    960,
+    640
+  ],
+  "maximum_footprint_radius": 24,
+  "post_stop_ms": 250,
+  "expected_downloads_per_row": 16,
+  "oracle": "Fresh actual960x640 PLAY: one opaque white Paper, raster, no crop/photo/live/object/CAD. Native mouse or browser touch gesture crosses right paper edge from400,360 to1040,360. Preflight and actual Zoom out make the same declared source path reachable inside browser viewport, no force/remap. Four layouts each execute Marker release-outside, native touchCancel, platform-native lost pointer capture and real owned-tab Window blur. Calligraphy and Pencil each cover all four terminations across a pre-recorded layout pairing, exercising their specialized endpoint/pixel paths. Public capture API release is environmental fault injection; Chrome must generate a trusted lostpointercapture, never a fabricated DOM event. No physical device or OS input claim. After two real frames, every later public frame/committed PNG remains exact through250ms, unrelated hover and cleanup. First mark must reach the rightmost source column, stay within24 source pixels of its declared line, and be continuous with no alpha/other-layer/geometry corruption. Next distinct source path200..280,160 must have its own local mark, no connector from1040,360, and one separate complete Undo/Redo. Both first/next gestures and fresh saved-file input independently checked, all16 actual downloads hashed. Expected source/pigment/area/continuity use independent Python/Pillow/NumPy, no app brush/serializer/effect kernel."
+}

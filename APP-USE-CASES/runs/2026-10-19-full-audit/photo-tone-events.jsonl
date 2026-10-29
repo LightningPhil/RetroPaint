@@ -1,0 +1,95 @@
+{"at":"2026-10-20T11:18:28.298Z","tab":"33","label":"Exposure","max":4,"min":-4,"step":0.05,"value":1}
+{"at":"2026-10-20T11:18:32.037Z","tab":"33","label":"Exposure","max":4,"min":-4,"step":0.05,"value":-1}
+{"at":"2026-10-20T11:18:35.819Z","tab":"33","label":"Exposure","max":4,"min":-4,"step":0.05,"value":-4}
+{"at":"2026-10-20T11:18:39.906Z","tab":"33","label":"Exposure","max":4,"min":-4,"step":0.05,"value":4}
+{"at":"2026-10-20T11:18:45.163Z","tab":"33","label":"Exposure","max":4,"min":-4,"step":0.05,"value":0}
+{"at":"2026-10-20T11:19:20.079Z","tab":"33","label":"Brightness","max":100,"min":-100,"step":1,"value":25}
+{"at":"2026-10-20T11:19:25.694Z","tab":"33","label":"Brightness","max":100,"min":-100,"step":1,"value":-100}
+{"at":"2026-10-20T11:19:30.837Z","tab":"33","label":"Brightness","max":100,"min":-100,"step":1,"value":100}
+{"at":"2026-10-20T11:19:36.286Z","tab":"33","label":"Brightness","max":100,"min":-100,"step":1,"value":0}
+{"at":"2026-10-20T11:19:41.711Z","tab":"33","label":"Contrast","max":100,"min":-100,"step":1,"value":30}
+{"at":"2026-10-20T11:19:46.985Z","tab":"33","label":"Contrast","max":100,"min":-100,"step":1,"value":-30}
+{"at":"2026-10-20T11:19:52.525Z","tab":"33","label":"Contrast","max":100,"min":-100,"step":1,"value":-100}
+{"at":"2026-10-20T11:19:57.797Z","tab":"33","label":"Contrast","max":100,"min":-100,"step":1,"value":100}
+{"at":"2026-10-20T11:20:01.655Z","tab":"33","label":"Contrast","max":100,"min":-100,"step":1,"value":0}
+{"at":"2026-10-20T11:20:25.916Z","tab":"33","label":"Exposure","max":4,"min":-4,"step":0.05,"value":1}
+{"at":"2026-10-20T11:20:31.335Z","tab":"33","label":"Exposure","max":4,"min":-4,"step":0.05,"value":-1}
+{"at":"2026-10-20T11:20:36.730Z","tab":"33","label":"Exposure","max":4,"min":-4,"step":0.05,"value":-4}
+{"at":"2026-10-20T11:20:41.847Z","tab":"33","label":"Exposure","max":4,"min":-4,"step":0.05,"value":4}
+{"at":"2026-10-20T11:20:47.107Z","tab":"33","label":"Exposure","max":4,"min":-4,"step":0.05,"value":0}
+{"at":"2026-10-20T11:21:34.783Z","tab":"33","label":"Brightness","max":100,"min":-100,"step":1,"value":25}
+{"at":"2026-10-20T11:21:38.580Z","tab":"33","label":"Brightness","max":100,"min":-100,"step":1,"value":-100}
+{"at":"2026-10-20T11:21:42.318Z","tab":"33","label":"Brightness","max":100,"min":-100,"step":1,"value":100}
+{"at":"2026-10-20T11:21:46.596Z","tab":"33","label":"Brightness","max":100,"min":-100,"step":1,"value":0}
+{"at":"2026-10-20T11:21:52.063Z","tab":"33","label":"Contrast","max":100,"min":-100,"step":1,"value":30}
+{"at":"2026-10-20T11:21:57.278Z","tab":"33","label":"Contrast","max":100,"min":-100,"step":1,"value":-30}
+{"at":"2026-10-20T11:22:02.205Z","tab":"33","label":"Contrast","max":100,"min":-100,"step":1,"value":-100}
+{"at":"2026-10-20T11:22:05.713Z","tab":"33","label":"Contrast","max":100,"min":-100,"step":1,"value":100}
+{"at":"2026-10-20T11:22:09.170Z","tab":"33","label":"Contrast","max":100,"min":-100,"step":1,"value":0}
+{"at":"2026-10-20T11:28:08.508Z","tab":"38","label":"Brightness","max":100,"min":-100,"step":1,"value":25}
+{"at":"2026-10-20T12:04:46.828Z","tab":"33","label":"Brightness","max":100,"min":-100,"step":1,"value":-15}
+{"at":"2026-10-20T12:06:47.498Z","tab":"33","label":"Contrast","max":100,"min":-100,"step":1,"value":30}
+{"at":"2026-10-20T12:06:48.572Z","tab":"33","label":"Saturation","max":100,"min":-100,"step":1,"value":-100}
+{"at":"2026-10-20T12:06:49.264Z","tab":"33","label":"Vibrance","max":100,"min":-100,"step":1,"value":100}
+{"at":"2026-10-20T12:06:49.996Z","tab":"33","label":"Hue","max":180,"min":-180,"step":1,"value":45}
+{"at":"2026-10-20T12:07:33.260Z","tab":"33","label":"Exposure","max":4,"min":-4,"step":0.05,"value":1}
+{"at":"2026-10-20T12:07:34.064Z","tab":"33","label":"Brightness","max":100,"min":-100,"step":1,"value":25}
+{"at":"2026-10-20T12:07:34.652Z","tab":"33","label":"Contrast","max":100,"min":-100,"step":1,"value":30}
+{"at":"2026-10-20T12:09:16.440Z","tab":"33","label":"Brightness","max":100,"min":-100,"step":1,"value":25}
+{"at":"2026-10-20T12:12:25.202Z","tab":"33","label":"Brightness","max":100,"min":-100,"step":1,"value":-100}
+{"at":"2026-10-20T12:14:51.281Z","tab":"33","label":"Amount","max":100,"min":0,"step":1,"value":30}
+{"at":"2026-10-20T12:14:51.669Z","tab":"33","label":"Size","max":3,"min":0.5,"step":0.1,"value":1.8}
+{"at":"2026-10-20T12:14:52.052Z","tab":"33","label":"Roughness","max":100,"min":0,"step":1,"value":70}
+{"at":"2026-10-20T12:14:52.759Z","tab":"33","label":"Barrel / pincushion","max":100,"min":-100,"step":1,"value":20}
+{"at":"2026-10-20T12:14:53.124Z","tab":"33","label":"Red / blue fringe alignment","max":100,"min":-100,"step":1,"value":15}
+{"at":"2026-10-20T12:18:28.454Z","tab":"33","label":"Contrast","max":100,"min":-100,"step":1,"value":20}
+{"at":"2026-10-20T12:18:29.334Z","tab":"33","label":"Highlights","max":100,"min":-100,"step":1,"value":-20}
+{"at":"2026-10-20T12:18:30.173Z","tab":"33","label":"Shadows","max":100,"min":-100,"step":1,"value":20}
+{"at":"2026-10-20T12:18:30.959Z","tab":"33","label":"Whites","max":100,"min":-100,"step":1,"value":-10}
+{"at":"2026-10-20T12:18:31.638Z","tab":"33","label":"Blacks","max":100,"min":-100,"step":1,"value":10}
+{"at":"2026-10-20T12:18:33.064Z","tab":"33","label":"Temperature · cool / warm","max":100,"min":-100,"step":1,"value":15}
+{"at":"2026-10-20T12:18:33.866Z","tab":"33","label":"Tint · green / magenta","max":100,"min":-100,"step":1,"value":-10}
+{"at":"2026-10-20T12:18:34.597Z","tab":"33","label":"Saturation","max":100,"min":-100,"step":1,"value":20}
+{"at":"2026-10-20T12:18:35.400Z","tab":"33","label":"Vibrance","max":100,"min":-100,"step":1,"value":25}
+{"at":"2026-10-20T12:18:36.250Z","tab":"33","label":"Hue","max":180,"min":-180,"step":1,"value":15}
+{"at":"2026-10-20T12:18:48.316Z","tab":"33","label":"Hue","max":60,"min":-60,"step":1,"value":10}
+{"at":"2026-10-20T12:18:49.038Z","tab":"33","label":"Saturation","max":100,"min":-100,"step":1,"value":20}
+{"at":"2026-10-20T12:18:49.765Z","tab":"33","label":"Luminance","max":100,"min":-100,"step":1,"value":5}
+{"at":"2026-10-20T12:18:50.835Z","tab":"33","label":"Hue","max":60,"min":-60,"step":1,"value":10}
+{"at":"2026-10-20T12:18:51.546Z","tab":"33","label":"Saturation","max":100,"min":-100,"step":1,"value":20}
+{"at":"2026-10-20T12:18:52.482Z","tab":"33","label":"Luminance","max":100,"min":-100,"step":1,"value":5}
+{"at":"2026-10-20T12:18:53.597Z","tab":"33","label":"Hue","max":60,"min":-60,"step":1,"value":10}
+{"at":"2026-10-20T12:18:54.373Z","tab":"33","label":"Saturation","max":100,"min":-100,"step":1,"value":20}
+{"at":"2026-10-20T12:18:55.224Z","tab":"33","label":"Luminance","max":100,"min":-100,"step":1,"value":5}
+{"at":"2026-10-20T12:18:56.154Z","tab":"33","label":"Hue","max":60,"min":-60,"step":1,"value":10}
+{"at":"2026-10-20T12:18:56.589Z","tab":"33","label":"Saturation","max":100,"min":-100,"step":1,"value":20}
+{"at":"2026-10-20T12:18:57.003Z","tab":"33","label":"Luminance","max":100,"min":-100,"step":1,"value":5}
+{"at":"2026-10-20T12:18:57.595Z","tab":"33","label":"Hue","max":60,"min":-60,"step":1,"value":10}
+{"at":"2026-10-20T12:18:58.022Z","tab":"33","label":"Saturation","max":100,"min":-100,"step":1,"value":20}
+{"at":"2026-10-20T12:18:58.439Z","tab":"33","label":"Luminance","max":100,"min":-100,"step":1,"value":5}
+{"at":"2026-10-20T12:18:59.035Z","tab":"33","label":"Hue","max":60,"min":-60,"step":1,"value":10}
+{"at":"2026-10-20T12:18:59.456Z","tab":"33","label":"Saturation","max":100,"min":-100,"step":1,"value":20}
+{"at":"2026-10-20T12:18:59.843Z","tab":"33","label":"Luminance","max":100,"min":-100,"step":1,"value":5}
+{"at":"2026-10-20T12:19:00.437Z","tab":"33","label":"Hue","max":60,"min":-60,"step":1,"value":10}
+{"at":"2026-10-20T12:19:00.850Z","tab":"33","label":"Saturation","max":100,"min":-100,"step":1,"value":20}
+{"at":"2026-10-20T12:19:01.249Z","tab":"33","label":"Luminance","max":100,"min":-100,"step":1,"value":5}
+{"at":"2026-10-20T12:19:01.845Z","tab":"33","label":"Hue","max":60,"min":-60,"step":1,"value":10}
+{"at":"2026-10-20T12:19:02.266Z","tab":"33","label":"Saturation","max":100,"min":-100,"step":1,"value":20}
+{"at":"2026-10-20T12:19:02.683Z","tab":"33","label":"Luminance","max":100,"min":-100,"step":1,"value":5}
+{"at":"2026-10-20T12:19:15.592Z","tab":"33","label":"Pop","max":100,"min":0,"step":1,"value":10}
+{"at":"2026-10-20T12:19:16.169Z","tab":"33","label":"Clarity","max":100,"min":-100,"step":1,"value":15}
+{"at":"2026-10-20T12:19:16.619Z","tab":"33","label":"Texture","max":100,"min":-100,"step":1,"value":20}
+{"at":"2026-10-20T12:19:17.080Z","tab":"33","label":"Dehaze","max":100,"min":-100,"step":1,"value":10}
+{"at":"2026-10-20T12:19:17.854Z","tab":"33","label":"Sharpness","max":150,"min":0,"step":1,"value":35}
+{"at":"2026-10-20T12:19:18.306Z","tab":"33","label":"Radius","max":3,"min":0.5,"step":0.1,"value":1.5}
+{"at":"2026-10-20T12:19:18.812Z","tab":"33","label":"Threshold · protect smooth areas","max":32,"min":0,"step":1,"value":5}
+{"at":"2026-10-20T12:19:19.523Z","tab":"33","label":"Luminance noise","max":100,"min":0,"step":1,"value":20}
+{"at":"2026-10-20T12:19:20.020Z","tab":"33","label":"Colour noise","max":100,"min":0,"step":1,"value":15}
+{"at":"2026-10-20T12:19:20.987Z","tab":"33","label":"Vignette · dark / light","max":100,"min":-100,"step":1,"value":-20}
+{"at":"2026-10-20T12:19:21.495Z","tab":"33","label":"Midpoint","max":100,"min":0,"step":1,"value":30}
+{"at":"2026-10-20T12:19:21.985Z","tab":"33","label":"Feather","max":100,"min":0,"step":1,"value":50}
+{"at":"2026-10-20T12:19:22.476Z","tab":"33","label":"Roundness","max":100,"min":0,"step":1,"value":20}
+{"at":"2026-10-20T12:19:41.476Z","tab":"33","label":"Straighten","max":45,"min":-45,"step":0.1,"value":5}
+{"at":"2026-10-20T12:19:41.913Z","tab":"33","label":"Scale · fill clear edges","max":200,"min":50,"step":1,"value":110}
+{"at":"2026-10-20T12:19:43.176Z","tab":"33","label":"Vertical perspective","max":75,"min":-75,"step":1,"value":10}
+{"at":"2026-10-20T12:19:43.616Z","tab":"33","label":"Horizontal perspective","max":75,"min":-75,"step":1,"value":-10}

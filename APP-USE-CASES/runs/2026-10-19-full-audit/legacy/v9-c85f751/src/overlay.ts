@@ -1,0 +1,163 @@
+import { activeSector, sectorPolygon, polygonPath, sliceAt } from './symmetry-mask';
+import { uiCtx, W, H } from './canvas';
+import { drawShape, getPending, strokePath } from './fill';
+import { drawSqueegee } from './effects';
+import { getPreview } from './preview';
+import { drawRig } from './spiro';
+import { state } from './state';
+import { renderSelection } from './selection';
+import { splinePoints } from './curves';
+import { photoEditing } from './photo-preview';
+import { drawPhotoGuides } from './photo-guides';
+import { previewVectorShape, renderObjectSelection } from './objects';
+import { renderToolCursor } from './cursor-renderer';
+
+export function renderOverlay(): void {
+  uiCtx.setTransform(1, 0, 0, 1, 0, 0);
+  uiCtx.clearRect(0, 0, W, H);
+  uiCtx.globalAlpha = 1;
+  uiCtx.shadowBlur = 0;
+  uiCtx.setLineDash([]);
+  drawViewGuides();
+  if (photoEditing) { drawPhotoGuides(uiCtx); return; }
+
+  if (state.symmetry !== 'off') drawGuides(uiCtx);
+  if (state.tool === 'spiro') drawRig(uiCtx);
+
+  const preview = getPreview();
+  if (preview?.kind === 'shape') {
+    const ink = state.ink, live = state.liveArmed;
+    if (preview.ink) { state.ink = preview.ink; state.liveArmed = false; }
+    if(state.drawingMode==='vector')previewVectorShape(uiCtx,preview.shape,preview.x0,preview.y0,preview.x1,preview.y1);
+    else drawShape(preview.shape, preview.x0, preview.y0, preview.x1, preview.y1, uiCtx, false);
+    state.ink = ink; state.liveArmed = live;
+  } else if (preview?.kind === 'lasso') {
+    uiCtx.strokeStyle = '#1A1A1A';
+    uiCtx.lineWidth = 3;
+    uiCtx.setLineDash([6, 5]);
+    uiCtx.beginPath();
+    preview.points.forEach((p, i) => (i ? uiCtx.lineTo(p.x, p.y) : uiCtx.moveTo(p.x, p.y)));
+    if (state.selectionMode === 'rect') uiCtx.closePath();
+    uiCtx.stroke();
+    uiCtx.setLineDash([]);
+  } else if (preview?.kind === 'rubber') {
+    uiCtx.strokeStyle = '#1A1A1A';
+    uiCtx.lineWidth = 3;
+    uiCtx.setLineDash([7, 6]);
+    uiCtx.beginPath();
+    uiCtx.moveTo(preview.x0, preview.y0);
+    uiCtx.lineTo(preview.x1, preview.y1);
+    uiCtx.stroke();
+    uiCtx.setLineDash([]);
+    pin(uiCtx, preview.x0, preview.y0, '#ffffff');
+    pin(uiCtx, preview.x1, preview.y1, '#1A1A1A');
+  }
+
+  const pending = getPending();
+  if (pending) {
+    uiCtx.strokeStyle = '#1A1A1A';
+    uiCtx.lineWidth = 3;
+    uiCtx.beginPath();
+    uiCtx.moveTo(pending.x1, pending.y1);
+    uiCtx.lineTo(pending.x2, pending.y2);
+    uiCtx.stroke();
+    pin(uiCtx, pending.x1, pending.y1, '#06D6A0');
+    pin(uiCtx, pending.x2, pending.y2, '#EF476F');
+  }
+
+  drawSqueegee(uiCtx);
+  renderSelection(uiCtx, true);
+  renderObjectSelection(uiCtx);
+  renderToolCursor(uiCtx);
+
+  if (state.poly.length > 0 && state.tool === 'shapes' && (state.shape === 'poly' || state.shape === 'spline' || state.shape === 'polygon')) {
+    strokePath(state.shape === 'spline' ? splinePoints(state.poly) : state.poly, uiCtx, false, false);
+    uiCtx.fillStyle = '#FFD166';
+    for (const p of state.poly) {
+      uiCtx.beginPath();
+      uiCtx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+      uiCtx.fill();
+    }
+  }
+  drawSymmetryMask(uiCtx);
+}
+
+function drawViewGuides(): void {
+  const scale = Math.max(0.01, state.paperScale);
+  if (state.pixelGrid && scale >= 6) {
+    uiCtx.save(); uiCtx.strokeStyle = '#26304730'; uiCtx.lineWidth = 1 / scale; uiCtx.beginPath();
+    for (let x = 0; x <= W; x++) { uiCtx.moveTo(x, 0); uiCtx.lineTo(x, H); }
+    for (let y = 0; y <= H; y++) { uiCtx.moveTo(0, y); uiCtx.lineTo(W, y); } uiCtx.stroke(); uiCtx.restore();
+  }
+  if (state.rulers) {
+    uiCtx.save(); const size = 18 / scale, step = Math.max(1, 10 ** Math.ceil(Math.log10(45 / scale)));
+    uiCtx.fillStyle = '#fffdf7e8'; uiCtx.fillRect(0, 0, W, size); uiCtx.fillRect(0, 0, size, H);
+    uiCtx.fillStyle = '#263047'; uiCtx.font = `${10 / scale}px Trebuchet MS`; uiCtx.textBaseline = 'top';
+    for (let x = step; x < W; x += step) uiCtx.fillText(String(x), x, 2 / scale);
+    for (let y = step; y < H; y += step) { uiCtx.save(); uiCtx.translate(2 / scale, y); uiCtx.rotate(-Math.PI / 2); uiCtx.fillText(String(y), 0, 0); uiCtx.restore(); }
+    uiCtx.restore();
+  }
+}
+
+function drawGuides(ctx: CanvasRenderingContext2D): void {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(66, 105, 150, 0.35)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([5, 7]);
+  const cx = W / 2;
+  const cy = H / 2;
+  ctx.beginPath();
+  if (['6', '10', '12'].includes(state.symmetry)) {
+    const count = Number(state.symmetry);
+    for (let i = 0; i < count; i++) {
+      const angle = i * Math.PI * 2 / count;
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(angle) * W, cy + Math.sin(angle) * W);
+    }
+  }
+  if (state.symmetry === 'v' || state.symmetry === '4' || state.symmetry === '8') {
+    ctx.moveTo(cx, 0);
+    ctx.lineTo(cx, H);
+  }
+  if (state.symmetry === 'h' || state.symmetry === '4' || state.symmetry === '8') {
+    ctx.moveTo(0, cy);
+    ctx.lineTo(W, cy);
+  }
+  if (state.symmetry === '8') {
+    ctx.moveTo(cx - cy, 0);
+    ctx.lineTo(cx + cy, H);
+    ctx.moveTo(cx + cy, 0);
+    ctx.lineTo(cx - cy, H);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function pin(ctx: CanvasRenderingContext2D, x: number, y: number, fill: string): void {
+  ctx.beginPath();
+  ctx.arc(x, y, 11, 0, Math.PI * 2);
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = '#1A1A1A';
+  ctx.stroke();
+}
+
+function drawSymmetryMask(ctx: CanvasRenderingContext2D): void {
+  const sector = activeSector();
+  if (!sector) return;
+  if (state.choosingSlice && state.cursor) sector.slice = sliceAt(state.cursor.x,state.cursor.y);
+  const polygon = sectorPolygon(sector);
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0,0,W,H); polygonPath(ctx,polygon);
+  ctx.fillStyle='rgba(38,48,71,0.16)'; ctx.fill('evenodd'); ctx.clip('evenodd');
+  ctx.setLineDash([]); ctx.strokeStyle='#8064b9'; ctx.lineWidth=3; ctx.lineCap='round';
+  // The rail sits wholly outside the dotted seam, leaving the working paper clear.
+  for (let i=0;i<polygon.length;i++) {
+    const a=polygon[i],b=polygon[(i+1)%polygon.length],length=Math.hypot(b.x-a.x,b.y-a.y);
+    if (length<0.1) continue;
+    const dx=(b.y-a.y)/length*5,dy=-(b.x-a.x)/length*5;
+    ctx.beginPath();ctx.moveTo(a.x+dx,a.y+dy);ctx.lineTo(b.x+dx,b.y+dy);ctx.stroke();
+  }
+  ctx.restore();
+}

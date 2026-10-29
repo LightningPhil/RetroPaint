@@ -1,0 +1,513 @@
+{
+  "at": "2026-10-20T21:27:47.565684+00:00",
+  "case": "PAINT-013",
+  "status": "Pre-execution plan, not a result",
+  "rows": [
+    {
+      "id": "settled-s1-a1-v1",
+      "source_kind": "settled",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 1,
+      "strength": 1,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "fixture_sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "controlled_render_time_ms": null
+    },
+    {
+      "id": "settled-s1-a1-v2",
+      "source_kind": "settled",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 1,
+      "strength": 1,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "fixture_sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "controlled_render_time_ms": null
+    },
+    {
+      "id": "settled-s1-a1-v3",
+      "source_kind": "settled",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 1,
+      "strength": 1,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "fixture_sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "controlled_render_time_ms": null
+    },
+    {
+      "id": "settled-s1-a1-v4",
+      "source_kind": "settled",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 1,
+      "strength": 1,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "fixture_sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "controlled_render_time_ms": null
+    },
+    {
+      "id": "settled-s1-a0.15-v1",
+      "source_kind": "settled",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 1,
+      "strength": 0.15,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "fixture_sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "controlled_render_time_ms": null
+    },
+    {
+      "id": "settled-s1-a0.15-v2",
+      "source_kind": "settled",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 1,
+      "strength": 0.15,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "fixture_sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "controlled_render_time_ms": null
+    },
+    {
+      "id": "settled-s1-a0.15-v3",
+      "source_kind": "settled",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 1,
+      "strength": 0.15,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "fixture_sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "controlled_render_time_ms": null
+    },
+    {
+      "id": "settled-s1-a0.15-v4",
+      "source_kind": "settled",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 1,
+      "strength": 0.15,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "fixture_sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "controlled_render_time_ms": null
+    },
+    {
+      "id": "settled-s22-a1-v1",
+      "source_kind": "settled",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 22,
+      "strength": 1,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "fixture_sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "controlled_render_time_ms": null
+    },
+    {
+      "id": "settled-s22-a1-v2",
+      "source_kind": "settled",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 1,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "fixture_sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "controlled_render_time_ms": null
+    },
+    {
+      "id": "settled-s22-a1-v3",
+      "source_kind": "settled",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 22,
+      "strength": 1,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "fixture_sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "controlled_render_time_ms": null
+    },
+    {
+      "id": "settled-s22-a1-v4",
+      "source_kind": "settled",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 1,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "fixture_sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "controlled_render_time_ms": null
+    },
+    {
+      "id": "settled-s22-a0.15-v1",
+      "source_kind": "settled",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 22,
+      "strength": 0.15,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "fixture_sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "controlled_render_time_ms": null
+    },
+    {
+      "id": "settled-s22-a0.15-v2",
+      "source_kind": "settled",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 0.15,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "fixture_sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "controlled_render_time_ms": null
+    },
+    {
+      "id": "settled-s22-a0.15-v3",
+      "source_kind": "settled",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 22,
+      "strength": 0.15,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "fixture_sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "controlled_render_time_ms": null
+    },
+    {
+      "id": "settled-s22-a0.15-v4",
+      "source_kind": "settled",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 0.15,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "fixture_sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "controlled_render_time_ms": null
+    },
+    {
+      "id": "settled-s96-a1-v1",
+      "source_kind": "settled",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 96,
+      "strength": 1,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "fixture_sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "controlled_render_time_ms": null
+    },
+    {
+      "id": "settled-s96-a1-v2",
+      "source_kind": "settled",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 96,
+      "strength": 1,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "fixture_sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "controlled_render_time_ms": null
+    },
+    {
+      "id": "settled-s96-a1-v3",
+      "source_kind": "settled",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 96,
+      "strength": 1,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "fixture_sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "controlled_render_time_ms": null
+    },
+    {
+      "id": "settled-s96-a1-v4",
+      "source_kind": "settled",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 96,
+      "strength": 1,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "fixture_sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "controlled_render_time_ms": null
+    },
+    {
+      "id": "settled-s96-a0.15-v1",
+      "source_kind": "settled",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 96,
+      "strength": 0.15,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "fixture_sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "controlled_render_time_ms": null
+    },
+    {
+      "id": "settled-s96-a0.15-v2",
+      "source_kind": "settled",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 96,
+      "strength": 0.15,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "fixture_sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "controlled_render_time_ms": null
+    },
+    {
+      "id": "settled-s96-a0.15-v3",
+      "source_kind": "settled",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 96,
+      "strength": 0.15,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "fixture_sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "controlled_render_time_ms": null
+    },
+    {
+      "id": "settled-s96-a0.15-v4",
+      "source_kind": "settled",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 96,
+      "strength": 0.15,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-settled.retropaint",
+      "fixture_sha256": "aefcc7875b45bd4fd9cce4f57436f36ce8c87fa3f4227c5a6b613102096be508",
+      "controlled_render_time_ms": null
+    },
+    {
+      "id": "live-s22-a1-v1",
+      "source_kind": "live",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 22,
+      "strength": 1,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-live.retropaint",
+      "fixture_sha256": "171a9613445558ea5b91c682472c6f0a7a544695e380b304f0cb0b5297fd1da7",
+      "controlled_render_time_ms": 10000
+    },
+    {
+      "id": "live-s22-a1-v2",
+      "source_kind": "live",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 1,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-live.retropaint",
+      "fixture_sha256": "171a9613445558ea5b91c682472c6f0a7a544695e380b304f0cb0b5297fd1da7",
+      "controlled_render_time_ms": 10000
+    },
+    {
+      "id": "live-s22-a1-v3",
+      "source_kind": "live",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 22,
+      "strength": 1,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-live.retropaint",
+      "fixture_sha256": "171a9613445558ea5b91c682472c6f0a7a544695e380b304f0cb0b5297fd1da7",
+      "controlled_render_time_ms": 10000
+    },
+    {
+      "id": "live-s22-a1-v4",
+      "source_kind": "live",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 1,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-live.retropaint",
+      "fixture_sha256": "171a9613445558ea5b91c682472c6f0a7a544695e380b304f0cb0b5297fd1da7",
+      "controlled_render_time_ms": 10000
+    },
+    {
+      "id": "live-s22-a0.15-v1",
+      "source_kind": "live",
+      "viewport": [
+        1280,
+        720
+      ],
+      "size": 22,
+      "strength": 0.15,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-live.retropaint",
+      "fixture_sha256": "171a9613445558ea5b91c682472c6f0a7a544695e380b304f0cb0b5297fd1da7",
+      "controlled_render_time_ms": 10000
+    },
+    {
+      "id": "live-s22-a0.15-v2",
+      "source_kind": "live",
+      "viewport": [
+        320,
+        568
+      ],
+      "size": 22,
+      "strength": 0.15,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-live.retropaint",
+      "fixture_sha256": "171a9613445558ea5b91c682472c6f0a7a544695e380b304f0cb0b5297fd1da7",
+      "controlled_render_time_ms": 10000
+    },
+    {
+      "id": "live-s22-a0.15-v3",
+      "source_kind": "live",
+      "viewport": [
+        390,
+        844
+      ],
+      "size": 22,
+      "strength": 0.15,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-live.retropaint",
+      "fixture_sha256": "171a9613445558ea5b91c682472c6f0a7a544695e380b304f0cb0b5297fd1da7",
+      "controlled_render_time_ms": 10000
+    },
+    {
+      "id": "live-s22-a0.15-v4",
+      "source_kind": "live",
+      "viewport": [
+        844,
+        390
+      ],
+      "size": 22,
+      "strength": 0.15,
+      "fixture": "headless\\SMUDGE-producer\\SMUDGE-live.retropaint",
+      "fixture_sha256": "171a9613445558ea5b91c682472c6f0a7a544695e380b304f0cb0b5297fd1da7",
+      "controlled_render_time_ms": 10000
+    }
+  ],
+  "points": [
+    [
+      120,
+      120
+    ],
+    [
+      124,
+      120
+    ],
+    [
+      128,
+      120
+    ],
+    [
+      132,
+      120
+    ],
+    [
+      136,
+      120
+    ],
+    [
+      140,
+      120
+    ],
+    [
+      144,
+      120
+    ],
+    [
+      148,
+      120
+    ],
+    [
+      152,
+      120
+    ],
+    [
+      156,
+      120
+    ],
+    [
+      160,
+      120
+    ],
+    [
+      164,
+      120
+    ],
+    [
+      168,
+      120
+    ],
+    [
+      172,
+      120
+    ],
+    [
+      176,
+      120
+    ],
+    [
+      180,
+      120
+    ],
+    [
+      184,
+      120
+    ],
+    [
+      188,
+      120
+    ],
+    [
+      192,
+      120
+    ],
+    [
+      196,
+      120
+    ],
+    [
+      200,
+      120
+    ]
+  ],
+  "expected_actual_downloads": 320,
+  "oracle": "Known native two-layer fixture. Actual pointer-down public view is captured before any movement; it must equal the pre-gesture export at the same declared phase. With original binary foreground alpha and opaque Green guide, opaque foreground RGB is read directly from that view and clear foreground cells stayRGBA0. This independently observed immutable starting frame supplies the live-source pixels, never a call to the Smudge kernel. Writes stay within max12,Size radius plus1px of the declared horizontal path; outside RGBA and every guide/non-target field remain exact. In x<154, only Red and clear can contribute to a rightward drag because Blue startsx160. Every nonzero-alpha pixel there must retain pure RedRGB within1/255, even as alpha changes: premultiplied resampling cannot introduce black or sample the Green guide. The source-clear gap develops partial alpha with at least3 levels (feathering). Its alpha-weighted Red-region centroid moves right, and full Strength shifts farther than15% at each matching size/layout/source kind. Each complete source Undo/Redo and actual fresh input is exact; live definitions restore exactly on Undo, and fixed10000ms frames are compared explicitly. Independent Pillow composition over the known Green guide agrees within1/255.",
+  "live_scope": "Real moving Water fill over the Blue region, verified at three phases. Smudge intentionally bakes active-layer live ink at pointer down; that representation change is recorded, its fixed-phase image must not change until movement, and Undo must recover the exact original live definitions. No claim that procedural animation continues on the rasterised active layer. Other layer data stays exact. Only live render/performance reads use fixed10000ms; no time/age/latency assertion is based on that value.",
+  "scope": "24 exhaustive settled size1/22/96 xStrength15/100% xfour-layout rows, plus8 genuine live-water rows at22px/both Strengths/four layouts. Transparent gap and visible separate Green guide in every row. Native mouse only; physical pen/touch is not certified."
+}

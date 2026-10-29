@@ -1,0 +1,10 @@
+{
+  "generator": "Independent NumPy parity: RGB=255*((x+y)%2), alpha=255",
+  "dimensions": [
+    1920,
+    1280
+  ],
+  "file": "FULLSIZE-grid.png",
+  "sha256": "b11bcf0a6624603a9bc1a6d75972f1ef87e693b9b7851a0909d5bb7c8cdd3d9e",
+  "oracle": "Every one-pixel black/white sample must remain distinct in the full-size output. A 720px preview cannot retain the source Nyquist pattern."
+}
