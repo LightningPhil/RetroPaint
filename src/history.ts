@@ -6,6 +6,7 @@ import { emit } from './bus';
 import { documentCrop, setDocumentCrop } from './document-frame';
 import type { CropBox } from './photo-engine';
 import { play } from './audio';
+import { state, vectorDrawingEnabled } from './state';
 
 export interface Hist {
   image: ImageData;
@@ -16,6 +17,7 @@ export interface Hist {
   width: number;
   height: number;
   crop:CropBox;
+  drawingMode:typeof state.drawingMode;
 }
 
 const stack: Hist[] = [];
@@ -27,11 +29,14 @@ export function captureHistory(): Hist {
     startedAt: artwork.snapshot(),
     image: layers.find(layer => layer.id === activeLayerId)!.image,
     live: layers.find(layer => layer.id === activeLayerId)!.live,
-    layers, active: activeLayerId, width: W, height: H, crop:documentCrop(),
+    layers, active: activeLayerId, width: W, height: H, crop:documentCrop(), drawingMode:state.drawingMode,
   };
 }
 
 export function restoreHistory(item: Hist): void {
+  state.drawingMode=item.drawingMode;
+  document.body.classList.toggle('vector-mode',vectorDrawingEnabled());
+  const mode=document.getElementById('drawingMode') as HTMLSelectElement|null;if(mode)mode.value=item.drawingMode;
   restoreLayers(item.layers, item.active, item.width, item.height);
   setDocumentCrop(item.crop);
   restoreLive(item.live);

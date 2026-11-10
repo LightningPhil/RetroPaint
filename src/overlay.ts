@@ -11,6 +11,7 @@ import { photoEditing } from './photo-preview';
 import { drawPhotoGuides } from './photo-guides';
 import { previewVectorShape, renderObjectSelection } from './objects';
 import { renderToolCursor } from './cursor-renderer';
+import { renderViewGuides } from './view-guides';
 
 export function renderOverlay(): void {
   uiCtx.setTransform(1, 0, 0, 1, 0, 0);
@@ -18,7 +19,7 @@ export function renderOverlay(): void {
   uiCtx.globalAlpha = 1;
   uiCtx.shadowBlur = 0;
   uiCtx.setLineDash([]);
-  drawViewGuides();
+  renderViewGuides();
   if (photoEditing) { drawPhotoGuides(uiCtx); return; }
 
   if (state.symmetry !== 'off') drawGuides(uiCtx);
@@ -80,23 +81,6 @@ export function renderOverlay(): void {
     }
   }
   drawSymmetryMask(uiCtx);
-}
-
-function drawViewGuides(): void {
-  const scale = Math.max(0.01, state.paperScale);
-  if (state.pixelGrid && scale >= 6) {
-    uiCtx.save(); uiCtx.strokeStyle = '#26304730'; uiCtx.lineWidth = 1 / scale; uiCtx.beginPath();
-    for (let x = 0; x <= W; x++) { uiCtx.moveTo(x, 0); uiCtx.lineTo(x, H); }
-    for (let y = 0; y <= H; y++) { uiCtx.moveTo(0, y); uiCtx.lineTo(W, y); } uiCtx.stroke(); uiCtx.restore();
-  }
-  if (state.rulers) {
-    uiCtx.save(); const size = 18 / scale, step = Math.max(1, 10 ** Math.ceil(Math.log10(45 / scale)));
-    uiCtx.fillStyle = '#fffdf7e8'; uiCtx.fillRect(0, 0, W, size); uiCtx.fillRect(0, 0, size, H);
-    uiCtx.fillStyle = '#263047'; uiCtx.font = `${10 / scale}px Trebuchet MS`; uiCtx.textBaseline = 'top';
-    for (let x = step; x < W; x += step) uiCtx.fillText(String(x), x, 2 / scale);
-    for (let y = step; y < H; y += step) { uiCtx.save(); uiCtx.translate(2 / scale, y); uiCtx.rotate(-Math.PI / 2); uiCtx.fillText(String(y), 0, 0); uiCtx.restore(); }
-    uiCtx.restore();
-  }
 }
 
 function drawGuides(ctx: CanvasRenderingContext2D): void {

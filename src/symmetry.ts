@@ -3,6 +3,10 @@ import { state } from './state';
 import type { SymmetryMode } from './types';
 
 type Transform = { a: number; b: number; c: number; d: number };
+/** Identical lanes describe the same mark; keep a small subpixel tolerance. */
+export function sameLane(a:{x:number;y:number}[],b:{x:number;y:number}[]):boolean {
+  return a.length===b.length&&a.every((p,i)=>Math.abs(p.x-b[i].x)<.001&&Math.abs(p.y-b[i].y)<.001);
+}
 const transforms = new Map<SymmetryMode, Transform[]>();
 /** Orthogonal transforms keep each lane continuous even across a mirror seam. */
 export function symmetryTransforms(mode: SymmetryMode = state.symmetry): { a: number; b: number; c: number; d: number }[] {

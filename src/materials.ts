@@ -222,6 +222,7 @@ export function animatedKind(id: string): 'sparkle' | 'texture' | 'time' | null 
 }
 
 export function captureStrokeSpec(): LiveSpec | 'sparkle' | null {
+  if(state.liveArmed&&state.conveyor.length===1)return {kind:'solid',colors:[state.conveyor[0]],speed:0,mode:'snap',along:true,texture:null};
   if (state.liveArmed && state.conveyor.length >= 2) {
     return {
       kind: 'conveyor',
@@ -285,7 +286,7 @@ export function colorFromSpec(spec: LiveSpec, now: number, distance: number): st
 }
 
 export function activeInkId(): string {
-  if (state.liveArmed && state.conveyor.length >= 2) return 'live';
+  if (state.liveArmed && state.conveyor.length) return state.conveyor.length===1?state.conveyor[0]:'live';
   return state.ink;
 }
 

@@ -9,6 +9,7 @@ body[data-desk=night] #wordmark span:last-child {color:#f2adc4;text-shadow:1px 2
 #toolBin .tool-btn .tool-art {width:38px;height:36px;flex:0 0 auto;filter:drop-shadow(0 1px 0 #fff8);transition:transform .16s;}
 #toolBin .tool-btn .tool-label {font-size:11px;line-height:1.1;letter-spacing:-.12px;}
 #toolBin .tool-btn.active,#toolBin .tool-btn[aria-expanded=true] {background:linear-gradient(150deg,#ffe49c,#ffd06b);box-shadow:1px 2px 0 var(--ink),inset 0 1px 0 #fff8;}
+#toolBin .tool-btn[aria-pressed=true]::after {content:'✓';position:absolute;top:2px;right:3px;width:14px;height:14px;border:1px solid var(--ink);border-radius:50%;background:var(--paper);color:var(--ink);font:bold 11px/14px Arial;text-align:center;pointer-events:none;}
 #toolBin .tool-btn:not(:disabled):hover .tool-art {transform:translateY(-1px) rotate(-3deg);}
 #toolBin .tool-btn:active {transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink);}
 #toolBin .advanced-tool .icon {width:34px;height:30px;}
@@ -90,9 +91,10 @@ input[type=range] {accent-color:var(--paint-ink,#c65b79);cursor:pointer;}
 #draftStatus {border:0;border-left:1px solid #d7ddd7;border-radius:0;padding:4px 3px 4px 10px;margin-left:2px;background:transparent;box-shadow:none;color:#647e72;font:700 10px "Trebuchet MS",sans-serif;white-space:nowrap;cursor:pointer;}
 #draftStatus:hover {color:#466950;text-decoration:underline;}
 #draftStatus[data-project=true] {color:#985924;}
-#recoveryDialog {width:min(430px,calc(100% - 24px));padding:18px;border:2px solid var(--ink);border-radius:22px;background:var(--paper);color:var(--ink);box-shadow:6px 7px 0 #2f405240;overflow:visible;}
+#recoveryDialog {width:min(430px,calc(100% - 24px));max-height:calc(100dvh - 24px);padding:18px;border:2px solid var(--ink);border-radius:22px;background:var(--paper);color:var(--ink);box-shadow:6px 7px 0 #2f405240;overflow:auto;overscroll-behavior:contain;}
 #recoveryDialog::backdrop {background:#26364c66;backdrop-filter:blur(3px);}
 #recoveryDialog>.hint {margin:0 0 12px;}
+#recoveryError {padding:9px 11px;border:1px solid #b56b4e;border-radius:9px;background:#fff0e5;color:#7b3021;overflow-wrap:anywhere;}
 #recoveryList {display:grid;gap:8px;}
 .recovery-card {display:flex;align-items:center;gap:12px;width:100%;padding:7px;text-align:left;border:1.5px solid #bbc9bd;border-radius:12px;background:#f5f4eb;color:var(--ink);box-shadow:1px 2px 0 #bcc9bc;cursor:pointer;}
 .recovery-card:hover {background:#e9f2e9;border-color:#6d9985;}

@@ -1,0 +1,6 @@
+"""Declared modern alignment fixture derived from native saved asymmetric scene."""
+from pathlib import Path
+import copy,json,uuid,hashlib
+root=Path(__file__).resolve().parents[3];out=root/'test-results/audit-2026-11-05/fixtures';source=Path.home()/'Downloads/mouse-audit-placement175-fixed.retropaint';raw=source.read_bytes();doc=json.loads(raw);layer=next(l for l in doc['layers'] if 'cad'in l);moving=layer['cad']['bodies'][0];moving['name']='Moving asymmetric';locked=copy.deepcopy(moving);locked.update(id=uuid.uuid4().hex,name='Locked companion',position=[70,20,30],locked=True)
+reference=copy.deepcopy(next(c for c in moving['solid']['children'] if c['solid']['shape']=='box'));reference.update(id=uuid.uuid4().hex,name='Reference cube',position=[100,50,30],scale=[.5,1,1.5]);layer['cad']['bodies']=[moving,locked,reference]
+path=out/'alignment176-modern.retropaint';path.write_text(json.dumps(doc,separators=(',',':')),encoding='utf-8');manifest=dict(provenance=__doc__,source=str(source),source_sha256=hashlib.sha256(raw).hexdigest(),fixture_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),moving=moving['id'],locked=locked['id'],reference=reference['id']);(out/'alignment176-modern.json').write_text(json.dumps(manifest,indent=2)+'\n');print(json.dumps(manifest,indent=2))

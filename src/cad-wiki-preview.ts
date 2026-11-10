@@ -36,6 +36,6 @@ export class WikiPreview {
       const warnings=native.logs.filter(line=>/^(ECHO:|WARNING:)/.test(line));this.status.textContent=`Ready · ${size.toArray().map(n=>n.toFixed(2)).join(' × ')} mm · ${(mesh.volume/1000).toFixed(2)} cm³ · ${mesh.triangles.toLocaleString()} triangles${warnings.length?'\n'+warnings.join('\n'):''}`;this.render();
     }catch(error){if(this.abort===controller)this.status.textContent=error instanceof Error?error.message:String(error);}
   }
-  close():void{this.abort?.abort();this.abort=undefined;if(this.dialog.open)this.dialog.close();this.controls?.dispose();this.controls=undefined;this.mesh?.geometry.dispose();this.mesh?.material.dispose();this.mesh=undefined;this.renderer?.dispose();this.renderer?.domElement.remove();this.renderer=undefined;this.scene.clear();}
+  close():void{this.abort?.abort();this.abort=undefined;if(this.dialog.open)this.dialog.close();this.controls?.dispose();this.controls=undefined;this.mesh?.geometry.dispose();this.mesh?.material.dispose();this.mesh=undefined;this.renderer?.dispose();this.renderer?.forceContextLoss();this.renderer?.domElement.remove();this.renderer=undefined;this.scene.clear();}
   private render():void{if(!this.renderer||!this.dialog.open)return;const w=Math.max(1,this.viewport.clientWidth),h=Math.max(1,this.viewport.clientHeight);this.renderer.setSize(w,h,false);this.camera.aspect=w/h;this.camera.updateProjectionMatrix();this.renderer.render(this.scene,this.camera);}
 }

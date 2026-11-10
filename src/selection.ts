@@ -1,12 +1,12 @@
 import { base, baseCtx, cloneCanvas, H, resetPaint, W } from './canvas';
 import { emit } from './bus';
 import { captureHistory, pushHistory, restoreHistory, type Hist } from './history';
-import { bakeLive, renderLive } from './live';
+import { bakeLive, hasLive, renderLive } from './live';
 import { state } from './state';
 import { activeSector, clipPolygon, clipToSector, insideSector, sectorPolygon, type Sector } from './symmetry-mask';
 import { symmetryTransforms } from './symmetry';
 import { activeLayer, eraseRegion } from './layers';
-import { addRasterImage, clearObjectSelection, commitObjectSelection, copyObjects, deleteObjects, editableObjects, editObjectPixels, flipObjects, hasObjectClipboard, hasObjectSelection, moveObjects, objectSelectionBounds, pasteObjects, resizeObjects, rotateObjects, selectAllObjects, transformObjects } from './objects';
+import { addRasterImage, clearObjectClipboard, clearObjectSelection, commitObjectSelection, copyObjects, deleteObjects, editableObjects, editObjectPixels, flipObjects, hasObjectClipboard, hasObjectSelection, moveObjects, objectSelectionBounds, pasteObjects, resizeObjects, rotateObjects, selectAllObjects, transformObjects } from './objects';
 
 type Point = { x: number; y: number };
 interface Selection {
@@ -20,6 +20,7 @@ interface Selection {
   sourceX: number; sourceY: number;
   floating: boolean;
   before: Hist | null;
+  pasted?: boolean;
 }
 let selected: Selection | null = null;
 let clipboard: HTMLCanvasElement | null = null;
@@ -32,6 +33,12 @@ function changed(): void { emit('selection'); }
 
 export function rectangle(x0: number, y0: number, x1: number, y1: number): Point[] {
   return [{ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x1, y: y1 }, { x: x0, y: y1 }];
+}
+export function pixelRectangle(x0: number, y0: number, x1: number, y1: number): Point[] {
+  if (![x0,y0,x1,y1].every(Number.isFinite) || x0 === x1 || y0 === y1) return [];
+  // Raster bounds already use floor/ceil. Use those same edges for copying
+  // and erasing, so fractional pointer positions cannot leave cut fringes.
+  return rectangle(Math.floor(Math.min(x0,x1)), Math.floor(Math.min(y0,y1)), Math.ceil(Math.max(x0,x1)), Math.ceil(Math.max(y0,y1)));
 }
 function trace(ctx: CanvasRenderingContext2D, points: Point[]): void {
   ctx.beginPath();
@@ -122,6 +129,7 @@ export function moveSelection(dx: number, dy: number): void {
 export function copySelection(): void {
   if(hasObjectSelection()){copyObjects();return;}
   if (!selected) return;
+  clearObjectClipboard();
   clipboard = cloneCanvas(selected.original);
   if (selected.sector) {
     const ctx = clipboard.getContext('2d')!;
@@ -162,9 +170,7 @@ export function pasteImage(original: HTMLCanvasElement, at?: Point): void {
   const x = at?.x ?? Math.round(Math.max(0, Math.min(W-original.width, center.x-original.width/2)));
   const y = at?.y ?? Math.round(Math.max(0, Math.min(H-original.height, center.y-original.height/2)));
   selected = { sector, original, image: transparent(original), points: rectangle(0, 0, original.width, original.height),
-    x, y, sourceX: x, sourceY: y, floating: true, before: captureHistory() };
-  // Floating artwork must sit above the current live drawing after placement too.
-  bakeLive(baseCtx, performance.now());
+    x, y, sourceX: x, sourceY: y, floating: true, before: captureHistory(), pasted: true };
   changed();
 }
 export function commitSelection(clearObjects=true): void {
@@ -172,7 +178,23 @@ export function commitSelection(clearObjects=true): void {
   if (!selected) return;
   if (selected.floating) {
     pushHistory(selected.before!);
-    renderSelection(baseCtx);
+    if (selected.pasted && hasLive()) {
+      // Keep animated artwork as its own piece beneath the placed pixels.
+      // Capturing the final preview also preserves symmetry and transparency.
+      const placed = document.createElement('canvas'); placed.width = W; placed.height = H;
+      renderSelection(placed.getContext('2d')!);
+      const pixels = placed.getContext('2d')!.getImageData(0,0,W,H).data;
+      let left=W,top=H,right=0,bottom=0;
+      for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(pixels[(y*W+x)*4+3]){
+        left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x+1);bottom=Math.max(bottom,y+1);
+      }
+      if(right>left&&bottom>top){
+        const piece=document.createElement('canvas');piece.width=right-left;piece.height=bottom-top;
+        piece.getContext('2d')!.drawImage(placed,-left,-top);
+        addRasterImage(piece, {x:left,y:top}, 'Placed image', false);
+        commitObjectSelection();
+      }
+    } else renderSelection(baseCtx);
   }
   selected = null;
   changed();
@@ -270,6 +292,9 @@ export function rotateSelection(degrees: number): void {
   const { width: w, height: h } = selected.original, r = degrees * Math.PI / 180, c = Math.cos(r), s = Math.sin(r);
   const width = Math.max(1, Math.ceil(Math.abs(w * c) + Math.abs(h * s) - 1e-8)), height = Math.max(1, Math.ceil(Math.abs(w * s) + Math.abs(h * c) - 1e-8));
   transformSelection([c, s, -s, c, width / 2 - c * w / 2 + s * h / 2, height / 2 - s * w / 2 - c * h / 2], width, height);
+  // The expanded bitmap has a different local centre. Keep its paper centre
+  // fixed, just as editable-piece rotation does.
+  selected.x += (w - width) / 2; selected.y += (h - height) / 2; changed();
 }
 let resizing: { image: HTMLCanvasElement; points: Point[]; excluded?: Point[]; mask?: HTMLCanvasElement; x: number; y: number; corner: number } | null = null;
 export function hitSelectionHandle(x: number, y: number): number | null {

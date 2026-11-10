@@ -85,7 +85,11 @@ function updateStatus():void{
   }
   const data=(s.compare?s.small:s.preview.getContext('2d')!.getImageData(0,0,s.preview.width,s.preview.height)),hist=histogram(data),canvas=field<HTMLCanvasElement>('photoHistogram'),hc=canvas.getContext('2d')!;
   hc.clearRect(0,0,canvas.width,canvas.height);const max=Math.max(1,...hist.rgb.flat().map(Math.sqrt));
-  for(let c=0;c<3;c++){hc.fillStyle=['#df557b80','#399c7a80','#6b81d980'][c];hc.beginPath();hc.moveTo(0,canvas.height);for(let x=0;x<256;x++)hc.lineTo(x/255*canvas.width,canvas.height-Math.sqrt(hist.rgb[c][x])/max*canvas.height);hc.lineTo(canvas.width,canvas.height);hc.closePath();hc.fill();}
+  for(let c=0;c<3;c++){
+    hc.fillStyle=['#df557b80','#399c7a80','#6b81d980'][c];
+    for(let x=0;x<256;x++){const height=Math.sqrt(hist.rgb[c][x])/max*canvas.height;hc.fillRect(x/256*canvas.width,canvas.height-height,canvas.width/256,height);}
+  }
+  field('photoHistogramCounts').textContent=`${Math.round(hist.clipped[0]*100)}% shadows · ${Math.round(hist.clipped[1]*100)}% highlights`;
   canvas.setAttribute('aria-label',`RGB histogram. ${Math.round(hist.clipped[0]*100)}% shadow clipping; ${Math.round(hist.clipped[1]*100)}% highlight clipping.`);canvas.title=canvas.getAttribute('aria-label')!;
 }
 function buildControls():void{
@@ -97,7 +101,7 @@ function buildControls():void{
   if(group==='colour-mixer')container.innerHTML=`<select id="photoMixColour" aria-label="Colour range">${colours.map((c,i)=>`<option value="${i}" ${i===mixColour?'selected':''}>${c}</option>`).join('')}</select>`+['hue','saturation','luminance'].map((k,i)=>sliderMarkup(slider('hue',['Hue','Saturation','Luminance'][i],i? -100:-60,i?100:60),`mix-${k}`,session.settings.mixer[mixColour][k as 'hue'])).join('');
   if(group==='curves'){
     const options=['rgb','red','green','blue'].map(c=>`<option value="${c}" ${c===channel?'selected':''}>${c==='rgb'?'RGB · all channels':c[0].toUpperCase()+c.slice(1)}</option>`).join('');
-    container.innerHTML=`<div class="photo-action-row"><select id="photoCurveChannel" aria-label="Curve channel">${options}</select><select id="photoCurvePreset" aria-label="Curve preset"><option value="">Curve preset…</option value="linear">Linear</option><option value="contrast">Gentle S</option><option value="fade">Faded blacks</option><option value="shadows">Lift shadows</option></select></div><canvas id="photoCurve" width="512" height="240" tabindex="0" role="application" aria-label="Tone curve. Tap to add points; drag to adjust. Arrow keys adjust the selected point; Delete removes it."></canvas><div class="photo-curve-fields"><label>Input<input id="curve-x" type="number" min="0" max="255" aria-label="Curve input"></label><label>Output<input id="curve-y" type="number" min="0" max="255" aria-label="Curve output"></label><button class="choice" id="photoCurveRemove">Remove point</button></div>`;
+    container.innerHTML=`<div class="photo-action-row"><select id="photoCurveChannel" aria-label="Curve channel">${options}</select><select id="photoCurvePreset" aria-label="Curve preset"><option value="">Curve preset…</option><option value="linear">Linear</option><option value="contrast">Gentle S</option><option value="fade">Faded blacks</option><option value="shadows">Lift shadows</option></select></div><canvas id="photoCurve" width="512" height="240" tabindex="0" role="application" aria-label="Tone curve. Tap to add points; drag to adjust. Arrow keys adjust the selected point; Delete removes it."></canvas><div class="photo-curve-fields"><label>Input<input id="curve-x" type="number" min="0" max="255" aria-label="Curve input"></label><label>Output<input id="curve-y" type="number" min="0" max="255" aria-label="Curve output"></label><button class="choice" id="photoCurveRemove">Remove point</button></div>`;
   }
   if(group==='geometry-crop'){
     container.innerHTML=`<select id="photoCropRatio" aria-label="Crop aspect ratio">${[['0','Free crop'],[String(W/H),'Original ratio'],['1','Square · 1:1'],['1.333333','4:3'],['1.5','3:2'],['1.777778','16:9'],['0.5625','9:16'],['0.8','4:5']].map(([value,label])=>`<option value="${value}" ${Number(value)===cropRatio?'selected':''}>${label}</option>`).join('')}</select><div class="photo-crop-fields">${(['x','y','width','height'] as const).map(k=>`<label>${({x:'Left',y:'Top',width:'Width',height:'Height'})[k]}<input type="number" id="photoCrop-${k}" aria-label="Crop ${k}" min="${k==='width'||k==='height'?1:0}"></label>`).join('')}</div><button class="choice" id="photoCropReset">Use whole picture</button>`;
@@ -157,7 +161,19 @@ function bindCurves():void{
   });
   const remove=()=>{const points=photoSession!.settings.curves[channel];if(point>0&&point<points.length-1){points.splice(point,1);point--;changed();}};
   field('photoCurveRemove').addEventListener('click',remove);
-  for(const key of ['x','y'] as const)field<HTMLInputElement>(`curve-${key}`).addEventListener('change',event=>{const p=photoSession!.settings.curves[channel][point],value=Number((event.target as HTMLInputElement).value)/255;moveCurve(key==='x'?value:p.x,key==='y'?value:p.y);});
+  for(const key of ['x','y'] as const){
+    let edited=false;
+    const commit=(event:Event)=>{
+      if(!photoSession)return;
+      edited=false;
+      const input=event.target as HTMLInputElement,p=photoSession.settings.curves[channel][point],value=Number(input.value)/255;
+      if(!input.value.trim()||!Number.isFinite(value)){syncValues();return;}
+      // A pointer coordinate can round to the text already displayed. Blurring
+      // must still commit an explicitly entered integer when change does not fire.
+      if(value!==p[key])moveCurve(key==='x'?value:p.x,key==='y'?value:p.y);
+    };
+    const input=field<HTMLInputElement>(`curve-${key}`);input.addEventListener('input',()=>{edited=true;});input.addEventListener('change',commit);input.addEventListener('blur',event=>{if(edited)commit(event);});
+  }
   const position=(e:PointerEvent)=>{const r=canvas.getBoundingClientRect();return {x:clamp((e.clientX-r.left)/r.width),y:1-clamp((e.clientY-r.top)/r.height)};};
   canvas.addEventListener('pointerdown',event=>{
     if(event.button!==0)return;event.preventDefault();canvas.focus();const p=position(event),points=photoSession!.settings.curves[channel];
@@ -178,26 +194,32 @@ function bindCrop():void{
   field<HTMLSelectElement>('photoCropRatio')?.addEventListener('change',event=>{cropRatio=Number((event.target as HTMLSelectElement).value);photoSession!.settings.crop=ratioCrop(photoSession!.settings.crop);changed();});
   field('photoCropReset')?.addEventListener('click',()=>{photoSession!.settings.crop=ratioCrop({x:0,y:0,width:1,height:1});changed();});
   for(const key of ['x','y','width','height'] as const)field<HTMLInputElement>(`photoCrop-${key}`)?.addEventListener('change',event=>{
-    const c=photoSession!.settings.crop,value=Number((event.target as HTMLInputElement).value)/(key==='x'||key==='width'?W:H);
-    if(!Number.isFinite(value)){syncValues();return;}
-    if(key==='x')c.x=clamp(value,0,1-c.width);else if(key==='y')c.y=clamp(value,0,1-c.height);
-    else if(key==='width'){c.width=clamp(value,1/W,1-c.x);if(cropRatio){c.height=Math.min(c.width/(cropRatio*H/W),1-c.y);c.width=c.height*cropRatio*H/W;}}
-    else{c.height=clamp(value,1/H,1-c.y);if(cropRatio){c.width=Math.min(c.height*cropRatio*H/W,1-c.x);c.height=c.width/(cropRatio*H/W);}}
-    changed();
+    const input=event.target as HTMLInputElement,c={...photoSession!.settings.crop},text=input.value.trim(),value=Number(text)/(key==='x'||key==='width'?W:H);
+    const reject=()=>{input.value=String(cropPixels(photoSession!.settings.crop,W,H)[key]);syncValues();actions.message(cropRatio&&(key==='width'||key==='height')?'That size does not fit the chosen crop ratio inside the picture.':'Choose crop coordinates inside the picture and dimensions of at least 1 pixel.');};
+    if(!text||!Number.isFinite(value)){reject();return;}
+    c[key]=value;
+    if(cropRatio&&key==='width')c.height=c.width/(cropRatio*H/W);
+    if(cropRatio&&key==='height')c.width=c.height*cropRatio*H/W;
+    if(!Object.values(c).every(Number.isFinite)||c.x<0||c.y<0||c.width<1/W||c.height<1/H||c.x+c.width>1+1e-9||c.y+c.height>1+1e-9){reject();return;}
+    photoSession!.settings.crop=c;changed();
   });
 }
 function bindPaper():void{
   for(const target of [view,field<HTMLCanvasElement>('photoMiniCanvas')]){
+  const displayScale=(r:DOMRect)=>target===view?Math.min(r.width/W,r.height/H):Math.min(target.width/W,target.height/H)*Math.min(r.width/target.width,r.height/target.height);
+  const point=(x:number,y:number)=>({x:clamp(x),y:clamp(y),inside:x>=0&&x<1&&y>=0&&y<1});
   const pos=(event:PointerEvent)=>{
-    if(target===view){const p=eventPos(event);return {x:clamp(p.x/W),y:clamp(p.y/H)};}
-    const r=target.getBoundingClientRect(),scale=Math.min(r.width/W,r.height/H);
-    return {x:clamp((event.clientX-r.left-(r.width-W*scale)/2)/(W*scale)),y:clamp((event.clientY-r.top-(r.height-H*scale)/2)/(H*scale))};
+    if(target===view){const p=eventPos(event);return point(p.x/W,p.y/H);}
+    const r=target.getBoundingClientRect(),scale=displayScale(r);
+    return point((event.clientX-r.left-(r.width-W*scale)/2)/(W*scale),(event.clientY-r.top-(r.height-H*scale)/2)/(H*scale));
   };
   target.addEventListener('pointerdown',event=>{
     const session=photoSession;if(!session||field('canvasSlot').classList.contains('moving-paper'))return;
     event.stopImmediatePropagation();event.preventDefault();if(session.applying||event.button!==0)return;
+    const input=document.activeElement;if(input instanceof HTMLInputElement&&field('photoPanel').contains(input))input.blur();
     const p=pos(event);
     if(picking){
+      if(!p.inside){actions.message('Choose a painted grey or white area.');return;}
       const neutral=defaultPhotoSettings();for(const k of ['distortion','aberration','vertical','horizontal','angle','zoom','flipX','flipY'] as const)Object.assign(neutral,{[k]:session.settings[k]});
       const image=processPhoto(session.small,neutral),x=Math.min(image.width-1,Math.floor(p.x*image.width)),y=Math.min(image.height-1,Math.floor(p.y*image.height)),sum=[0,0,0];let count=0;
       for(let yy=Math.max(0,y-2);yy<=Math.min(image.height-1,y+2);yy++)for(let xx=Math.max(0,x-2);xx<=Math.min(image.width-1,x+2);xx++){const i=(yy*image.width+xx)*4;if(image.data[i+3]<128)continue;count++;for(let c=0;c<3;c++)sum[c]+=image.data[i+c];}
@@ -205,8 +227,8 @@ function bindPaper():void{
       session.settings.balance=neutralBalance(sum.map(n=>n/count));session.settings.temperature=session.settings.tint=0;changed();return;
     }
     if(!horizon&&group!=='geometry-crop')return;
-    const box={...session.settings.crop},r=target.getBoundingClientRect(),scale=Math.min(r.width/W,r.height/H);let kind=horizon?'horizon':'new';
-    if(!horizon){for(const [key,x,y] of [['nw',box.x,box.y],['ne',box.x+box.width,box.y],['sw',box.x,box.y+box.height],['se',box.x+box.width,box.y+box.height]] as const)if(Math.hypot((p.x-x)*W*scale,(p.y-y)*H*scale)<16)kind=key;
+    const box={...session.settings.crop},r=target.getBoundingClientRect(),scale=displayScale(r);let kind=horizon?'horizon':'new';
+    if(!horizon){let nearest=16;for(const [key,x,y] of [['nw',box.x,box.y],['ne',box.x+box.width,box.y],['sw',box.x,box.y+box.height],['se',box.x+box.width,box.y+box.height]] as const){const distance=Math.hypot((p.x-x)*W*scale,(p.y-y)*H*scale);if(distance<nearest){nearest=distance;kind=key;}}
       if(kind==='new'&&p.x>box.x&&p.x<box.x+box.width&&p.y>box.y&&p.y<box.y+box.height&&(box.width<.999||box.height<.999))kind='move';}
     cropDrag={id:event.pointerId,kind,start:p,box};target.setPointerCapture(event.pointerId);
   },true);
@@ -230,8 +252,15 @@ function bindPaper():void{
   const stop=(event:PointerEvent)=>{
     if(!photoSession||!cropDrag||event.pointerId!==cropDrag.id)return;event.stopImmediatePropagation();
     const d=cropDrag;cropDrag=null;
-    if(event.type==='pointercancel')photoSession.settings.crop=d.box;
-    else if(d.kind==='horizon'){const p=pos(event),dx=(p.x-d.start.x)*W,dy=(p.y-d.start.y)*H;if(Math.hypot(dx,dy)>8){let angle=Math.atan2(dy,dx)*180/Math.PI;if(angle>90)angle-=180;if(angle< -90)angle+=180;photoSession.settings.angle=Math.round(clamp(-angle,-45,45)*10)/10;}}
+    if(d.kind==='horizon'){
+      const p=pos(event),dx=(p.x-d.start.x)*W,dy=(p.y-d.start.y)*H,cancelled=event.type==='pointercancel'||event.type==='lostpointercapture';
+      if(cancelled||Math.hypot(dx,dy)<=8){
+        horizon=false;syncGuides();syncValues();updateStatus();
+        if(!cancelled)actions.message('Draw a longer line along the horizon.');
+        return;
+      }
+      let angle=Math.atan2(dy,dx)*180/Math.PI;if(angle>90)angle-=180;if(angle< -90)angle+=180;photoSession.settings.angle=Math.round(clamp(-angle,-45,45)*10)/10;
+    }else if(event.type==='pointercancel')photoSession.settings.crop=d.box;
     changed();
   };
   target.addEventListener('pointerup',stop,true);target.addEventListener('pointercancel',stop,true);target.addEventListener('lostpointercapture',stop,true);
@@ -241,7 +270,7 @@ function lockDrawing(locked:boolean):void{for(const id of ['bottomTray','layersP
 export function initPhotoUi(callbacks:Actions):void{
   actions=callbacks;
   const panel=document.createElement('aside');panel.id='photoPanel';panel.hidden=true;panel.setAttribute('aria-labelledby','photoTitle');
-  panel.innerHTML=`<header class="photo-heading"><strong id="photoTitle">📸 Photo lab</strong><button type="button" id="photoOpen" title="Open a photo" aria-label="Open a photo">Open photo</button><button type="button" id="photoClose" aria-label="Cancel photo edits">✕</button></header><div class="photo-content"><div class="photo-choices"><div class="photo-info"><span id="photoTarget"></span><select id="photoLook" aria-label="Photo look" title="Try a look"><option value="normal">Normal</option><option value="custom" disabled>Custom</option>${Object.entries(PHOTO_LOOKS).map(([value,look])=>`<option value="${value}">${look.label}</option>`).join('')}</select><canvas id="photoHistogram" width="256" height="48" role="img" aria-label="RGB histogram"></canvas></div><div id="photoMini"><canvas id="photoMiniCanvas" width="400" height="180" aria-label="Photo preview"></canvas></div><nav id="photoTabs" aria-label="Photo adjustments">${([['light','☀️','Light'],['colour','🎨','Colour'],['curves','〰','Curves'],['detail','✨','Detail'],['effects','◉','Effects'],['geometry','▧','Geometry']] as const).map(([id,glyph,label])=>`<button type="button" data-photo-category="${id}" aria-pressed="false">${glyph} ${label}</button>`).join('')}</nav></div><div class="photo-adjustments"><div id="photoGroupRow"><select id="photoGroup" aria-label="Adjustment group"></select><button type="button" id="photoGroupReset" aria-label="Reset this adjustment group" title="Reset this group">↺</button></div><div id="photoControls"></div></div></div><output id="photoStatus" aria-live="polite"></output><footer class="photo-footer"><button type="button" class="choice" id="photoCompare" aria-pressed="false">Before</button><button type="button" class="choice" id="photoReset">Reset</button><button type="button" class="choice" id="photoCancel">Cancel</button><button type="button" class="choice" id="photoApply">Done</button></footer>`;
+  panel.innerHTML=`<header class="photo-heading"><strong id="photoTitle">📸 Photo lab</strong><button type="button" id="photoOpen" title="Open a photo" aria-label="Open a photo">Open photo</button><button type="button" id="photoClose" aria-label="Cancel photo edits">✕</button></header><div class="photo-content"><div class="photo-choices"><div class="photo-info"><span id="photoTarget"></span><select id="photoLook" aria-label="Photo look" title="Try a look"><option value="normal">Normal</option><option value="custom" disabled>Custom</option>${Object.entries(PHOTO_LOOKS).map(([value,look])=>`<option value="${value}">${look.label}</option>`).join('')}</select><button type="button" id="photoHistogramToggle" aria-label="Expand RGB histogram" aria-expanded="false" title="Expand or collapse the histogram"><canvas id="photoHistogram" width="256" height="48" role="img" aria-label="RGB histogram"></canvas><span id="photoHistogramCounts"></span></button></div><div id="photoMini"><canvas id="photoMiniCanvas" width="400" height="180" aria-label="Photo preview"></canvas></div><nav id="photoTabs" aria-label="Photo adjustments">${([['light','☀️','Light'],['colour','🎨','Colour'],['curves','〰','Curves'],['detail','✨','Detail'],['effects','◉','Effects'],['geometry','▧','Geometry']] as const).map(([id,glyph,label])=>`<button type="button" data-photo-category="${id}" aria-pressed="false">${glyph} ${label}</button>`).join('')}</nav></div><div class="photo-adjustments"><div id="photoGroupRow"><select id="photoGroup" aria-label="Adjustment group"></select><button type="button" id="photoGroupReset" aria-label="Reset this adjustment group" title="Reset this group">↺</button></div><div id="photoControls"></div></div></div><output id="photoStatus" aria-live="polite"></output><footer class="photo-footer"><button type="button" class="choice" id="photoCompare" aria-pressed="false">Before</button><button type="button" class="choice" id="photoReset">Reset</button><button type="button" class="choice" id="photoCancel">Cancel</button><button type="button" class="choice" id="photoApply">Done</button></footer>`;
   field('canvasSlot').append(panel);
   const toggle=document.createElement('button');toggle.type='button';toggle.id='photoToggle';toggle.className='tool-btn advanced-tool';toggle.hidden=true;toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-controls','photoPanel');toggle.title='Photo lab (P)';toggle.innerHTML=icon('photo')+'<span>Photo lab</span>';field('toolBin').append(toggle);
   const open=()=>{
@@ -257,6 +286,10 @@ export function initPhotoUi(callbacks:Actions):void{
   for(const id of ['photoClose','photoCancel'])field(id).addEventListener('click',()=>cancelPhoto());
   field('photoApply').addEventListener('click',()=>{void applyPhoto().then(applied=>{if(applied)actions.message('Photo adjustments saved. Your original is kept; reopen Photo lab to change them.');}).catch(error=>actions.message(error instanceof Error?error.message:String(error)));});
   field('photoCompare').addEventListener('click',()=>{if(photoSession)comparePhoto(!photoSession.compare);});
+  field('photoHistogramToggle').addEventListener('click',()=>{
+    const expanded=panel.classList.toggle('photo-histogram-expanded'),button=field('photoHistogramToggle');
+    button.setAttribute('aria-expanded',String(expanded));button.setAttribute('aria-label',`${expanded?'Collapse':'Expand'} RGB histogram`);
+  });
   field('photoOpen').addEventListener('click',()=>{if(photoSession)importDraft=structuredClone({settings:photoSession.settings,normal:photoSession.normal,look:photoSession.look,lookActive:photoSession.lookActive});pendingImport=true;cancelPhoto();actions.open();});
   field('photoReset').addEventListener('click',()=>{if(photoSession){Object.assign(photoSession,newPhotoRecipe());point=0;cropRatio=0;buildControls();changed(false);}});
   field<HTMLSelectElement>('photoLook').addEventListener('change',event=>{if(photoSession){choosePhotoLook(photoSession,(event.target as HTMLSelectElement).value);changed(false);}});

@@ -8,6 +8,7 @@
 #cadWiki label{display:flex;flex-direction:column;gap:4px;font-size:13px;min-width:0;}
 #cadWiki input,#cadWiki select{width:100%;min-width:0;box-sizing:border-box;border:1px solid #647a88;border-radius:8px;padding:9px;background:white;color:#263747;min-height:44px;font-size:14px;}
 .cad-wiki-history,.cad-wiki-related{display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex-shrink:0;}
+#cadWiki .cad-wiki-related .choice{min-width:0;max-width:100%;box-sizing:border-box;overflow-wrap:anywhere;}
 #cadWikiCount{font-size:12px;}
 .cad-wiki-layout{flex:1;min-height:0;display:grid;grid-template-columns:260px minmax(0,1fr);gap:16px;}
 #cadWikiTopics{overflow:auto;display:flex;flex-direction:column;gap:5px;min-height:0;}

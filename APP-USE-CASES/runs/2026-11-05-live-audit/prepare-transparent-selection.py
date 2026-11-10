@@ -1,0 +1,8 @@
+"""Add an explicitly specified white-surround card to the PATCH backing copy."""
+from pathlib import Path
+from PIL import Image,ImageDraw
+import hashlib,json
+root=Path(__file__).resolve().parents[3];out=root/'test-results/audit-2026-11-05/fixtures';src=out/'patch-labelled-white.png';image=Image.open(src).convert('RGBA');card=Image.new('RGBA',(40,40),'white');d=ImageDraw.Draw(card)
+for i,c in enumerate([(249,249,249,255),(250,250,250,255),(255,250,251,255),(250,249,255,255),(255,255,255,255)]):d.rectangle((i*8,0,i*8+7,9),fill=c)
+d.rectangle((10,10,29,29),fill='#ff0000');d.line((9,10,9,29),fill=(255,128,128,255));d.line((30,10,30,29),fill=(255,128,128,255));d.line((10,30,29,30),fill=(255,0,0,128));image.paste(card,(650,100));d=ImageDraw.Draw(image);d.text((650,148),'White surround + threshold / alpha',fill='black');path=out/'patch-white-card.png';image.save(path)
+manifest={'base':src.name,'base_sha256':hashlib.sha256(src.read_bytes()).hexdigest(),'recipe':'PATCH opaque white backing plus40x40card at650,100. White surround, red20x20centre10,10..29,29; AA opaque pink side columns9/30 y10..29; red alpha128row10..29 y30. Top ten rows in8pixelwide strips:249grey,250grey,(255,250,251),(250,249,255),255white. Label outside at650,148.','policy_documented_before_native_test':'src/selection.ts transparent(): remove pixel alpha only when R,G,B are each >=250; retain other RGBA values. Toggle updates the floating image from retained original. No subject-detection assumption.','sha256':hashlib.sha256(path.read_bytes()).hexdigest()};(out/'patch-white-card-provenance.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8');print(manifest['sha256'])

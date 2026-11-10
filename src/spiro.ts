@@ -6,6 +6,7 @@ import { baseCtx, H, view, W } from './canvas';
 import { bakeStaticStrokes } from './live';
 import type { GearDef, StatorShape } from './types';
 import { addVectorPath, beginObjectStroke, finishObjectStroke } from './objects';
+import { emit } from './bus';
 
 export const OUTER_CHOICES = [72, 84, 96, 105, 120];
 
@@ -52,7 +53,9 @@ export function setRingRadius(radius: number): void {
   if(!Number.isFinite(radius)||radius<=0)return;
   state.spiro.R = Math.max(.5, Math.min(1e7, radius));
   const input = document.getElementById('ringSize') as HTMLInputElement | null;
-  if (input) input.value = String(Math.round(state.spiro.R));
+  // Keep accepted text while typing: rewriting a number input moves its caret
+  // and removes intermediate decimal/exponent formatting.
+  if (input && Number(input.value) !== state.spiro.R) input.value = String(state.spiro.R);
 }
 
 function gcd(a: number, b: number): number {
@@ -96,7 +99,7 @@ export function innerGear(): GearDef | null {
   const base = gearById(state.spiro.gearId);
   if (!base) return null;
   const teeth = clampInt(state.spiro.innerTeeth, 8, outerCount() - 6);
-  return { ...base, teeth, holes: holesFor(teeth) };
+  return { ...base, teeth, holes: teeth === base.teeth ? base.holes : holesFor(teeth) };
 }
 
 export function setOuterTeeth(n: number): void {
@@ -184,6 +187,7 @@ export function assignGear(id: string): boolean {
 }
 
 export function resetKit(): void {
+  stopMotor();
   state.spiro.R = Math.max(.5, Math.min(W,H) / 3);
   state.spiro.cx = W / 2;
   state.spiro.cy = H / 2;
@@ -252,6 +256,16 @@ export function startMotor(): void {
     lastTheta: 0,
   };
   playDrawing('whir', 0.7);
+  emit('spiro-motor');
+}
+
+export function stopMotor(): void {
+  if (!motor) return;
+  motor = null;
+  bakeStaticStrokes(baseCtx);
+  finishSpiroStroke();
+  playDrawing('motor-stop');
+  emit('spiro-motor');
 }
 
 export function tickMotor(now: number): void {
@@ -264,10 +278,7 @@ export function tickMotor(now: number): void {
   motor.lastTheta = theta;
   playThrottled('whir', 80, 0.55 + t * 1.5);
   if (t >= 1) {
-    motor = null;
-    bakeStaticStrokes(baseCtx);
-    finishSpiroStroke();
-    playDrawing('motor-stop');
+    stopMotor();
   }
 }
 

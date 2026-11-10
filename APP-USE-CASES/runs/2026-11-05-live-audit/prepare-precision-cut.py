@@ -1,0 +1,4 @@
+"""Declared modern precision-limits fixture retaining native200000triangle import and cube cutter."""
+from pathlib import Path
+import copy,json,hashlib
+root=Path(__file__).resolve().parents[3];out=root/'test-results/audit-2026-11-05/fixtures';source=Path.home()/'Downloads/mouse-audit-stl180 (3).retropaint';raw=source.read_bytes();doc=json.loads(raw);layer=next(l for l in doc['layers'] if 'cad'in l);bodies=layer['cad']['bodies'];prism=bodies[-1];prism['name']='Detailed imported prism';cutter=copy.deepcopy(bodies[1]);cutter.update(name='Through cutter',position=[0,0,5]);layer['cad']['bodies']=[prism,cutter];path=out/'precision181-modern.retropaint';path.write_text(json.dumps(doc,separators=(',',':')),encoding='utf-8');(out/'precision181-modern.json').write_text(json.dumps(dict(provenance=__doc__,source_sha256=hashlib.sha256(raw).hexdigest(),fixture_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),expected_cut_volume=12000,expected_genus=1),indent=2)+'\n')

@@ -9,7 +9,7 @@ import type { CadProfile } from './cad-model';
 import { CadSketchEditor } from './cad-sketch-ui';
 import { solveSketch } from './cad-sketch-constraints';
 
-interface Callbacks { viewport:()=>CadViewport|undefined; notice:(text:string)=>void; run:(action:()=>Promise<void>)=>Promise<void>; changed:()=>void; open:()=>void; pick:()=>void; sources:()=>ProfileSource[]; drawing:()=>CadProfile|undefined }
+interface Callbacks { viewport:()=>CadViewport|undefined; notice:(text:string)=>void; run:(action:()=>Promise<void>)=>Promise<void>; cancel:(action:()=>Promise<void>)=>Promise<void>; changed:()=>void; open:()=>void; pick:()=>void; sources:()=>ProfileSource[]; drawing:()=>CadProfile|undefined }
 interface Draft { source:CadBody; root:CadBody; entry:FeatureEntry }
 const esc=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 const icon=(entry:FeatureEntry)=>entry.sketch?'✎':entry.item.solid.kind==='loft'?'⋈':entry.item.solid.kind==='sweep'?'∿':entry.item.solid.kind==='shell'?'▣':entry.item.solid.kind==='finish'?(entry.item.solid.mode==='fillet'?'◜':'◩'):entry.item.solid.kind==='boolean'?'⊕':entry.item.solid.kind==='revolve'?'⟳':entry.item.solid.kind==='extrude'?'↑':'◇';
@@ -21,6 +21,7 @@ export class CadFeaturePanel {
   private key='root';
   private page=0;
   private timelinePage=0;
+  private timelineSize=6;
   private rollback=-1;
   private signature='';
   private draft:Draft|undefined;
@@ -36,6 +37,13 @@ export class CadFeaturePanel {
     this.panel.innerHTML='<div class="cad-page-content" id="cadFeatureContent"></div>';
     host.querySelector('.cad-snap-bar')!.before(this.panel);
     this.timeline=document.createElement('section');this.timeline.id='cadTimeline';this.timeline.className='cad-timeline';this.timeline.setAttribute('aria-label','Solid feature timeline');host.querySelector('#cadView')!.append(this.timeline);
+    const compactTimeline=matchMedia('(max-width:600px), (max-height:500px) and (max-width:1000px)');this.timelineSize=compactTimeline.matches?3:6;
+    compactTimeline.addEventListener('change',event=>{
+      // Keep the inspected step, or the first visible step, in the new page.
+      const anchor=this.rollback>=0?this.rollback:this.timelinePage*this.timelineSize;
+      this.timelineSize=event.matches?3:6;this.timelinePage=Math.floor(anchor/this.timelineSize);
+      if(state.cad.open)this.renderTimeline();
+    });
   }
   private el<T extends HTMLElement=HTMLElement>(id:string):T{return this.host.querySelector<T>('#'+id)!;}
   private root():CadBody|undefined{return currentBodies().find(b=>b.id===this.rootId);}
@@ -86,10 +94,10 @@ export class CadFeaturePanel {
     return `Uses ${s.children.map(b=>featureName(b)).join(' + ')}. ${s.feature?.suppressed?'Bypassed; inputs are preserved.':'Inputs remain editable.'}`;
   }
   private renderTimeline():void{
-    const root=this.root(),entries=root?featureTimeline(root):[],size=matchMedia('(max-width:600px)').matches?3:6;
+    const root=this.root(),entries=root?featureTimeline(root):[],size=this.timelineSize;
     this.timeline.hidden=!entries.length;this.host.classList.toggle('cad-has-timeline',!!entries.length);if(!entries.length)return;
     this.timelinePage=Math.min(this.timelinePage,Math.max(0,Math.ceil(entries.length/size)-1));
-    const signature=JSON.stringify([root?.id,entries.map(e=>[e.key,e.label,e.item.solid.feature?.suppressed]),this.timelinePage,this.rollback,!!this.draft]);if(this.timeline.dataset.signature===signature)return;this.timeline.dataset.signature=signature;
+    const signature=JSON.stringify([root?.id,entries.map(e=>[e.key,e.label,e.item.solid.feature?.suppressed]),size,this.timelinePage,this.rollback,!!this.draft]);if(this.timeline.dataset.signature===signature)return;this.timeline.dataset.signature=signature;
     this.timeline.innerHTML=`<div class="cad-timeline-top">${btn('cadTimelineTree','▱ History')}<span id="cadTimelinePosition">${this.rollback<0?'Latest solid':`Viewing step ${this.rollback+1} of ${entries.length}`}</span>${btn('cadTimelineLatest','Latest ↠')}</div><div class="cad-timeline-track">${btn('cadTimelinePrevious','‹')}<div class="cad-timeline-steps">${entries.slice(this.timelinePage*size,this.timelinePage*size+size).map((e,i)=>{const index=this.timelinePage*size+i;return `<button class="choice ${this.rollback===index?'active':''} ${e.item.solid.feature?.suppressed?'suppressed':''}" type="button" data-cad-step="${index}" aria-label="View step ${index+1}: ${esc(e.label)}" aria-pressed="${this.rollback===index}" title="${esc(e.label)}"><span>${icon(e)}</span><small>${index+1}. ${esc(e.label)}</small></button>`;}).join('')}</div>${btn('cadTimelineNext','›')}</div><input type="range" id="cadHistoryPlayhead" min="0" max="${entries.length-1}" value="${this.rollback<0?entries.length-1:this.rollback}" aria-label="History playhead"></input>`;
     this.el('cadTimelineTree').onclick=()=>this.callbacks.open();
     this.el<HTMLButtonElement>('cadTimelineLatest').disabled=this.rollback<0||!!this.draft;this.el('cadTimelineLatest').onclick=()=>void this.callbacks.run(()=>this.latest());
@@ -136,7 +144,7 @@ export class CadFeaturePanel {
     else controls=`<label class="cad-full-field">Build operation<select id="cadFeatureBoolean">${[['union','Join'],['subtract','Cut / hole'],['intersect','Keep overlap'],['hull','Convex hull']].map(([op,label])=>`<option value="${op}" ${s.operation===op?'selected':''}>${label}</option>`).join('')}</select></label><p class="cad-hint">The first input is the target. Later inputs are tools. Edit each input in the feature tree to change its original dimensions.</p>`;
     this.el('cadFeatureContent').innerHTML=`<div class="cad-feature-heading"><h2>${sketch?'✎ Edit original sketch':['finish','shell','loft','sweep'].includes(s.kind)?'✎ '+esc(d.entry.sketch?d.entry.label:featureName(item)):'✎ Edit feature'}</h2>${sketch||(['finish','shell','loft','sweep'].includes(s.kind)&&!d.entry.sketch)?btn('cadFeatureRename','Rename'):''}</div><label class="cad-full-field" id="cadFeatureNameRow" ${sketch||['finish','shell','loft','sweep'].includes(s.kind)?'hidden':''}>Feature name<input id="cadFeatureName" maxlength="60" value="${esc(sketch?(s.feature?.sketchName??d.entry.label):(s.feature?.label??featureName(item)))}"></label>${controls}<p id="cadFeatureError" class="cad-feature-error" role="alert" hidden></p>${btn('cadFeaturePreview','◈ Preview rebuilt solid')}<div class="cad-actions">${btn('cadFeatureApply','✓ Apply')}${btn('cadFeatureCancel','Cancel')}</div><small class="cad-hint">Later features rebuild automatically. Nothing changes in your project until Apply.</small>`;
     for(const [id,apply]of [['cadFeaturePreview',false],['cadFeatureApply',true]] as const)this.el(id).onclick=()=>void this.callbacks.run(()=>this.rebuild(apply));
-    this.el('cadFeatureCancel').onclick=()=>void this.callbacks.run(()=>this.cancel());
+    this.el('cadFeatureCancel').onclick=()=>void this.callbacks.cancel(()=>this.cancel());
     if(this.host.querySelector('#cadFeatureRename'))this.el('cadFeatureRename').onclick=()=>{const row=this.el('cadFeatureNameRow');row.hidden=!row.hidden;if(!row.hidden)this.el('cadFeatureName').focus();this.callbacks.changed();};
     this.formEditor=undefined;
     if(s.kind==='loft'||s.kind==='sweep'){

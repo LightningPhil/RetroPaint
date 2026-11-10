@@ -73,12 +73,18 @@ export async function prepareFeatureHistory(root:CadBody):Promise<CadBody> {
     if(item.solid.kind!=='boolean')return;
     for(const child of item.solid.children)await visit(child);
     const [support,...tools]=item.solid.children;
-    for(const tool of tools){const s=tool.solid;if(s.kind!=='extrude'||s.feature?.attachment)continue;
+    for(const tool of tools){const s=tool.solid;if(s.kind!=='extrude'||s.feature?.attachment||s.feature?.sketch)continue;
       const {mesh}=await cadCompute([{...support,position:[0,0,0],rotation:[0,0,0],scale:[1,1,1]}]);
       const attachment=captureAttachment(support,mesh.bounds,s.plane);
       const axis=attachment.normal.findIndex(n=>Math.abs(n)>.999);
       // Older workplane cuts remain fixed; only recognizable face sketches become attached.
       if(axis<0||Math.min(Math.abs(attachment.anchor[axis]),Math.abs(attachment.anchor[axis]-1))>.006)continue;
+      // A plane exactly on a face is also a valid fixed workplane. Only the old
+      // signed 0.02mm contact offset identifies a legacy face tool; modern sketch
+      // metadata above already distinguishes deliberately offset fixed planes.
+      const face=attachment.normal[axis]>0?1:0;
+      const offset=(attachment.anchor[axis]-face)*(mesh.bounds.max[axis]-mesh.bounds.min[axis])*Math.abs(support.scale[axis])*Math.sign(attachment.normal[axis]);
+      if(Math.abs(offset-(s.height>0?-.02:.02))>1e-5)continue;
       s.feature={...s.feature,sketch:sketchType(s),attachment};
       // Earlier face tools included a small kernel overlap in their saved height.
       s.height=s.height>0?Math.max(.05,s.height-.02):Math.min(-.05,s.height+.04);
@@ -88,6 +94,7 @@ export async function prepareFeatureHistory(root:CadBody):Promise<CadBody> {
 }
 export function setFeaturePlane(s:CadSolid,axis:'xy'|'xz'|'yz',origin:V3):void {
   if(s.kind!=='extrude'&&s.kind!=='revolve')throw new Error('This feature has no sketch plane.');
+  if(s.kind==='extrude'&&s.feature?.attachment&&s.feature.through)throw new Error('Set an explicit cut depth before changing this through-all sketch to a fixed workplane. Edit the extrusion, turn off Through all, and enter the required depth.');
   const u:V3=axis==='yz'?[0,1,0]:[1,0,0],v:V3=axis==='xy'?[0,1,0]:[0,0,1],normal:V3=axis==='xy'?[0,0,1]:axis==='xz'?[0,-1,0]:[1,0,0];
   s.plane={u,v,normal,origin};s.feature={...s.feature,attachment:undefined,through:false};
 }

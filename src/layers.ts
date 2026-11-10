@@ -163,7 +163,14 @@ export function renderActive(ctx: CanvasRenderingContext2D, now: number): void {
 }
 export async function renderFullPicture(now:number):Promise<HTMLCanvasElement> {
   const output=surface(),crop=documentCrop(),pending=layers.filter(layer=>layer.visible).map(layer=>{
-    const canvas=cloneCanvas(layer.canvas);renderLiveSnapshot(canvas.getContext('2d')!,layer.id===activeLayerId?currentLive():layer.live,now);drawObjects(canvas.getContext('2d')!,layer.objects,now);
+    // Projects retain canonical RGBA pixels. Start exports from those same
+    // bytes so accelerated draw-copy rounding cannot change after reopening.
+    const canvas=surface(layer.canvas.width,layer.canvas.height),ctx=canvas.getContext('2d')!;
+    ctx.putImageData(layer.canvas.getContext('2d')!.getImageData(0,0,layer.canvas.width,layer.canvas.height),0,0);
+    // A first write can quantize translucent RGB. Read that stored result back
+    // before compositing, matching the PNG pixels a saved project reopens.
+    ctx.putImageData(ctx.getImageData(0,0,canvas.width,canvas.height),0,0);
+    renderLiveSnapshot(ctx,layer.id===activeLayerId?currentLive():layer.live,now);drawObjects(ctx,layer.objects,now);
     return {canvas,opacity:layer.opacity,photo:layer.photo};
   });
   const ctx=output.getContext('2d')!;

@@ -74,7 +74,10 @@ input,textarea,select { color:var(--ink); }
   .tool-btn span { font-size:23px; }
   .drawer,#studioDrawer { width:min(350px,calc(100% - 16px)); max-height:calc(100dvh - 16px); gap:8px; }
   .extra-choices summary { min-height:44px; }
-  .compact-fields input,.compact-fields select,.text-styles select { min-height:40px; font-size:14px; }
+  .compact-fields input,.compact-fields select,.text-styles select { min-height:44px; font-size:14px; }
+  .drawer .drawing-mode-field select,#spiroDrawer .teeth-field input[type=number],#colourWheelDialog #wheelHex,#colourWheelDialog .wheel-rgb input { min-height:44px; }
+  #textDrawer .text-styles .choice { min-width:44px; }
+  .drawer .selection-toggle { min-height:44px; }
   #shapesDrawer .compact-fields { gap:6px; }
   #shapesDrawer .extra-choices .choice { min-height:54px; }
   #paperControls .choice { width:44px; height:44px; padding:8px; }
@@ -96,6 +99,8 @@ input,textarea,select { color:var(--ink); }
   #sizeControl,#opacityControl { padding:2px 4px; }
   #toolBin { grid-template-columns:repeat(3,minmax(0,1fr)); grid-template-rows:repeat(4,minmax(44px,1fr)); gap:4px; }
   .drawer,#studioDrawer { width:min(350px,calc(100% - 24px)); transform:none; }
+  .object-selection-mode #selectionDrawer { gap:4px; }
+  #selectionDrawer #objectPanel .extra-choices[open] { gap:2px; padding-bottom:2px; }
 }
 @media(max-height:700px) and (max-width:600px) and (orientation:portrait) {
   #colourWheelDialog { padding:12px; }

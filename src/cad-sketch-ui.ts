@@ -54,6 +54,22 @@ export class CadSketchEditor {
     svg.setAttribute('viewBox',`${x-margin} ${-y-h-margin} ${Math.max(w,1)+2*margin} ${Math.max(h,1)+2*margin}`);
     const selected=this.page==='saved'?rules.find(c=>c.id===this.selected):undefined,edge=selected&&'edge' in selected?selected.edge:this.edge,other=selected&&'other' in selected?selected.other:this.other,circle=this.sketch.shape()==='circle';
     svg.innerHTML=`<polygon points="${p.map(v=>v[0]+','+-v[1]).join(' ')}" fill="#f8bf4533" stroke="${circle?'#247c88':'none'}" stroke-width="${span/100}"/>${circle?'':p.map((a,i)=>{const b=p[(i+1)%p.length];return `<g data-line="${i}" role="button" tabindex="0" aria-label="Select line ${i+1}"><path d="M${a[0]},${-a[1]}L${b[0]},${-b[1]}" stroke="transparent" stroke-width="${span/12}"/><path d="M${a[0]},${-a[1]}L${b[0]},${-b[1]}" stroke="${i===edge?'#147786':i===other?'#b34d78':'#647782'}" stroke-width="${span/100}" pointer-events="none"/><text x="${(a[0]+b[0])/2}" y="${-(a[1]+b[1])/2-span/25}" text-anchor="middle" font-size="${span/13}" fill="#34434d" pointer-events="none">${i+1}</text></g>`;}).join('')}${rules.filter(c=>'value' in c).slice(0,6).map(c=>{const a='edge' in c?p[c.edge]:[x+w/2,y+h/2],b='edge' in c?p[(c.edge+1)%p.length]:a;return `<text data-constraint="${esc(c.id)}" role="button" tabindex="0" aria-label="Edit ${esc(constraintLabel(c))}" x="${(a[0]+b[0])/2}" y="${-(a[1]+b[1])/2+span/10}" text-anchor="middle" font-size="${span/12}" fill="${c.id===this.selected&&this.page==='saved'?'#b34d78':'#147786'}" stroke="#fff9e8" stroke-width="${span/120}" paint-order="stroke">${c.kind==='diameter'?'Ø ':''}${'value' in c?round(c.value):''}${c.kind==='angle'||c.kind==='angle-between'?'°':' mm'}</text>`;}).join('')}`;
+    // Different dimensions can share a line midpoint. Separate their actual
+    // text bounds so pointer hits cannot silently select a neighbouring rule.
+    const placed:{x:number;y:number;width:number;height:number}[]=[],gap=span/40;
+    let left=x-margin,top=-y-h-margin,right=left+Math.max(w,1)+2*margin,bottom=top+Math.max(h,1)+2*margin;
+    for(const label of svg.querySelectorAll<SVGTextElement>('text[data-constraint]')){
+      let box=label.getBBox();
+      for(let attempt=0;attempt<=placed.length;attempt++){
+        const collisions=placed.filter(b=>box.x<b.x+b.width+gap&&b.x<box.x+box.width+gap&&box.y<b.y+b.height+gap&&b.y<box.y+box.height+gap);
+        if(!collisions.length)break;
+        const shift=Math.max(...collisions.map(b=>b.y+b.height+gap))-box.y;
+        label.setAttribute('y',String(Number(label.getAttribute('y'))+shift));box=label.getBBox();
+      }
+      placed.push({x:box.x,y:box.y,width:box.width,height:box.height});
+      left=Math.min(left,box.x-gap);top=Math.min(top,box.y-gap);right=Math.max(right,box.x+box.width+gap);bottom=Math.max(bottom,box.y+box.height+gap);
+    }
+    svg.setAttribute('viewBox',`${left} ${top} ${right-left} ${bottom-top}`);
     const activate=(target:Element,second=false)=>{const label=target.closest('[data-constraint]'),line=target.closest('[data-line]');if(label){this.selected=label.getAttribute('data-constraint')!;this.page='saved';}else if(line){if(second)this.other=Number(line.getAttribute('data-line'));else this.edge=Number(line.getAttribute('data-line'));this.page='add';}else return;this.render();this.callbacks.changed();};
     svg.onclick=event=>{if(event.target instanceof Element)activate(event.target,event.shiftKey);};svg.onkeydown=event=>{if((event.key==='Enter'||event.key===' ')&&event.target instanceof Element){event.preventDefault();activate(event.target,event.shiftKey);}};
   }

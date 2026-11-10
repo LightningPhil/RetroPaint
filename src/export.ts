@@ -23,7 +23,8 @@ export async function imageBlob(format: string): Promise<Blob> {
     return format === 'bmp' ? encodeBmp(image) : format === 'gif' ? encodeGif(image) : encodeTiff(image);
   }
   const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, `image/${format}`, format === 'webp' ? 1 : 0.95));
-  if (!blob || blob.type !== `image/${format}`) throw new Error(`Your browser cannot save ${format.toUpperCase()}. Choose PNG.`);
+  if (!blob) throw new Error('Could not encode this picture. Try saving again, use a smaller picture, or Save project to keep an editable copy.');
+  if (blob.type !== `image/${format}`) throw new Error(`Your browser cannot save ${format.toUpperCase()}. Choose PNG.`);
   return blob;
 }
 export async function exportImage(format = 'png', name = 'retropaint'): Promise<void> {

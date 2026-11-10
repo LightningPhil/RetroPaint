@@ -64,6 +64,7 @@ const paths: Record<string, string> = {
   square: '<rect fill="#cfb7ec" x="3" y="3" width="18" height="18" rx="1"/>',
   cross: '<path fill="#f9c477" d="M8 2h8v6h6v8h-6v6H8v-6H2V8h6z"/>',
   wind: '<circle fill="#ffd16f" cx="6" cy="8" r="5"/><path d="m10 12 10 10m-5-5 3-3m0 6 3-3"/>',
+  stop: '<rect x="5" y="5" width="16" height="16" rx="2" fill="#EF476F"/>',
   flipH: '<path d="M12 2v20M3 6l6 6-6 6zm18 0-6 6 6 6z"/>',
   flipV: '<path d="M2 12h20M6 3l6 6 6-6zm0 18 6-6 6 6z"/>',
   rotate: '<path d="M4 8a9 9 0 1 1-1 8M4 2v6h6"/>',

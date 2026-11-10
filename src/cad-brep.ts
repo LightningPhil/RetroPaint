@@ -27,7 +27,7 @@ class Build {
   dispose():void{for(const value of [...this.owned].reverse())try{value.delete();}catch{/* Consuming sketch operations release their own inputs. */}this.owned.clear();}
   bounds(shape:r.AnyShape):CadMesh['bounds']{const box=this.own(shape.boundingBox),[min,max]=box.bounds;return{min,max};}
   manifold(shape:r.Shape3D):Manifold{
-    const data=shape.mesh({tolerance:.005,angularTolerance:.06}),seen=new Map<string,number>(),from:number[]=[],to:number[]=[];
+    const data=shape.mesh({tolerance:.005,angularTolerance:.04}),seen=new Map<string,number>(),from:number[]=[],to:number[]=[];
     for(let i=0;i<data.vertices.length;i+=3){const key=data.vertices.slice(i,i+3).map(n=>Math.round(n*1e6)).join(','),previous=seen.get(key);if(previous!==undefined){from.push(i/3);to.push(previous);}else seen.set(key,i/3);}
     const mesh=new this.wasm.Mesh({numProp:3,vertProperties:new Float32Array(data.vertices),triVerts:new Uint32Array(data.triangles),mergeFromVert:new Uint32Array(from),mergeToVert:new Uint32Array(to)});
     return new this.wasm.Manifold(mesh);
@@ -200,6 +200,18 @@ class Build {
 }
 export function nativeEdges(item:CadBody,wasm:ManifoldToplevel):CadEdge[]{const build=new Build(wasm);try{return build.edges(build.body(item).shape).map(e=>e.data);}catch(error){throw error instanceof Error?error:new Error('Could not rebuild this solid for edge selection. Try editing its original sketch or dimensions.');}finally{build.dispose();}}
 export function nativeFaces(item:CadBody,wasm:ManifoldToplevel):CadFace[]{const build=new Build(wasm);try{return build.faces(build.body(item).shape,true).map(f=>f.data);}catch(error){throw error instanceof Error?error:new Error('Could not rebuild this solid for face selection. Try editing its original sketch or dimensions.');}finally{build.dispose();}}
+// A kernel can report a topologically closed sweep while its triangulation has
+// coincident sheets or collapsed triangles. Check the actual exported positions,
+// not just vertex indices, because touching sheets can use separate indices.
+function validateSweepMesh(positions:Float32Array,indices:Uint32Array):void{
+  const keys=new Map<string,number>(),vertexKeys=new Int32Array(positions.length/3);let next=0;
+  for(let i=0;i<vertexKeys.length;i++){const key=`${positions[i*3]},${positions[i*3+1]},${positions[i*3+2]}`;let id=keys.get(key);if(id===undefined){id=next++;keys.set(key,id);}vertexKeys[i]=id;}
+  const edges=new Map<string,number>();
+  for(let i=0;i<indices.length;i+=3){const a=indices[i]*3,b=indices[i+1]*3,c=indices[i+2]*3,ux=positions[b]-positions[a],uy=positions[b+1]-positions[a+1],uz=positions[b+2]-positions[a+2],vx=positions[c]-positions[a],vy=positions[c+1]-positions[a+1],vz=positions[c+2]-positions[a+2];
+    if((uy*vz-uz*vy)**2+(uz*vx-ux*vz)**2+(ux*vy-uy*vx)**2===0)throw new Error('Cannot sweep this profile along the path: the resulting solid has collapsed triangles. Try a smaller profile or gentler bends.');
+    for(const [x,y] of [[vertexKeys[indices[i]],vertexKeys[indices[i+1]]],[vertexKeys[indices[i+1]],vertexKeys[indices[i+2]]],[vertexKeys[indices[i+2]],vertexKeys[indices[i]]]]){const key=x<y?`${x}:${y}`:`${y}:${x}`,count=(edges.get(key)??0)+1;if(count>2)throw new Error('Cannot sweep this profile along the path: the resulting solid has overlapping mesh edges. Try a smaller profile or gentler bends.');edges.set(key,count);}
+  }
+}
 export function nativeFinish(recipe:Extract<CadSolid,{kind:'finish'|'shell'|'loft'|'sweep'}>,wasm:ManifoldToplevel):CadMesh{
-  const build=new Build(wasm);let solid:Manifold|undefined;try{const shape=build.solid(recipe);solid=build.manifold(shape);if(solid.status()!=='NoError'||solid.isEmpty())throw new Error('This feature could not make closed solid geometry. Try a smaller size.');const m=solid.getMesh();return{positions:new Float32Array(m.vertProperties),indices:new Uint32Array(m.triVerts),bounds:solid.boundingBox(),volume:solid.volume(),triangles:m.numTri};}catch(error){throw error instanceof Error?error:new Error('Could not rebuild this precision feature. Try a smaller size or a simpler source sketch.');}finally{solid?.delete();build.dispose();}
+  const build=new Build(wasm);let solid:Manifold|undefined;try{const shape=build.solid(recipe);solid=build.manifold(shape);if(solid.status()!=='NoError'||solid.isEmpty())throw new Error('This feature could not make closed solid geometry. Try a smaller size.');const m=solid.getMesh(),positions=new Float32Array(m.vertProperties),indices=new Uint32Array(m.triVerts);if(recipe.kind==='sweep')validateSweepMesh(positions,indices);return{positions,indices,bounds:solid.boundingBox(),volume:solid.volume(),triangles:m.numTri};}catch(error){throw error instanceof Error?error:new Error('Could not rebuild this precision feature. Try a smaller size or a simpler source sketch.');}finally{solid?.delete();build.dispose();}
 }

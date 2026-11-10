@@ -1,0 +1,72 @@
+{
+  "provenance": "Recovered complete Git tree objects; original project producer code and app UI, served locally with Vite configuration omitted only to avoid historical absolute node_modules model path. Files were saved through each producer UI; v4\u20138 opened the preceding saved fixture.",
+  "created": "2026-11-08T11:47:55.231663+00:00",
+  "results": [
+    {
+      "version": 3,
+      "producer_tree": "4d33f38731e54f1be72b1045509cf47aa8c8c02c",
+      "fixture_sha256": "e3c3a26002d570e35286dd4892a9bea7d6d98ebcf67568d54dca542d1f5c2563",
+      "reference_png_sha256": "fe4eb8976052dea6792d41dd0531175aa5fdbecc81862632112580183f9f1efc",
+      "migrated_sha256": "ebf0b80a7980fbd24ea2249e716b451919281b8a580a30459025c64327dfbcad",
+      "reopened_json_exact": true,
+      "objects_exact": true,
+      "reopened_png_sha256": "fe4eb8976052dea6792d41dd0531175aa5fdbecc81862632112580183f9f1efc",
+      "whole_project_exact_except_version": true
+    },
+    {
+      "version": 4,
+      "producer_tree": "5e86076d4a5c419d8ba9dbda079e8259190a3582",
+      "fixture_sha256": "d4ba2bc6b30d36350530299bf25657fe3f05dbfff6eccdf6c62aea7d21477a02",
+      "reference_png_sha256": "fe4eb8976052dea6792d41dd0531175aa5fdbecc81862632112580183f9f1efc",
+      "migrated_sha256": "ebf0b80a7980fbd24ea2249e716b451919281b8a580a30459025c64327dfbcad",
+      "reopened_json_exact": true,
+      "objects_exact": true,
+      "reopened_png_sha256": "fe4eb8976052dea6792d41dd0531175aa5fdbecc81862632112580183f9f1efc",
+      "whole_project_exact_except_version": true
+    },
+    {
+      "version": 5,
+      "producer_tree": "54361f60b7ecfd4809b47bae03a5c233135f5118",
+      "fixture_sha256": "053212a431cfcef16a0ef14b3c3e0024e9e94b9635f840a81adc787b15b3b797",
+      "reference_png_sha256": "fe4eb8976052dea6792d41dd0531175aa5fdbecc81862632112580183f9f1efc",
+      "migrated_sha256": "ebf0b80a7980fbd24ea2249e716b451919281b8a580a30459025c64327dfbcad",
+      "reopened_json_exact": true,
+      "objects_exact": true,
+      "reopened_png_sha256": "fe4eb8976052dea6792d41dd0531175aa5fdbecc81862632112580183f9f1efc",
+      "whole_project_exact_except_version": true
+    },
+    {
+      "version": 6,
+      "producer_tree": "2da7b3f50304d366ed14e9c1f6e81bbc002235e5",
+      "fixture_sha256": "c4b37b301a488d3d98e9da573fcc133a096d627c8e54132eacf30bcc1824ddfd",
+      "reference_png_sha256": "fe4eb8976052dea6792d41dd0531175aa5fdbecc81862632112580183f9f1efc",
+      "migrated_sha256": "ebf0b80a7980fbd24ea2249e716b451919281b8a580a30459025c64327dfbcad",
+      "reopened_json_exact": true,
+      "objects_exact": true,
+      "reopened_png_sha256": "fe4eb8976052dea6792d41dd0531175aa5fdbecc81862632112580183f9f1efc",
+      "whole_project_exact_except_version": true
+    },
+    {
+      "version": 7,
+      "producer_tree": "4ecaa8cd1e1517c92f073f26d74f424a3906dc5d",
+      "fixture_sha256": "21443bae7b41df98544230afabfc6ccbd9237437f999b88a217d93e5f0815cca",
+      "reference_png_sha256": "fe4eb8976052dea6792d41dd0531175aa5fdbecc81862632112580183f9f1efc",
+      "migrated_sha256": "ebf0b80a7980fbd24ea2249e716b451919281b8a580a30459025c64327dfbcad",
+      "reopened_json_exact": true,
+      "objects_exact": true,
+      "reopened_png_sha256": "fe4eb8976052dea6792d41dd0531175aa5fdbecc81862632112580183f9f1efc",
+      "whole_project_exact_except_version": true
+    },
+    {
+      "version": 8,
+      "producer_tree": "53dc6f3f4f6948552c14d7bc7572581ed539e23e",
+      "fixture_sha256": "4691ab655a0d13e1e22a1edbf2517778807157e1e05460c367a97527d9ddd9b3",
+      "reference_png_sha256": "fe4eb8976052dea6792d41dd0531175aa5fdbecc81862632112580183f9f1efc",
+      "migrated_sha256": "ebf0b80a7980fbd24ea2249e716b451919281b8a580a30459025c64327dfbcad",
+      "reopened_json_exact": true,
+      "objects_exact": true,
+      "reopened_png_sha256": "fe4eb8976052dea6792d41dd0531175aa5fdbecc81862632112580183f9f1efc",
+      "whole_project_exact_except_version": true
+    }
+  ]
+}

@@ -19,6 +19,7 @@ import { objectAnimated } from './object-scene';
 import { getPending } from './fill';
 import { getPreview } from './preview';
 import { state } from './state';
+import { renderViewGuides } from './view-guides';
 
 export function visibleAnimation():boolean {return layers.some(layer=>layer.visible&&(liveAnimated(layer.id===activeLayerId?currentLive():layer.live)||layer.objects?.some(objectAnimated)));}
 function overlayKey():string {
@@ -47,6 +48,7 @@ export function startLoop(): void {
     const animated=visibleAnimation()||Boolean(getPending())||Boolean(state.liveArmed&&(getPreview()||state.poly.length)),revision=pictureRevision(),repaint=painted!==revision||inMotion||animated;
     if(repaint){paintFrame(now);painted=revision;}
     const key=overlayKey();if(repaint||key!==overlay){renderOverlay();overlay=key;}
+    renderViewGuides();
     renderWorkspaceOverlay(now);
     updateWorkspaceUi();
     updateBelt(now);

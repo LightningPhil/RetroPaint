@@ -20,6 +20,7 @@ let anchor: { x: number; y: number } | null = null;
 let cached: HTMLCanvasElement | null = null, signature = '';
 let editing:TextObject|null=null;
 let calloutPreview:TextObject|null=null,calloutSignature='';
+let vectorPreview:TextObject|null=null,vectorSignature='';
 export const calloutOptions={enabled:false,color:'#000000',paper:'#ffffff',border:true,rounded:true};
 export function calloutEnabled():boolean{return state.workspaceMode==='advanced'&&calloutOptions.enabled;}
 function calloutObject():TextObject {
@@ -104,6 +105,16 @@ export function renderTextPreview(ctx: CanvasRenderingContext2D): void {
   if(calloutEnabled()){
     if(!editing){const key=JSON.stringify([textOptions,calloutOptions,anchor,state.opacity,W,H]);if(!calloutPreview||key!==calloutSignature){calloutPreview=calloutObject();calloutSignature=key;}drawObject(ctx,calloutPreview,performance.now());}return;
   }
+  if(vectorDrawingEnabled()){
+    const color=previewColor(state.ink),key=JSON.stringify([textOptions,color,state.secondaryInk,anchor,state.opacity,W,H]);
+    if(!vectorPreview||key!==vectorSignature){
+      const object:Partial<TextObject>={id:'text-preview',name:'Text',opacity:state.opacity};
+      makeTextBitmap(textOptions,color,state.secondaryInk,object);
+      const p=anchor??{x:Math.max(0,(W-object.width!)/2),y:Math.max(0,(H-object.height!)/2)};
+      object.matrix=[1,0,0,1,p.x,p.y];vectorPreview=object as TextObject;vectorSignature=key;
+    }
+    drawObject(ctx,vectorPreview,performance.now());return;
+  }
   const image = bitmap(), p = anchor ?? { x: Math.max(0, (W - image.width) / 2), y: Math.max(0, (H - image.height) / 2) };
   ctx.save(); ctx.globalAlpha = state.opacity; ctx.drawImage(image, p.x, p.y); ctx.restore();
 }
@@ -128,13 +139,27 @@ export function bindText(): void {
   });
   const content = document.getElementById('textContent') as HTMLTextAreaElement;
   content.addEventListener('input', () => { textOptions.text = content.value; });
+  const acceptNumber = (input: HTMLInputElement, key: 'size' | 'width', commit: boolean) => {
+    const value = Number(input.value), fallback = key === 'size' ? 36 : 360;
+    let accepted = input.value.trim() && Number.isFinite(value) ? Math.max(key === 'size' ? 6 : 20, Math.min(key === 'size' ? 300 : 4096, value)) : fallback;
+    if (key === 'width') accepted = Math.round(accepted);
+    textOptions[key] = accepted;
+    // Keep partial numbers and the caret intact while typing. Blur or an
+    // explicit placement shows the same bounded value used by the preview.
+    if (commit) input.value = String(accepted);
+  };
+  const acceptDimensions = () => {
+    acceptNumber(field<HTMLInputElement>('textSize'), 'size', true);
+    acceptNumber(field<HTMLInputElement>('textWidth'), 'width', true);
+  };
   for (const [id, key] of [['textFont', 'font'], ['textSize', 'size'], ['textWidth', 'width'], ['textAlign', 'align']] as const) {
     const field = document.getElementById(id) as HTMLInputElement | HTMLSelectElement;
     field.addEventListener('input', () => {
-      if (key === 'size' || key === 'width') textOptions[key] = Number(field.value) || (key === 'size' ? 36 : 360);
+      if (key === 'size' || key === 'width') acceptNumber(field as HTMLInputElement, key, false);
       else if (key === 'align') textOptions.align = field.value as CanvasTextAlign;
       else textOptions.font = field.value;
     });
+    if (key === 'size' || key === 'width') field.addEventListener('change', () => acceptNumber(field as HTMLInputElement, key, true));
   }
   document.querySelectorAll<HTMLButtonElement>('[data-text-style]').forEach(button => button.addEventListener('click', () => {
     const key = button.dataset.textStyle as 'bold' | 'italic' | 'underline' | 'strike';
@@ -142,11 +167,11 @@ export function bindText(): void {
   }));
   const opaque = document.getElementById('textOpaque') as HTMLInputElement;
   opaque.addEventListener('change', () => { textOptions.opaque = opaque.checked; });
-  document.getElementById('placeText')!.addEventListener('click', placeText);
+  document.getElementById('placeText')!.addEventListener('click', () => { acceptDimensions(); placeText(); });
   document.getElementById('cancelText')!.addEventListener('click', cancelText);
   document.addEventListener('keydown', event => {
     if(state.cad.open)return;
-    if (event.ctrlKey && event.key === 'Enter' && state.tool === 'text') { event.preventDefault(); placeText(); }
+    if (event.ctrlKey && event.key === 'Enter' && state.tool === 'text') { event.preventDefault(); acceptDimensions(); placeText(); }
   });
   bus.addEventListener('text', () => { content.value = textOptions.text; });
 }

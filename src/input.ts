@@ -11,10 +11,10 @@ import { setPreview } from './preview';
 import { crankMove, crankStart, finishSpiroStroke, hitStator, hitWindKey, hoverHole, startMotor } from './spiro';
 import { currentWidth, state, vectorDrawingEnabled } from './state';
 import { placeStamp } from './stamps';
-import { beginSelectionResize, cancelSelection, commitSelection, dragSelectionResize, endSelectionResize, hitSelection, hitSelectionHandle, moveSelection, rectangle, selectPixelMask, selectRegion } from './selection';
+import { beginSelectionResize, cancelSelection, commitSelection, dragSelectionResize, endSelectionResize, hitSelection, hitSelectionHandle, moveSelection, pixelRectangle, rectangle, selectPixelMask, selectRegion } from './selection';
 import { SmudgePath } from './smudge';
 import { splinePoints } from './curves';
-import { hitResizeHandle, motorOn, resizeHandle, setRingRadius } from './spiro';
+import { hitResizeHandle, motorOn, resizeHandle, setRingRadius, stopMotor } from './spiro';
 import { beginText, calloutEnabled } from './text-tool';
 import { paintFrame } from './paint';
 import { activeLayer, renderActive } from './layers';
@@ -89,6 +89,7 @@ export function initInput(): void {
 function cancelPointer(id: number): void {
   const ptr = ptrs.get(id);
   if (!ptr) return;
+  if (ptr.mode === 'ignore' && state.tool === 'spiro') stopMotor();
   ptrs.delete(id);
   setPreview(null);
   state.cursor = null;
@@ -327,7 +328,7 @@ function handleMove(event: PointerEvent): void {
   } else if (ptr.mode === 'crank') crankMove(pos.x, pos.y);
   else if (ptr.mode === 'shape') setPreview({ kind: 'shape', shape: state.shape, ink: usingSecondary ? state.secondaryInk : undefined, x0: ptr.sx, y0: ptr.sy, x1: pos.x, y1: pos.y });
   else if (ptr.mode === 'lasso') {
-    if (state.selectionMode === 'rect') ptr.lasso = rectangle(ptr.sx, ptr.sy, pos.x, pos.y);
+    if (state.selectionMode === 'rect') ptr.lasso = pixelRectangle(ptr.sx, ptr.sy, pos.x, pos.y);
     else if (dist >= 2) ptr.lasso.push(pos);
     setPreview({ kind: 'lasso', points: ptr.lasso });
   } else if (ptr.mode === 'grad') setPreview({ kind: 'rubber', x0: ptr.sx, y0: ptr.sy, x1: pos.x, y1: pos.y });
@@ -403,7 +404,7 @@ function handleUp(event: PointerEvent): void {
   }
   if (ptr.mode === 'lasso') {
     setPreview(null);
-    selectRegion(state.selectionMode === 'rect' ? rectangle(ptr.sx, ptr.sy, pos.x, pos.y) : [...ptr.lasso, pos]);
+    selectRegion(state.selectionMode === 'rect' ? pixelRectangle(ptr.sx, ptr.sy, pos.x, pos.y) : [...ptr.lasso, pos]);
   }
   if (ptr.mode === 'grad') {
     setPreview(null);
@@ -435,7 +436,8 @@ function handleUp(event: PointerEvent): void {
 }
 
 function addPolyPoint(x: number, y: number, detail: number): void {
-  const nearStart = state.poly.length > 2 && Math.hypot(x - state.poly[0].x, y - state.poly[0].y) < 18;
+  const first=state.poly[0],closingRadius=first?state.poly.slice(1).reduce((radius,p)=>{const distance=Math.hypot(p.x-first.x,p.y-first.y);return distance>.01?Math.min(radius,distance/3):radius;},18):18;
+  const nearStart = state.poly.length > 2 && Math.hypot(x - first.x, y - first.y) < closingRadius;
   if (detail >= 2 || nearStart) {
     finishPath(nearStart);
     return;
@@ -551,7 +553,10 @@ function blank(id: number, pos: { x: number; y: number }, mode: Ptr['mode']): Pt
 
 export function tickSpray(): void {
   for (const ptr of sprayPointers()) {
-    withSecondary(ptr.secondary, () => { useGeneration(ptr.gen); sprayCloud(ptr.x, ptr.y, ptr.still); });
+    // A stationary mouse emits no move events. Include the time since the last
+    // event so a held spray can build up and drip without requiring jitter.
+    const held = ptr.still + Math.max(0, performance.now() - ptr.t);
+    withSecondary(ptr.secondary, () => { useGeneration(ptr.gen); sprayCloud(ptr.x, ptr.y, held); });
   }
 }
 

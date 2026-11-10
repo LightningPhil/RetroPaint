@@ -74,7 +74,7 @@ export function initPaperView(compact: MediaQueryList): void {
     if(state.cad.open)return;
     const typing=event.target instanceof HTMLInputElement||event.target instanceof HTMLTextAreaElement||event.target instanceof HTMLSelectElement||event.target instanceof HTMLElement&&event.target.isContentEditable;
     if(!typing&&!document.querySelector('dialog[open]')&&!event.ctrlKey&&!event.metaKey&&!event.altKey){if(['+','=','-','0'].includes(event.key)){event.preventDefault();if(event.key==='0')reset();else if(event.key==='-')smaller.click();else larger.click();return;}}
-    if (event.code !== 'Space' || event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement || document.querySelector('dialog[open]')) return;
+    if (event.code !== 'Space' || typing || (event.target instanceof Element && event.target.closest('button,a[href],summary,[role="button"],[role="tab"]')) || document.querySelector('dialog[open]')) return;
     event.preventDefault(); space = true; draw();
   });
   document.addEventListener('keyup', event => { if (event.code === 'Space') { space = false; stop(); draw(); } });

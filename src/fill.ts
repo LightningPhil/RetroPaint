@@ -1,14 +1,15 @@
 import { activeSector, insideSector, clipLane } from './symmetry-mask';
-import { symmetryTransforms } from './symmetry';
+import { symmetryTransforms, sameLane } from './symmetry';
 import { neonColor } from './color';
 import { playDrawing } from './audio';
 import { renderPaintPath } from './stroke-renderer';
 import { baseCtx, paintThroughMask, viewCtx, W, H } from './canvas';
 import { mirrorPoints } from './draw';
 import { pushHistory } from './history';
-import { addFill, addSparkle, blankMask, subtractMask } from './live';
+import { addFill, addSparkle, blankMask, subtractMask, renderStroke } from './live';
 import {
   activeInkId,
+  captureStrokeSpec,
   animatedKind,
   fillSpecFor,
   isAnimatedMaterial,
@@ -393,6 +394,7 @@ function layOutline(pts: { x: number; y: number }[], ctx: CanvasRenderingContext
   if (state.shapeOutline === 'solid') {
     const target = commit ? baseCtx : ctx, lanes = pts.map(p => mirrorPoints(p.x, p.y));
     for (let lane = 0; lane < lanes[0].length; lane++) {
+      if(!activeSector()&&Array.from({length:lane},(_,j)=>j).some(j=>sameLane(lanes.map(p=>p[j]),lanes.map(p=>p[lane]))))continue;
       target.save(); clipLane(target, lane); target.globalAlpha = currentAlpha(); target.strokeStyle = previewColor(activeInkId()); target.lineWidth = state.brushWidth;
       target.beginPath(); lanes.forEach((p, i) => i ? target.lineTo(p[lane].x, p[lane].y) : target.moveTo(p[lane].x, p[lane].y)); target.stroke(); target.restore();
     }
@@ -400,11 +402,17 @@ function layOutline(pts: { x: number; y: number }[], ctx: CanvasRenderingContext
   }
   if (!commit) {
     const id = activeInkId();
+    const spec = captureStrokeSpec();
     const paths = [pts];
     for (const points of paths) {
     const lanes = points.map(p => mirrorPoints(p.x, p.y));
     for (let lane = 0; lane < lanes[0].length; lane++) {
       const path = lanes.map(p => ({ ...p[lane], w: width }));
+      if(spec&&spec!=='sparkle'&&spec.kind==='conveyor'){
+        ctx.save();clipLane(ctx,lane);
+        renderStroke(ctx,{points:path,opacity:currentAlpha(),applicator:strokeApplicator(),spec,generation:0,lane},performance.now());
+        ctx.restore();continue;
+      }
       const bitmap = renderPaintPath(path, {
         kind: id === 'neon' ? 'neon' : id === 'rainbow' ? 'rainbow' : id === 'sparkle' ? 'glitter' : 'solid',
         color: id === 'sparkle' ? state.sparkleTint : id === 'neon' ? state.neonTint : id.startsWith('tex-') ? id : previewColor(id),

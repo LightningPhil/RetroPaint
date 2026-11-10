@@ -1,6 +1,6 @@
 import { ArtworkAge, artwork } from '../src/artwork';
 import { bindClearConfirmation } from '../src/clear-confirmation';
-import { initInput, tickSpray } from '../src/input';
+import { finishPath, initInput, tickSpray } from '../src/input';
 import { activeSector, insideSector, clipSegment, sliceAt, sliceCount, sectorPolygon } from '../src/symmetry-mask';
 import { placeStamp } from '../src/stamps';
 import { mirrorMotion, symmetryTransforms } from '../src/symmetry';
@@ -13,16 +13,18 @@ import { splinePoints } from '../src/curves';
 import { renderPaintPath } from '../src/stroke-renderer';
 import { initMaterials } from '../src/materials';
 import { state } from '../src/state';
+import { renderOverlay } from '../src/overlay';
+import { setDocumentCrop } from '../src/document-frame';
 // Component coverage includes advanced vector and CAD authoring. Workspace
 // gating is exercised separately through the application UI.
 state.workspaceMode = 'advanced';
 import { paintFrame } from '../src/paint';
 import { bakeStaticStrokes, clearLive, strokes, snapshotLive, restoreLive, renderLive } from '../src/live';
-import { smudge, beginBake, invertAt, pixelateAt, embossAt, startHole, tickHole, startSqueegee, tickSqueegee, isBusy } from '../src/effects';
+import { smudge, beginBake, beginPixelFilterStroke, drips, invertAt, pixelateAt, embossAt, startHole, tickHole, startSqueegee, tickSqueegee, isBusy } from '../src/effects';
 import { pushHistory, undo } from '../src/history';
-import { cancelSelection, commitSelection, copySelection, cutSelection, hasSelection, hitSelection, moveSelection, pasteSelection, rectangle, refreshTransparency, selectRegion, renderSelection } from '../src/selection';
+import { cancelSelection, commitSelection, copySelection, cutSelection, hasSelection, hitSelection, moveSelection, pasteImage, pasteSelection, rectangle, refreshTransparency, selectRegion, renderSelection } from '../src/selection';
 import { drawShape, floodAt, floodMask, setShapePainter, getPending, cancelPending } from '../src/fill';
-import { drawBetween, penPosition, setRingRadius } from '../src/spiro';
+import { assignGear, drawBetween, motorOn, penPosition, resetKit, setRingRadius, startMotor, tickMotor } from '../src/spiro';
 import { activeLayer, addLayer, drawLayerThumbnail, layers, moveLayer, renderFullPicture, renderLayers, resetLayers, switchLayer, mergeLayerDown, transformLayers } from '../src/layers';
 import { redo } from '../src/history';
 import { flipSelection, invertSelection, resizeSelection, rotateSelection, selectPixelMask, selectionBounds } from '../src/selection';
@@ -40,7 +42,7 @@ import { documentCrop, outputFrame } from '../src/document-frame';
 import { choosePhotoLook, newPhotoRecipe, photoManualChange, readPhotoRecipe } from '../src/photo-recipe';
 import { enhancementSize, enhancementRegion, SuperResolutionProcessor } from '../src/super-resolution';
 import { PngStream } from '../src/png-stream';
-import { addRasterImage, addVectorShape, beginObjectPixelEdit, beginObjectStroke, clearObjectSelection, commitObjectSelection, deleteObjects, duplicateObjects, ensureObjectLayer, finishObjectStroke, hasObjectCapture, hitObject, moveObjects, objectSelectionBounds, resizeObjects, rotateObjects, selectObjects, selectedObjects } from '../src/objects';
+import { addRasterImage, addVectorShape, makeVectorShape, beginObjectPixelEdit, beginObjectStroke, clearObjectSelection, commitObjectSelection, deleteObjects, duplicateObjects, ensureObjectLayer, finishObjectStroke, hasObjectCapture, hitObject, moveObjects, objectSelectionBounds, resizeObjects, rotateObjects, stepObjectOrder, selectObjects, selectedObjects } from '../src/objects';
 import { trimRasterToPaper } from '../src/selection-commit';
 import { objectBounds, type RasterObject } from '../src/object-scene';
 import { crankStart, crankMove, finishSpiroStroke, gearCenter, resetKit, tickMotor } from '../src/spiro';
@@ -53,12 +55,12 @@ import { defaultForm, newProfile, pathBeziers } from '../src/cad-profiles';
 import { primitive, body as cadBody, basePlane, readCadLayer, sketchPoints, type CadMesh, type Primitive } from '../src/cad-model';
 import { initKernel, solidMesh, printMesh, binaryStl, solidEdges, solidFaces } from '../src/cad-kernel';
 import { ensureCadLayer, addBody as addCadBody, currentBodies, replaceBodies, combinedBody, finishedBody, shelledBody } from '../src/cad-document';
-import { cadCompute } from '../src/cad-engine';
+import { cadCompute, cancelCadCompute } from '../src/cad-engine';
 import { duplicateLayer } from '../src/layers';
 import { mateBody } from '../src/cad-mate';
 import { captureAttachment } from '../src/cad-attachment';
 import { attachedPlane } from '../src/cad-attachment';
-import { editFeature, featureAt, featureTimeline, featureTree, historyStage, prepareFeatureHistory, resizeSketch } from '../src/cad-features';
+import { editFeature, featureAt, featureTimeline, featureTree, historyStage, prepareFeatureHistory, resizeSketch, setFeaturePlane } from '../src/cad-features';
 import { solveSketch } from '../src/cad-sketch-constraints';
 import { importStl } from '../src/cad-stl';
 import type { CadSketchConstraint, V2 } from '../src/cad-model';
@@ -86,6 +88,79 @@ function reset() {
 function pixel(x: number, y: number) { return Array.from(baseCtx.getImageData(x, y, 1, 1).data).join(','); }
 function block(x = 50, y = 50) { baseCtx.fillStyle = '#ff0000'; baseCtx.fillRect(x, y, 40, 40); }
 function image() { return base.toDataURL(); }
+
+check('Every offered hole on each named Spiro gear reaches a distinct pen position',()=>{
+  const saved={...state.spiro};
+  try{
+    state.spiro={...saved,cx:320,cy:240,R:160,outerTeeth:96,shape:'circle',theta:0};
+    for(const [id,teeth,holes] of [['pink',24,5],['purple',30,6],['red',36,7],['yellow',42,8],['green',48,8],['orange',54,10]] as const){
+      assignGear(id);const centre={x:320+160-160*teeth/96,y:240};let previous=0;const points=new Set<string>();
+      for(let hole=0;hole<holes;hole++){
+        state.spiro.hole=hole;const p=penPosition(0)!;assert(p,'Missing pen position for '+id+' hole '+hole);
+        const distance=Math.hypot(p.x-centre.x,p.y-centre.y);
+        assert(distance>previous,id+' offered hole '+hole+' aliases another hole');previous=distance;points.add(p.x.toFixed(8)+','+p.y.toFixed(8));
+      }
+      assert(points.size===holes,id+' is missing an offered drawing hole');
+    }
+    assignGear('orange');state.spiro.innerTeeth=43;const points=[];
+    for(let hole=0;hole<7;hole++){state.spiro.hole=hole;points.push(penPosition(0)!);}
+    assert(new Set(points.slice(0,6).map(p=>p.x+','+p.y)).size===6&&Math.hypot(points[6].x-points[0].x,points[6].y-points[0].y)<1e-9,'Custom tooth counts lost their derived holes');
+  }finally{state.spiro=saved;}
+});
+
+check('Resetting a running Spiro preserves partial pigment as one reversible action',()=>{
+  const savedMode=state.drawingMode,savedSpiro={...state.spiro};
+  try{for(const mode of ['vector','raster'] as const){
+    resetLayers(320,240);reset();state.drawingMode=mode;state.ink='#1E88E5';state.brushWidth=3;
+    state.spiro={...savedSpiro,cx:160,cy:120,R:80,outerTeeth:180,innerTeeth:53,gearId:'red',hole:0,theta:0,shape:'circle',drive:'auto'};
+    const before=projectData(),now=performance.now();startMotor();tickMotor(now+350);assert(motorOn(),'Fixture completed before Reset');
+    resetKit();assert(!motorOn(),'Reset left the motor running');const after=projectData();assert(after!==before,'Reset discarded the partial drawing');
+    if(mode==='vector')assert(activeLayer().objects?.length===1,'Reset left the partial curve as an unsaved preview');
+    tickMotor(now+5000);assert(projectData()===after,'Reset left a hidden motor editing the document');
+    undo();assert(projectData()===before,'Reset drawing did not Undo as one action');redo();assert(projectData()===after,'Redo changed the partial curve');
+    resetKit();assert(projectData()===after,'Reset kit changed committed pigment');
+  }}finally{resetKit();state.drawingMode=savedMode;state.spiro=savedSpiro;resetLayers(960,640);reset();}
+});
+
+check('Pixel grid remains one screen pixel wide when tiny artwork is enlarged',()=>{
+  resetLayers(32,32);reset();state.cursor=null;state.pixelGrid=true;state.rulers=false;state.paperScale=10;
+  const stage=document.getElementById('stage')!,parent=stage.parentElement!,next=stage.nextSibling,oldStyle=stage.getAttribute('style');
+  const slot=document.createElement('div');slot.id='canvasSlot';slot.style.cssText='position:fixed;left:100px;top:100px;width:320px;height:320px;overflow:hidden';parent.append(slot);slot.append(stage);
+  stage.style.cssText='display:block;position:absolute;inset:0;width:320px;height:320px';
+  const canvases=[...stage.querySelectorAll('canvas')],styles=canvases.map(c=>c.getAttribute('style'));
+  canvases.forEach(c=>c.style.cssText='position:absolute;inset:0;width:100%;height:100%;border:0;max-width:none');
+  const before=projectData();
+  try{
+    const composite=()=>{
+      renderOverlay();const composed=document.createElement('canvas');composed.width=composed.height=320;const ctx=composed.getContext('2d')!,rect=slot.getBoundingClientRect();
+      for(const canvas of stage.querySelectorAll('canvas')){if(canvas===view||canvas.hidden)continue;const r=canvas.getBoundingClientRect();ctx.drawImage(canvas,r.left-rect.left,r.top-rect.top,r.width,r.height);}
+      return ctx;
+    };
+    let ctx=composite();
+    const alpha=(x:number,y:number)=>ctx.getImageData(x,y,1,1).data[3];
+    assert(alpha(10,105)>=16,'Pixel boundary is not visible');
+    assert(alpha(15,105)===0,'Grid obscures pixel centres instead of thin boundaries');
+    assert(alpha(11,105)===0,'Grid line expands with the source pixels');
+    assert(projectData()===before,'View guides changed the editable artwork');
+    stage.style.left='-103px';stage.style.top='-73px';ctx=composite();
+    assert(alpha(17,32)>=16&&alpha(22,32)===0,'Panning loses the source grid origin');
+    stage.style.left=stage.style.top='0';state.pixelGrid=false;state.rulers=true;ctx=composite();
+    assert(alpha(150,16)>200&&alpha(150,20)===0,'Ruler is not 18 screen pixels tall');
+    let letters=0;for(let y=2;y<14;y++)for(let x=100;x<120;x++){const p=ctx.getImageData(x,y,1,1).data;if(p[0]<120&&p[3]>240)letters++;}
+    assert(letters>=4,'Ruler number 10 is not legible at source coordinate 10');
+    state.rulers=false;state.pixelGrid=true;stage.style.width=stage.style.height='32px';ctx=composite();
+    assert(ctx.getImageData(0,0,320,320).data.every(v=>v===0),'Grid should disappear below six screen pixels per source pixel');
+    stage.style.width=stage.style.height='320px';setDocumentCrop({x:.25,y:.25,width:.5,height:.5});
+    for(const c of canvases){c.style.left=c.style.top='-50%';c.style.width=c.style.height='200%';}
+    ctx=composite();assert(alpha(20,110)>=16&&alpha(30,110)===0,'Crop loses source grid alignment');
+    stage.style.width=stage.style.height='10240px';stage.style.left=stage.style.top='-5000px';ctx=composite();
+    for(const c of stage.querySelectorAll('canvas'))if(c!==view&&c.id!=='ui')assert(c.width<=Math.ceil(320*devicePixelRatio)&&c.height<=Math.ceil(320*devicePixelRatio),'Zoom allocated a paper-sized guide buffer');
+  }finally{
+    canvases.forEach((c,i)=>styles[i]===null?c.removeAttribute('style'):c.setAttribute('style',styles[i]!));
+    oldStyle===null?stage.removeAttribute('style'):stage.setAttribute('style',oldStyle);parent.insertBefore(stage,next);slot.remove();
+    state.pixelGrid=false;state.rulers=false;state.paperScale=1;resetLayers(960,640);reset();
+  }
+});
 
 check('Smudge preserves flat colour and pixels beyond the soft radius', () => {
   const src = new Uint8ClampedArray(40 * 40 * 4).fill(128);
@@ -226,9 +301,20 @@ for (const ink of ['#E53935','rainbow','neon','sparkle']) {
 }
 check('Shape preview and committed neon use the same continuous rendering', () => {
   reset(); state.tool='shapes';state.ink='neon';state.brushWidth=18;
-  const expected=cloneCanvas(base);drawShape('circle',280,260,420,260,expected.getContext('2d')!,false);
-  beginStrokeGeneration();drawShape('circle',280,260,420,260,baseCtx,true);bakeStaticStrokes(baseCtx);
+  const expected=cloneCanvas(base);drawShape('circle',280,260,420,400,expected.getContext('2d')!,false);
+  beginStrokeGeneration();drawShape('circle',280,260,420,400,baseCtx,true);bakeStaticStrokes(baseCtx);
   assert(expected.toDataURL()===image(),'Preview differs from committed shape');
+});
+check('Live shape outline previews change colour without committing art',()=>{
+  reset();state.tool='shapes';state.shapeOutline='brush';state.ink='#E53935';state.liveArmed=true;state.conveyor=['#E53935','#FFD166'];state.beltSpeed=3;state.beltMode='snap';state.brushWidth=18;
+  const before=projectData(),now=performance.now;let time=0;
+  Object.defineProperty(performance,'now',{configurable:true,value:()=>time});
+  try{
+    const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;const ctx=canvas.getContext('2d')!;
+    drawShape('line',100,200,200,200,ctx,false);assert(Array.from(ctx.getImageData(110,200,1,1).data).join(',')==='229,57,53,255','Initial preview is not the first palette colour');
+    ctx.clearRect(0,0,W,H);time=250;drawShape('line',100,200,200,200,ctx,false);assert(Array.from(ctx.getImageData(110,200,1,1).data).join(',')==='255,209,102,255','Live preview stayed frozen on the first colour');
+    assert(projectData()===before,'Rendering a preview committed art or changed a live definition');
+  }finally{Object.defineProperty(performance,'now',{configurable:true,value:now});}
 });
 check('Shapes restore a brush after spray, including with live ink', () => {
   reset();state.applicator='mist';state.brushApplicator='marker';state.tool='shapes';state.liveArmed=true;
@@ -395,6 +481,16 @@ for(const ink of ['#E53935','neon','sparkle'])check('Masked '+ink+' brush edges 
   const actual=baseCtx.getImageData(585,325,90,30).data;
   assert(actual.every((v,i)=>Math.abs(v-expected[i])<=2),'A reflected brush tip spilled back across the seam');
 });
+check('Symmetry axis lines retain the opacity of one mark in raster and vectors',()=>{
+  const previous={outline:state.shapeOutline,fill:state.shapeFill,width:state.brushWidth};try{
+  for(const mode of ['v','h'] as const)for(const kind of ['shape','brush','vector'] as const){
+    const axis=mode==='v'?[480,100,480,200]:[100,320,200,320],control=mode==='v'?[100,100,100,200]:[100,100,200,100],sample=mode==='v'?[480,150]:[150,320];
+    const paint=(coords:number[],sym:'off'|'v'|'h')=>{reset();state.opacity=.5;state.symmetry=sym;state.shapeOutline='solid';state.shapeFill='none';state.brushWidth=3;const [x0,y0,x1,y1]=coords;
+      if(kind==='vector')drawObject(baseCtx,makeVectorShape('line',x0,y0,x1,y1),0);else if(kind==='shape'){beginStrokeGeneration();drawShape('line',x0,y0,x1,y1,baseCtx,true);bakeStaticStrokes(baseCtx);}else{beginStrokeGeneration();segment(x0,y0,x1,y1,3,0);bakeStaticStrokes(baseCtx);}
+      return Array.from(baseCtx.getImageData(sym==='off'? (mode==='v'?100:150):sample[0],sym==='off'? (mode==='v'?150:100):sample[1],1,1).data);};
+    const expected=paint(control,'off'),actual=paint(axis,mode);assert(actual.every((v,i)=>Math.abs(v-expected[i])<=1),`${mode} ${kind} symmetry axis darkened: ${actual} vs ${expected}`);
+  }}finally{state.shapeOutline=previous.outline;state.shapeFill=previous.fill;state.brushWidth=previous.width;reset();}
+});
 check('Masked eraser makes mirrored edge cuts and leaves unrelated paper intact',()=>{
   reset();baseCtx.fillStyle='#446688';baseCtx.fillRect(0,0,W,H);const before=image();
   state.symmetry='4';state.symmetryMask=true;state.tool='eraser';state.eraserMode='scrub';beginBake();beginStrokeGeneration();
@@ -433,6 +529,24 @@ function pointer(type:string,x:number,y:number) {
   const r=view.getBoundingClientRect();
   view.dispatchEvent(new PointerEvent(type,{pointerId:77,button:0,buttons:type==='pointerup'?0:1,clientX:r.left+x,clientY:r.top+y}));
 }
+check('Tiny point paths keep every corner until Finish and still close at their start',()=>{
+  const mode=state.drawingMode,shape=state.shape,outline=state.shapeOutline,fill=state.shapeFill;
+  const knots=[{x:100,y:100},{x:108,y:100},{x:108,y:106},{x:100,y:106}];
+  const tap=(x:number,y:number)=>{pointer('pointerdown',x,y);pointer('pointerup',x,y);};
+  try{
+    for(const kind of ['poly','spline','polygon'] as const)for(const closeAtStart of [false,true]){
+      resetLayers(960,640);reset();state.drawingMode='vector';ensureObjectLayer();state.tool='shapes';state.shape=kind;state.shapeOutline='solid';state.shapeFill='none';state.poly=[];
+      for(const p of knots)tap(p.x,p.y);
+      assert(state.poly.length===4&&!(activeLayer().objects?.length),'A nearby fourth corner prematurely closed the tiny '+kind);
+      if(closeAtStart)tap(100.2,100.2);else finishPath();
+      const item=activeLayer().objects?.[0];assert(item?.kind==='path'&&activeLayer().objects?.length===1,'Completion did not create one whole path');
+      assert(item.paths[0].closed===(closeAtStart||kind==='polygon'),'Wrong open/closed path outcome');
+      const [a,b,c,d,x,y]=item.matrix,points=item.paths[0].points.map(p=>({x:a*p.x+c*p.y+x,y:b*p.x+d*p.y+y}));
+      assert(knots.every(k=>points.some(p=>Math.hypot(p.x-k.x,p.y-k.y)<.001)),'Completion lost a chosen corner');
+      undo();assert(!(activeLayer().objects?.length),'One Undo did not remove the completed path');
+    }
+  }finally{state.poly=[];state.drawingMode=mode;state.shape=shape;state.shapeOutline=outline;state.shapeFill=fill;resetLayers(960,640);reset();}
+});
 check('Smudge acceptance keeps live Water until pigment actually moves',()=>{
   const send=(type:string,x:number,y:number)=>{const r=view.getBoundingClientRect();view.dispatchEvent(new PointerEvent(type,{pointerId:1313,pointerType:'mouse',button:0,buttons:type==='pointerup'?0:1,clientX:r.left+x/W*r.width,clientY:r.top+y/H*r.height}));};
   try{
@@ -446,6 +560,18 @@ check('Smudge acceptance in empty space preserves the previous Undo action and g
   try{
     resetLayers(160,96,null);reset();baseCtx.fillStyle='#43a047';baseCtx.fillRect(0,0,W,H);addLayer();baseCtx.fillStyle='#ff0000';baseCtx.fillRect(40,60,80,30);state.tool='sponge';state.brushWidth=22;const original=projectData();pushHistory();activeLayer().name='Previous rename';const renamed=projectData();send('pointerdown',10,20);send('pointermove',60,20);send('pointerup',60,20);assert(projectData()===renamed,'Clear-only movement changed the source or sampled the lower guide');undo();assert(projectData()===original,'Empty Smudge added a hidden Undo step');redo();assert(projectData()===renamed,'Redo lost the previous rename');
   }finally{send('pointercancel',60,20);resetLayers(960,640);reset();}
+});
+check('Stationary spray hold advances without pointer movement and resets after travel',()=>{
+  const nativeNow=performance.now.bind(performance),random=Math.random;let now=1000;
+  try{
+    reset();drips.length=0;state.tool='spray';state.applicator='mist';state.brushWidth=22;
+    Object.defineProperty(performance,'now',{configurable:true,value:()=>now});Math.random=()=>.1;
+    pointer('pointerdown',400,300);tickSpray();assert(drips.length===0,'Brief press generated a hold drip');
+    now+=400;tickSpray();assert(drips.length===1,'A perfectly still held mouse never reached the drip threshold');
+    pointer('pointermove',600,300);tickSpray();assert(drips.length===1,'Travelling failed to reset stationary hold time');
+    now+=400;tickSpray();assert(drips.length===2,'Stationary hold after moving did not restart');
+    pointer('pointerup',600,300);const stopped=image();now+=1000;tickSpray();assert(image()===stopped,'Released spray kept depositing pigment');
+  }finally{Object.defineProperty(performance,'now',{configurable:true,value:nativeNow});Math.random=random;pointer('pointercancel',600,300);drips.length=0;reset();}
 });
 check('Losing touch capture stops spraying immediately', () => {
   reset(); state.tool='spray'; state.applicator='mist';
@@ -573,8 +699,8 @@ reset();
 
 check('Masked shape preview matches the clipped committed outline',()=>{
   reset();state.symmetry='4';state.symmetryMask=true;state.tool='shapes';state.ink='neon';state.brushWidth=18;
-  const expected=cloneCanvas(base);drawShape('circle',620,325,675,325,expected.getContext('2d')!,false);
-  beginStrokeGeneration();drawShape('circle',620,325,675,325,baseCtx,true);bakeStaticStrokes(baseCtx);
+  const expected=cloneCanvas(base);drawShape('circle',620,325,675,380,expected.getContext('2d')!,false);
+  beginStrokeGeneration();drawShape('circle',620,325,675,380,baseCtx,true);bakeStaticStrokes(baseCtx);
   const a=expected.getContext('2d')!.getImageData(0,0,W,H).data,b=baseCtx.getImageData(0,0,W,H).data;
   assert(a.every((v,i)=>Math.abs(v-b[i])<=2),'Clipped preview differs from the drawing');
 });
@@ -824,6 +950,20 @@ check('Selection transforms float the piece; Cancel and Undo restore its origina
   assert(selectionBounds()?.width === 40 && selectionBounds()?.height === 20); cancelSelection(); assert(image() === before);
   selectRegion(rectangle(10, 10, 20, 30)); moveSelection(30, 0); commitSelection(); undo(); assert(image() === before); redo(); assert(pixel(45, 15) === '255,0,0,255');
 });
+check('Raster selection rotation keeps its centre through changed bounds', () => {
+  resetLayers(320,240,null);state.drawingMode='raster';state.transparentSelection=false;
+  baseCtx.fillStyle='#ff0000';baseCtx.fillRect(90,90,120,100);const before=image();
+  selectRegion(rectangle(90,90,210,190));
+  for(const angle of [90,22.5,-22.5,180]){
+    const prior=selectionBounds()!,cx=prior.x+prior.width/2,cy=prior.y+prior.height/2;
+    rotateSelection(angle);const next=selectionBounds()!;
+    assert(Math.abs(next.x+next.width/2-cx)<1e-9&&Math.abs(next.y+next.height/2-cy)<1e-9,'Rotation moved the selection centre');
+  }
+  cancelSelection();assert(image()===before,'Cancelling rotation did not restore the source');
+  selectRegion(rectangle(90,90,210,190));rotateSelection(90);commitSelection();const after=image();
+  assert(pixel(100,80)==='255,0,0,255'&&pixel(199,199)==='255,0,0,255'&&pixel(90,90)==='0,0,0,0','Quarter turn did not place the centred piece');
+  undo();assert(image()===before,'Rotation Undo changed source pixels');redo();assert(image()===after,'Rotation Redo changed placed pixels');
+});
 check('Invert selection preserves the hole, and a second inversion restores the original region', () => {
   resetLayers(96, 64); selectRegion(rectangle(10, 10, 30, 30)); invertSelection();
   assert(hitSelection(3, 3) && !hitSelection(20, 20)); invertSelection(); assert(!hitSelection(3, 3) && hitSelection(20, 20)); cancelSelection();
@@ -837,6 +977,17 @@ check('Filled shapes use the second colour, and ovals stay within their dragged 
   resetLayers(96, 64); reset(); state.shapeFill = 'secondary'; state.shapeOutline = 'none'; state.secondaryInk = '#0000ff';
   drawShape('ellipse', 10, 10, 70, 50, baseCtx, true); assert(pixel(40, 30) === '0,0,255,255'); assert(pixel(8, 30) === '255,255,255,255');
   state.shapeFill = 'none'; state.shapeOutline = 'brush'; state.secondaryInk = '#FFFFFF';
+});
+check('Raster circles fit forward and reversed drag bounds without painting neighbours', () => {
+  for (const [x0,y0,x1,y1] of [[20,20,80,60],[80,60,20,20],[20,60,80,20],[80,20,20,60]]) {
+    resetLayers(120,100);reset();state.shapeFill='primary';state.shapeOutline='none';state.ink='#0000ff';
+    drawShape('circle',x0,y0,x1,y1,baseCtx,true);
+    assert(pixel(50,40)==='0,0,255,255','Circle misses its drag centre');
+    assert(pixel(32,40)==='0,0,255,255'&&pixel(68,40)==='0,0,255,255','Circle diameter is too small');
+    assert(pixel(25,40)==='255,255,255,255'&&pixel(75,40)==='255,255,255,255','Circle exceeds its inscribed square');
+    assert(pixel(50,15)==='255,255,255,255'&&pixel(50,65)==='255,255,255,255','Circle escaped its vertical drag bounds');
+  }
+  state.shapeFill='none';state.shapeOutline='brush';resetLayers(960,640);
 });
 check('Text wraps and preserves font styles and an opaque second-colour background', () => {
   const canvas = makeTextBitmap({ text: 'Hello RetroPaint\nHave fun!', font: 'Arial', size: 20, width: 90, bold: true, italic: true, underline: true, strike: false, align: 'center', opaque: true }, '#ff0000', '#0000ff');
@@ -947,6 +1098,26 @@ check('Eraser lifecycle Black Hole remains held after its first animation and re
 check('Eraser lifecycle masked Black Hole clears alpha without leaking across the seam',()=>{
   try{resetLayers(960,640,null);reset();state.symmetry='4';state.symmetryMask=true;baseCtx.fillStyle='#ff0000';baseCtx.fillRect(0,0,W,H);startHole(620,300);tickHole(700);assert(baseCtx.getImageData(620,330,1,1).data[3]===0,'Masked clear-sheet hole retained an opaque matte');assert(pixel(620,260)==='255,0,0,255','Masked hole leaked past its slice');}
   finally{tickHole(1000);resetLayers(960,640);reset();}
+});
+for(const [mode,apply] of [['invert',invertAt],['pixelate',pixelateAt],['emboss',embossAt]] as const)check('Masked pixel filter '+mode+' preserves destination alpha and applies each gesture once',()=>{
+  try{
+    resetLayers(160,96,null);reset();baseCtx.clearRect(0,0,W,H);
+    baseCtx.fillStyle='rgba(255,0,0,0.5)';baseCtx.fillRect(15,15,55,65);
+    baseCtx.fillStyle='rgba(0,0,255,0.25)';baseCtx.fillRect(90,15,25,65);
+    const before=baseCtx.getImageData(0,0,W,H).data;
+    state.symmetry='v';state.symmetryMask=true;state.symmetrySlice=1;state.eraserMode=mode;state.brushWidth=22;state.opacity=1;
+    const stroke=beginPixelFilterStroke();apply(50,48,stroke);const once=image();
+    for(let i=0;i<8;i++)apply(50,48,stroke);
+    assert(image()===once,'Repeated samples compounded one masked gesture');
+    const after=baseCtx.getImageData(0,0,W,H).data;
+    for(let i=3;i<before.length;i+=4)assert(after[i]===before[i],'Mirrored filter changed destination alpha');
+    if(mode==='invert'){
+      assert(pixel(50,48)==='0,255,255,128','Source centre did not fully invert: '+pixel(50,48));
+      assert(pixel(105,48)==='255,255,0,64','Mirror copied source colour instead of inverting its own blue');
+      const second=beginPixelFilterStroke();apply(50,48,second);
+      assert(pixel(50,48)==='255,0,0,128'&&pixel(105,48)==='0,0,255,64','Two full inversions failed to restore centres');
+    }
+  }finally{resetLayers(960,640);reset();}
 });
 check('Pixel filter Strength blends one Invert contribution and preserves alpha',()=>{
   try{
@@ -1161,6 +1332,16 @@ await asyncCheck('Photo preview, saved adjustments and crop preserve every sourc
   undo();assert(outputFrame(W,H).width===48&&activeLayer().id===layer&&image()===original&&snapshotLive().fills.length===live&&!activeLayer().photo,'Undo did not restore recipe and frame together');
   redo();assert(outputFrame(W,H).width===24&&activeLayer().photo?.settings.brightness===25,'Redo did not restore photo edit');
 });
+await asyncCheck('A failed PNG encoder explains retry and preserves the original picture',async()=>{
+  resetLayers(32,24,null);baseCtx.fillStyle='#17a467';baseCtx.fillRect(4,5,12,10);const original=image();
+  const native=HTMLCanvasElement.prototype.toBlob;let message='';
+  try{HTMLCanvasElement.prototype.toBlob=function(callback){callback(null);};await imageBlob('png');}
+  catch(error){message=error instanceof Error?error.message:String(error);}
+  finally{HTMLCanvasElement.prototype.toBlob=native;}
+  assert(/could not encode/i.test(message)&&!/choose png/i.test(message),'Resource failure suggests the already selected PNG format: '+message);
+  const retried=await decodeImage(await imageBlob('png'));
+  assert(image()===original&&retried.toDataURL()===original,'Failed encoder damaged the picture or prevented a correct retry');
+});
 await asyncCheck('PNG, JPEG, WebP, BMP and GIF exports decode at the actual picture dimensions', async () => {
   resetLayers(32, 24, null); baseCtx.fillStyle = '#ff0000'; baseCtx.fillRect(5, 5, 12, 10);
   for (const format of ['png', 'jpeg', 'webp', 'bmp', 'gif']) {
@@ -1340,6 +1521,16 @@ check('Spiro radius scales with large paper and accepts sizes outside the old li
 });
 function objectTestReset(){resetLayers(160,120);reset();state.drawingMode='vector';state.shapeFill='primary';state.shapeOutline='none';state.brushWidth=4;ensureObjectLayer();}
 function objectPixel(x:number,y:number){const output=document.createElement('canvas');output.width=W;output.height=H;renderLayers(output.getContext('2d')!,0);return Array.from(output.getContext('2d')!.getImageData(x,y,1,1).data).join(',');}
+check('Editable circles share the bounded raster geometry and retain analytic curves',()=>{
+  for(const [x0,y0,x1,y1] of [[20,20,80,60],[80,60,20,20]]){
+    objectTestReset();state.ink='#0000ff';addVectorShape('circle',x0,y0,x1,y1);
+    const circle=selectedObjects()[0],bounds=objectBounds(circle);
+    assert(Math.abs(bounds.x-30)<.1&&Math.abs(bounds.y-20)<.1&&Math.abs(bounds.width-40)<.1&&Math.abs(bounds.height-40)<.1,'Circle object bounds differ from drag bounds');
+    assert(circle.kind==='path'&&Boolean(circle.paths[0].svg),'Circle lost its analytic curve');
+    assert(objectPixel(50,40)==='0,0,255,255'&&objectPixel(25,40)==='255,255,255,255'&&objectPixel(75,40)==='255,255,255,255','Analytic circle differs from its selection bounds');
+  }
+  state.drawingMode='raster';resetLayers(960,640);
+});
 check('Vector pieces resize from geometry without touching overlapping neighbours',()=>{
   objectTestReset();addVectorShape('rect',10,10,30,30);const first=selectedObjects()[0];state.ink='#0000ff';addVectorShape('rect',20,20,60,60);const second=selectedObjects()[0];
   selectObjects([first.id]);resizeObjects(80,80);assert(selectedObjects()[0].kind==='path'&&selectedObjects()[0].width===20,'Resizing rasterised the vector');assert(objectPixel(50,50)==='0,0,255,255','Resizing changed the front piece');moveObjects(50,0);assert(objectPixel(25,25)==='0,0,255,255','Moving lifted neighbouring pixels');deleteObjects();assert(activeLayer().objects?.length===1&&activeLayer().objects?.[0].id===second.id,'Delete removed a neighbour');undo();assert(activeLayer().objects?.length===2,'Undo did not restore the piece');redo();assert(activeLayer().objects?.length===1,'Redo did not remove the piece');
@@ -1350,6 +1541,18 @@ check('Each brush stroke is a cropped raster piece, with independent alpha and r
 });
 check('Curved vector shapes stay smooth after extreme enlargement and support precise hit testing',()=>{
   objectTestReset();addVectorShape('ellipse',10,10,18,18);const object=selectedObjects()[0];assert(object.kind==='path'&&object.paths[0].svg,'Ellipse lost its analytic curve');resizeObjects(1000,1000);assert(hitObject(20,20)===null,'Transparent object corners intercept clicks');assert(hitObject(150,400)?.id===object.id,'Visible part of resized ellipse cannot be selected');
+});
+check('One-step object stacking preserves separated selected blocks and boundary history',()=>{
+  try{
+    objectTestReset();for(let i=0;i<5;i++)addVectorShape('rect',10+i*20,10,25+i*20,25);
+    const objects=[...activeLayer().objects!],ids=objects.map(o=>o.id),original=projectData();selectObjects([ids[1],ids[3]]);
+    stepObjectOrder(1);assert(JSON.stringify(activeLayer().objects!.map(o=>o.id))===JSON.stringify([ids[0],ids[2],ids[1],ids[4],ids[3]]),'Forward skipped neighbours or reversed selected pieces');
+    assert(activeLayer().objects!.every(o=>objects.includes(o)),'Stacking replaced object geometry');
+    stepObjectOrder(-1);assert(projectData()===original,'Backward did not restore original order and data');
+    let beforeLastChange=original;
+    for(let i=0;i<5;i++){const before=projectData();stepObjectOrder(1);if(projectData()!==before)beforeLastChange=before;}
+    const top=projectData();stepObjectOrder(1);assert(projectData()===top,'Forward boundary duplicated or dropped a piece');undo();assert(projectData()===beforeLastChange,'Unavailable boundary action added an Undo step');
+  }finally{state.drawingMode='raster';resetLayers(960,640);reset();}
 });
 check('Groups duplicate, turn, resize beyond the paper and stay within their normal layer',()=>{
   objectTestReset();addVectorShape('rect',20,20,40,40);const first=selectedObjects()[0];addVectorShape('rect',60,20,80,40);selectObjects([first.id,selectedObjects()[0].id]);const count=layers.length;duplicateObjects();assert(activeLayer().objects?.length===4&&layers.length===count,'Pieces became public layers');rotateObjects(90);resizeObjects(7000,4000);assert(Math.abs(objectSelectionBounds()!.width-7000)<.01,'Object size is limited to the paper');
@@ -1411,6 +1614,30 @@ check('Coalesced pen samples preserve the curve between pointer events rather th
   const make=(type:string,x:number,y:number)=>{const r=view.getBoundingClientRect();return new PointerEvent(type,{pointerId:612,pointerType:'pen',button:0,buttons:type==='pointerup'?0:1,clientX:r.left+x/W*r.width,clientY:r.top+y/H*r.height});};
   try{view.dispatchEvent(make('pointerdown',20,90));const move=make('pointermove',120,90);Object.defineProperty(move,'getCoalescedEvents',{value:()=>[make('pointermove',40,20),make('pointermove',90,20),make('pointermove',120,90)]});view.dispatchEvent(move);view.dispatchEvent(make('pointerup',120,90));bakeStaticStrokes(baseCtx);assert(pixel(65,20)!=='255,255,255,255','Intermediate pen samples were lost');assert(pixel(65,90)==='255,255,255,255','The curve was replaced by a straight shortcut');}
   finally{view.setPointerCapture=savedCapture;inputStage.style.cssText=savedStyle;resetLayers(960,640);}
+});
+await asyncCheck('Placing pasted raster artwork keeps underlying live ink animated and cancellation unchanged',async()=>{
+  resetLayers(160,120);reset();state.drawingMode='raster';
+  const mask=blankMask();mask.getContext('2d')!.fillRect(10,10,130,100);
+  addFill(mask,{kind:'texture',colors:[],speed:1,mode:'snap',along:false,texture:'water'},1,null);
+  const before=projectData(),piece=document.createElement('canvas');piece.width=20;piece.height=20;piece.getContext('2d')!.fillStyle='#ff0000';piece.getContext('2d')!.fillRect(0,0,20,20);
+  pasteImage(piece,{x:20,y:20});assert(projectData()===before,'Pasting a preview baked live ink');cancelSelection();assert(projectData()===before,'Cancel changed live ink');
+  pasteImage(piece,{x:20,y:20});commitSelection();const committed=projectData();
+  const placed=activeLayer().objects!.at(-1)!;
+  assert(placed.kind==='raster'&&placed.width===20&&placed.height===20&&placed.matrix[4]===20&&placed.matrix[5]===20,'Placed piece acquired paper-sized selection bounds');
+  const a=await renderFullPicture(12345),b=await renderFullPicture(23456);const pa=a.getContext('2d')!,pb=b.getContext('2d')!;
+  assert(String(pa.getImageData(25,25,1,1).data)==='255,0,0,255'&&String(pb.getImageData(25,25,1,1).data)==='255,0,0,255','Pasted artwork failed to stay above live ink');
+  assert(String(pa.getImageData(60,60,30,30).data)!==String(pb.getImageData(60,60,30,30).data),'Uncovered live ink stopped animating');
+  undo();assert(projectData()===before,'Placement Undo did not restore live ink');redo();assert(projectData()===committed,'Placement Redo changed document');resetLayers(960,640);
+});
+check('Pen fallback preserves an ordinary curved path and document scale across pressure values',()=>{
+  const savedStyle=inputStage.style.cssText,savedCapture=view.setPointerCapture;
+  inputStage.style.display='block';view.setPointerCapture=()=>{};
+  try{for(const empty of [false,true]){
+    resetLayers(160,120);reset();state.brushWidth=6;state.tool='draw';
+    const send=(type:string,x:number,y:number,pressure:number)=>{const r=view.getBoundingClientRect();const event=new PointerEvent(type,{pointerId:613,pointerType:'pen',button:0,buttons:type==='pointerup'?0:1,pressure,clientX:r.left+x/W*r.width,clientY:r.top+y/H*r.height});Object.defineProperty(event,'getCoalescedEvents',{value:empty?()=>[]:undefined});view.dispatchEvent(event);};
+    send('pointerdown',20,90,.1);send('pointermove',40,20,.3);send('pointermove',90,20,.9);send('pointermove',120,90,1);send('pointerup',120,90,0);bakeStaticStrokes(baseCtx);
+    assert(pixel(65,20)!=='255,255,255,255','Ordinary pen curve lost its intermediate points');assert(pixel(65,90)==='255,255,255,255','Fallback replaced the curve with a shortcut');assert(W===160&&H===120,'Pen pressure changed document scale');
+  }}finally{view.setPointerCapture=savedCapture;inputStage.style.cssText=savedStyle;resetLayers(960,640);}
 });
 check('Trimming a transformed raster keeps the visible interior pixels and does not resample its source',()=>{
   const image=twoColourPiece(),object:RasterObject={id:'clip-pixels',name:'Clip',kind:'raster',image,width:40,height:40,opacity:.75,matrix:[1.4,.3,-.2,1.1,-18,-10]},before=document.createElement('canvas'),after=document.createElement('canvas');before.width=after.width=60;before.height=after.height=60;
@@ -1549,6 +1776,20 @@ await asyncCheck('CAD timeline rollback preserves the project and final printabl
 await asyncCheck('CAD revolve profiles, angles and axis remain parametric after a later union',async()=>{
   const spun=cadBody({kind:'revolve',points:[[5,0],[10,0],[10,20],[5,20]],degrees:360,plane:basePlane('xy')},'Ring');const cap=primitive('box',[4,4,4]);cap.position=[8,0,2];const root=combinedBody('union',[spun,cap]),edited=editFeature(root,[0],item=>{assert(item.solid.kind==='revolve');item.solid.degrees=180;item.solid.points=[[4,0],[12,0],[12,25],[4,25]];});const mesh=await solidMesh(edited);closedCadMesh(mesh);assert(mesh.bounds.max[2]===25&&featureAt(edited,[0]).solid.kind==='revolve','Revolve history was discarded');assert(mesh.volume>4900&&mesh.volume<5100,'Changed revolve angle/profile was not rebuilt');
 });
+await asyncCheck('CAD history preserves exact fixed workplane pulls instead of migrating them as old face tools',async()=>{
+  for(const height of [30,-10])for(const modern of [false,true]){
+    const cube=primitive('box'),plane=basePlane('xy');
+    const tool=cadBody({kind:'extrude',points:sketchPoints('rectangle',-5,-5,10,10),plane,height,taper:1,twist:0,...(modern?{feature:{sketch:'rectangle' as const}}:{})},'Fixed XY pull');
+    const root=combinedBody('union',[cube,tool]),before=JSON.stringify(root),prepared=await prepareFeatureHistory(root);
+    assert(JSON.stringify(prepared)===before,'History changed the fixed-plane origin, pull depth or dependency');
+    const mesh=await solidMesh(prepared);closedCadMesh(mesh);
+    assert(Math.abs(mesh.volume-9000)<.02&&Math.abs(mesh.bounds.min[2]-(height>0?0:-10))<.001&&Math.abs(mesh.bounds.max[2]-(height>0?30:20))<.001,'History changed the requested far endpoint');
+  }
+  // Modern fixed planes may deliberately be close to a face, including the old overlap distance.
+  const cube=primitive('box'),plane=basePlane('xy');plane.origin=[0,0,.02];
+  const tool=cadBody({kind:'extrude',points:sketchPoints('rectangle',-5,-5,10,10),plane,height:30,taper:1,twist:0,feature:{sketch:'rectangle'}},'Offset fixed pull');
+  const root=combinedBody('union',[cube,tool]);assert(JSON.stringify(await prepareFeatureHistory(root))===JSON.stringify(root),'Modern offset workplane acquired an inferred attachment');
+});
 await asyncCheck('CAD older face recipes acquire stable references before original dimensions change',async()=>{
   const cube=primitive('box'),plane=basePlane('xy');plane.origin=[0,0,20.02];const tool=cadBody({kind:'extrude',points:sketchPoints('circle',0,0,8,8),plane,height:-25.04,taper:1,twist:0},'Old hole');const legacy=combinedBody('subtract',[cube,tool]),prepared=await prepareFeatureHistory(legacy),next=editFeature(prepared,[0],item=>{assert(item.solid.kind==='primitive');item.solid.size[2]=40;});const mesh=await solidMesh(next);assert(featureAt(prepared,[1]).solid.feature?.attachment,'Earlier face sketches were not upgraded');assert(Math.abs(mesh.volume-(16000-Math.PI*16*25))<4,'The older hole did not follow its resized support');assert(!featureAt(legacy,[1]).solid.feature,'Upgrading mutated the saved source recipe');
 });
@@ -1557,6 +1798,20 @@ await asyncCheck('CAD parametric history, dependencies and suppression survive p
 });
 await asyncCheck('CAD a lost supporting face fails safely and leaves its original recipe intact',async()=>{
   const root=await parametricFixture(),before=JSON.stringify(root),bad=editFeature(root,[0,0],item=>{assert(item.solid.kind==='extrude');item.solid.points=[[-20,-15],[20,-15],[-20,15]];});let failed=false;try{await solidMesh(bad);}catch(error){failed=String(error).includes('supporting flat face');}assert(failed&&JSON.stringify(root)===before,'Lost face silently moved the hole or changed the original');
+});
+await asyncCheck('CAD cancelled rebuild releases the worker and allows a fresh request',async()=>{
+  const original=primitive('box',[20,20,20]),before=JSON.stringify(original),job=cadCompute([original]);cancelCadCompute();let cancelled=false;
+  try{await job;}catch(error){cancelled=/cancelled/i.test(String(error));}
+  assert(cancelled&&JSON.stringify(original)===before,'Cancelling did not reject the pending job safely');
+  const retry=await cadCompute([original]);closedCadMesh(retry.mesh);assert(Math.abs(retry.mesh.volume-8000)<.01,'The next worker request did not rebuild the original');
+});
+await asyncCheck('CAD fixed-plane conversion requires an explicit depth for through cuts',async()=>{
+  const support=primitive('box'),bounds={min:[-10,-10,-10] as [number,number,number],max:[10,10,10] as [number,number,number]},plane=basePlane('xy');plane.origin=[0,0,10];
+  const solid=cadBody({kind:'extrude',points:sketchPoints('circle',0,0,4,4),plane,height:-1,taper:1,twist:0,feature:{attachment:captureAttachment(support,bounds,plane),through:true,sketch:'circle'}},'Through hole').solid;
+  const before=JSON.stringify(solid);let message='';try{setFeaturePlane(solid,'xy',[0,0,10]);}catch(error){message=String(error);}
+  assert(message.includes('explicit cut depth')&&JSON.stringify(solid)===before,'Through cut changed silently or lost its repair instruction');
+  assert(solid.kind==='extrude');solid.height=-20;solid.feature!.through=false;setFeaturePlane(solid,'xy',[0,0,10]);
+  assert(solid.height===-20&&!solid.feature?.attachment&&!solid.feature?.through,'Explicit fixed-depth conversion did not preserve the chosen depth');
 });
 await asyncCheck('CAD face dependencies preserve millimetre hole diameters on rotated and scaled supports',async()=>{
   const support=primitive('box');support.rotation=[20,35,10];support.scale=[1.2,.8,1.3];support.position=[25,-15,30];const bounds={min:[-10,-10,-10] as [number,number,number],max:[10,10,10] as [number,number,number]},plane=attachedPlane(support,bounds,{reference:support.id,anchor:[.5,.5,1],normal:[0,0,1],u:[1,0,0]});const tool=cadBody({kind:'extrude',points:sketchPoints('circle',0,0,6,6),plane,height:-5,taper:1,twist:0,feature:{attachment:captureAttachment(support,bounds,plane),through:true,sketch:'circle'}},'Angled hole');const root=combinedBody('subtract',[support,tool]),next=editFeature(root,[0],item=>{assert(item.solid.kind==='primitive');item.solid.size[2]=30;});const mesh=await solidMesh(next);closedCadMesh(mesh);assert(Math.abs(mesh.volume-(12000*1.2*.8*1.3-Math.PI*9*39))<4,'Attached hole changed diameter or failed to follow an angled support');
@@ -1648,6 +1903,13 @@ await asyncCheck('CAD invalid lofts and sweep paths fail safely without replacin
   for(const form of [loft,sweep]){let failed=false;try{await cadCompute([cadBody(form,'Invalid')]);}catch{failed=true;}assert(failed&&projectData()===saved,'Invalid construction changed the document');}
   const malformed=JSON.parse(saved);malformed.layers.find((l:{cad?:unknown})=>l.cad).cad.bodies=[cadBody(sweep,'Invalid')];let failed=false;try{await loadProjectData(JSON.stringify(malformed));}catch{failed=true;}assert(failed&&projectData()===saved,'Invalid saved sweep replaced the document');resetLayers(960,640);
 });
+await asyncCheck('CAD tight smooth sweep rejects nonmanifold output and keeps the original',async()=>{
+  const form=defaultForm('sweep');assert(form.kind==='sweep');form.profile.shape='rectangle';form.profile.points=sketchPoints('rectangle',-2,-1,4,2);form.path.smooth=true;form.path.points=[[0,0,0],[0,0,20],[20,0,20]];form.transition='round';form.roll=30;
+  const valid=cadBody(form,'Sweep'),before=JSON.stringify(valid),good=await solidMesh(valid);closedCadMesh(good);
+  const tight=structuredClone(valid);assert(tight.solid.kind==='sweep');tight.solid.path.points=[[0,0,0],[0,0,2],[2,0,2]];
+  let rejected=false;try{await solidMesh(tight);}catch(error){rejected=/sweep|closed solid/i.test(String(error));}
+  assert(rejected&&JSON.stringify(valid)===before,'Tight bend accepted invalid sweep geometry or changed the original');
+});
 await asyncCheck('CAD loft and sweep projects retain profiles, paths and settings and reopen as printable solids',async()=>{
   resetLayers(160,120);ensureCadLayer();const loft=defaultForm('loft'),sweep=defaultForm('sweep');assert(loft.kind==='loft'&&sweep.kind==='sweep');loft.ruled=true;loft.profiles[0].name='Editable lower sketch';sweep.roll=25;sweep.path.name='Editable curved path';const a=cadBody(loft,'Loft'),b=cadBody(sweep,'Sweep');b.position[0]=50;replaceBodies([a,b]);const saved=projectData();assert(JSON.parse(saved).version===10);resetLayers(10,10);await loadProjectData(saved);const [first,second]=currentBodies();assert(first.solid.kind==='loft'&&first.solid.ruled&&first.solid.profiles[0].name==='Editable lower sketch','Loft profile or setting was baked');assert(second.solid.kind==='sweep'&&second.solid.roll===25&&second.solid.path.name==='Editable curved path','Sweep path or setting was baked');const result=await cadCompute(currentBodies(),'print');closedCadMesh(result.mesh);assert(result.stl!.byteLength>84);const old=JSON.parse(saved);old.version=7;await loadProjectData(JSON.stringify(old));assert(currentBodies().length===2,'Older projects stopped opening');resetLayers(960,640);
 });
@@ -1717,6 +1979,16 @@ check('CAD picture compositing respects background and foreground layers and pre
   resetLayers(160,120);activeLayer().canvas.getContext('2d')!.fillStyle='#ef4858';activeLayer().canvas.getContext('2d')!.fillRect(0,0,160,120);const cad=ensureCadLayer();addCadBody(primitive('box'));const source=JSON.stringify(cad.cad),c=cad.canvas.getContext('2d')!;c.fillStyle='#f8bf45';c.fillRect(40,30,80,60);addLayer();activeLayer().canvas.getContext('2d')!.fillStyle='#3455dd';activeLayer().canvas.getContext('2d')!.fillRect(60,45,40,30);const output=document.createElement('canvas');output.width=160;output.height=120;renderLayers(output.getContext('2d')!,0);const ctx=output.getContext('2d')!,at=(x:number,y:number)=>Array.from(ctx.getImageData(x,y,1,1).data);assert(at(5,5)[0]===239&&at(45,35)[0]===248&&at(80,60)[2]===221&&JSON.stringify(cad.cad)===source,'Layer compositing flattened geometry or ignored the sheet order');resetLayers(960,640);
 });
 const sketchLine=(points:V2[],edge:number)=>{const a=points[edge],b=points[(edge+1)%points.length];return{x:b[0]-a[0],y:b[1]-a[1],length:Math.hypot(b[0]-a[0],b[1]-a[1]),angle:Math.atan2(b[1]-a[1],b[0]-a[0])};};
+await asyncCheck('CAD unconstrained crossing or touching outlines cannot export falsely closed solids',async()=>{
+  const invalid:V2[][]=[[[0,0],[30,30],[0,30],[30,0]],[[0,0],[20,0],[10,10],[20,20],[0,20],[10,10]],[[0,0],[20,0],[40,0]],[[0,0],[10,0],[10,0],[0,10]]];
+  for(const points of invalid){
+    const item=cadBody({kind:'extrude',points,plane:basePlane('xy'),height:12,taper:1,twist:0,feature:{sketch:'polygon'}},'Invalid outline'),before=JSON.stringify(item);let message='';
+    try{await cadCompute([item],'print',false);}catch(error){message=String(error);}
+    assert(/cross|touch|area|line/i.test(message),'An unconstrained invalid outline exported as a closed solid: '+JSON.stringify(points));assert(JSON.stringify(item)===before,'Rejected outline changed its source');
+  }
+  const outline:V2[]=[[0,0],[15,0],[30,0],[30,10],[10,10],[10,30],[0,30]];
+  for(const points of [outline,[...outline].reverse()]){const mesh=(await cadCompute([cadBody({kind:'extrude',points,plane:basePlane('xy'),height:12,taper:1,twist:0},'Concave L')],'print',false)).mesh;closedCadMesh(mesh);assert(Math.abs(mesh.volume-6000)<.001&&JSON.stringify(mesh.bounds)===JSON.stringify({min:[0,0,0],max:[30,30,12]}),'Valid concavity, collinear boundary point or clockwise winding was rejected or filled');}
+});
 check('CAD length dimensions solve rectangles exactly and retain their square corners and centre',()=>{
   const seed=sketchPoints('rectangle',-10,-5,20,10),before=JSON.stringify(seed),solved=solveSketch(seed,[{id:'w',kind:'length',edge:0,value:36},{id:'h',kind:'length',edge:1,value:14},{id:'horizontal',kind:'horizontal',edge:0}],'rectangle');
   assert(Math.abs(sketchLine(solved,0).length-36)<1e-5&&Math.abs(sketchLine(solved,1).length-14)<1e-5,'Driving dimensions were not satisfied');assert(Math.abs(sketchLine(solved,0).y)<1e-6&&Math.abs(sketchLine(solved,1).x)<1e-6,'Rectangle lost its right angles');assert(Math.abs(solved.reduce((v,p)=>v+p[0],0))<1e-5&&JSON.stringify(seed)===before,'Solver moved the centre or mutated the input');
@@ -1753,6 +2025,19 @@ await asyncCheck('CAD sketch constraints round trip through projects and malform
   resetLayers(160,120);ensureCadLayer();const source=cadBody({kind:'extrude',points:sketchPoints('rectangle',0,0,20,10),plane:basePlane('xy'),height:5,taper:1,twist:0,feature:{sketch:'rectangle',constraints:[{id:'width',kind:'length',edge:0,value:30},{id:'h',kind:'horizontal',edge:0}]}},'Constrained pad');addCadBody(source);const saved=projectData();resetLayers(10,10);await loadProjectData(saved);assert(JSON.parse(saved).version===10&&currentBodies()[0].solid.feature?.constraints?.[0].id==='width','Saved dimensions were discarded');assert(Math.abs((await solidMesh(currentBodies()[0])).volume-1500)<.01,'Reopened solid ignored its dimensions');const before=projectData();for(const rule of [{id:'bad',kind:'length',edge:99,value:10},{id:'bad',kind:'parallel',edge:0,other:0},{id:'bad',kind:'diameter',value:10},{id:'bad',kind:'angle',edge:0,value:NaN}]){const invalid=JSON.parse(saved);invalid.layers.find((l:{cad?:unknown})=>l.cad).cad.bodies[0].solid.feature.constraints=[rule];let failed=false;try{await loadProjectData(JSON.stringify(invalid));}catch{failed=true;}assert(failed&&projectData()===before,'Invalid constraints replaced the artwork');}resetLayers(960,640);
 });
 
+await asyncCheck('A single live conveyor stop supplies its own pigment to raster strokes fills and vector pieces',async()=>{
+  const history=await import('../src/history'),snapshot=history.captureHistory(),materials=await import('../src/materials');
+  const saved={conveyor:[...state.conveyor],liveArmed:state.liveArmed,ink:state.ink,applicator:state.applicator,shapeFill:state.shapeFill,shapeOutline:state.shapeOutline,opacity:state.opacity};
+  const yellow=[253,216,53,255],at=(x:number,y:number)=>Array.from(baseCtx.getImageData(x,y,1,1).data);
+  try{
+    resetLayers(160,120);reset();state.ink='#E53935';state.conveyor=['#FDD835'];state.liveArmed=true;
+    assert(materials.activeInkId()==='#FDD835','Single Yellow stop still resolves to previous ordinary Red');
+    beginStrokeGeneration();segment(20,40,140,40,22,0);bakeStaticStrokes(baseCtx);assert(JSON.stringify(at(80,40))===JSON.stringify(yellow),'Single-stop brush painted the previous ink');
+    floodAt(80,90,null);assert(JSON.stringify(at(80,90))===JSON.stringify(yellow),'Single-stop bucket painted the previous ink');
+    resetLayers(160,120);state.drawingMode='vector';state.shapeFill='primary';state.shapeOutline='none';addVectorShape('rect',20,20,100,80);commitObjectSelection();const frame=await renderFullPicture(12345);assert(JSON.stringify(Array.from(frame.getContext('2d')!.getImageData(50,50,1,1).data))===JSON.stringify(yellow),'Single-stop editable shape painted the previous ink');
+    resetLayers(160,120);state.drawingMode='raster';state.conveyor=[];beginStrokeGeneration();segment(20,40,140,40,22,0);bakeStaticStrokes(baseCtx);assert(JSON.stringify(at(80,40))===JSON.stringify([229,57,53,255]),'Empty belt lost the defined ordinary fallback');
+  }finally{Object.assign(state,saved);history.restoreHistory(snapshot);}
+});
 document.title = failures ? `${failures} FAIL — RetroPaint checks` : 'PASS — RetroPaint checks';
 
 reset();

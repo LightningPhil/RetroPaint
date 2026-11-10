@@ -79,6 +79,7 @@
 #cadHelpDialog h2 { margin-bottom:0; }
 #cadHelpContent { min-height:0;overflow-y:auto;overscroll-behavior:contain; }
 .cad-working .cad-panel-page,.cad-working .cad-tabs,.cad-working .cad-tools,.cad-working #cadCanvas { pointer-events:none; opacity:.65; }.cad-working #cadStatus::before{content:'◌';font-size:20px;margin-right:10px;}
+.cad-working #cadFeatureCancel { pointer-events:auto; }
 .cad-working #cadClose{pointer-events:none;opacity:.4;}
 body.cad-open #editorStatus,body.cad-open #recoveryBanner { visibility:hidden; }
 @media(max-height:800px){
@@ -239,6 +240,7 @@ body.cad-open #editorStatus,body.cad-open #recoveryBanner { visibility:hidden; }
   #cadWorkshop #cadHistoryPlayhead { display:none; }
   .cad-timeline { grid-template-rows:44px 44px;max-height:none;overflow:visible; }
   .cad-timeline-top { flex-wrap:nowrap; }
+  #cadWorkshop .cad-timeline-track > .choice { flex:0 0 44px;min-width:44px; }
   .cad-has-timeline #cadCanvas { height:calc(100% - 132px); }
   .cad-has-timeline .cad-tools { bottom:140px; }
   .cad-has-timeline #cadSketchActions { bottom:140px; }

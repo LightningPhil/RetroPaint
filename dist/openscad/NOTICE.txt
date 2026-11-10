@@ -1,0 +1,19 @@
+OpenSCAD WebAssembly engine: official OpenSCAD-2026.10.27 WEB snapshot.
+Unmodified openscad.js and openscad.wasm from:
+https://files.openscad.org/snapshots/OpenSCAD-2026.10.27-WebAssembly-web.zip
+ZIP SHA256: 04bad2bca61bea4e89e02038509430ef8e17ce66503f90e1eb0deb93fe193fbf
+Upstream source and copyright: https://github.com/openscad/openscad
+Build infrastructure and dependency sources: https://github.com/openscad/openscad-wasm
+Licence: GNU GPL version 2 or later, see COPYING. Upstream dependencies retain their respective licences. These third-party engine files are not covered by RetroPaint's MIT licence.
+
+NotoSans-Regular.ttf: https://github.com/notofonts/noto-fonts/blob/main/hinted/ttf/NotoSans/NotoSans-Regular.ttf
+SIL Open Font License, see FONT-LICENSE.
+
+examples/CSG.scad and examples/rotate_extrude.scad copied unchanged from:
+https://github.com/openscad/openscad/tree/e5721012999ba873f6dd74ffd89fa33f7dd11f63/examples/Basics
+Per-file attribution and licences are retained.
+
+worker.js is RetroPaint's separate worker and filesystem adapter, not an upstream OpenSCAD file.
+
+Standard MCAD library: https://github.com/openscad/MCAD/tree/bd0a7ba3f042bfbced5ca1894b236cea08904e26
+All upstream files retained verbatim as base64 in mcad.json, including source and individual notices. LGPL licence in MCAD-LICENSE. Project-local library files take precedence.

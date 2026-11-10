@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
+import { createServer as createPortProbe } from 'node:net';
 
 const repo=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const args=process.argv.slice(2);
@@ -20,7 +21,13 @@ const save=async()=>fs.writeFile(path.join(out,'report.json'),JSON.stringify(rep
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const sourcePaths=['index.html','package.json','package-lock.json',...await fs.readdir(path.join(repo,'src'),{recursive:true}).then(paths=>paths.filter(p=>/\.(ts|css)$/.test(p)).map(p=>path.join('src',p))),...await fs.readdir(path.join(repo,'tests')).then(paths=>paths.filter(p=>/\.(ts|html|mjs)$/.test(p)).map(p=>path.join('tests',p)))];
 report.source_files=await Promise.all(sourcePaths.sort().map(async p=>({path:p,sha256:sha(await fs.readFile(path.join(repo,p)))})));
-const server=await createServer({root:repo,server:{host:'127.0.0.1',port:0,strictPort:false,watch:{ignored:['**/APP-USE-CASES/**','**/test-results/**']}}});
+// Vite treats port0 as its default5173. Ask Windows/the OS for a free port
+// explicitly, then fail rather than taking a neighbour's port if it is claimed.
+const probe=createPortProbe();
+await new Promise((resolve,reject)=>{probe.once('error',reject);probe.listen(0,'127.0.0.1',resolve);});
+const port=probe.address().port;
+await new Promise((resolve,reject)=>probe.close(error=>error?reject(error):resolve()));
+const server=await createServer({root:repo,server:{host:'127.0.0.1',port,strictPort:true,watch:{ignored:['**/APP-USE-CASES/**','**/test-results/**']}}});
 let browser;
 let current='Starting';
 const progress=setInterval(()=>console.log(JSON.stringify({at:new Date().toISOString(),current})),20000);
@@ -32,7 +39,7 @@ try{
   report.browser=browser.version();report.origin=origin;
   const only=option('--suite','all');
   const suites=[{name:'painting',url:'/tests/painting.html',width:1280,height:720},...[[1280,720],[320,568],[390,844],[844,390]].map(([width,height])=>({name:`layout-${width}x${height}`,url:'/tests/mobile.html',width,height}))];
-  if(!['all','layouts','acceptance',...suites.map(s=>s.name)].includes(only))throw new Error('Unknown test suite: '+only);
+  if(!['all','layouts','acceptance','recovery','timeline-resize','constraint-labels',...suites.map(s=>s.name)].includes(only))throw new Error('Unknown test suite: '+only);
   if(only==='acceptance'&&!args.includes('--reset-acceptance'))throw new Error('The acceptance suite requires --reset-acceptance');
   for(const spec of suites){
     if(only!=='all'&&only!==spec.name&&!(only==='layouts'&&spec.name.startsWith('layout-')))continue;
@@ -56,6 +63,24 @@ try{
     }catch(error){entry.status='Fail';entry.error=String(error.stack??error);console.log('FAIL '+spec.name+': '+error);await page.screenshot({path:path.join(out,spec.name+'-failure.png')}).catch(()=>{});}
     finally{entry.finished=new Date().toISOString();await save();await context.close();}
   }
+  if(only==='all'||only==='constraint-labels'){
+    current='cad-constraint-labels';console.log('START '+current);
+    const {testCadConstraintLabels}=await import('./cad-constraint-labels.mjs');
+    report.cad_constraint_labels=await testCadConstraintLabels(browser,{origin,out});await save();
+    console.log(report.cad_constraint_labels.status.toUpperCase()+' cad-constraint-labels');
+  }
+  if(only==='all'||only==='timeline-resize'){
+    current='cad-timeline-resize';console.log('START '+current);
+    const {testCadTimelineResize}=await import('./cad-timeline-resize.mjs');
+    report.cad_timeline_resize=await testCadTimelineResize(browser,{origin,out});await save();
+    console.log(report.cad_timeline_resize.status.toUpperCase()+' cad-timeline-resize');
+  }
+  if(only==='all'||only==='recovery'){
+    current='recovery-resume';console.log('START '+current);
+    const {testRecoveryResume}=await import('./recovery-resume.mjs');
+    report.recovery_resume=await testRecoveryResume(browser,{origin,out});await save();
+    console.log(report.recovery_resume.status.toUpperCase()+' recovery-resume: '+report.recovery_resume.cycles+' exact cycles');
+  }
   if(args.includes('--reset-acceptance')){
     current='PHOTO-008';
     const {testReset}=await import('./photo-reset-acceptance.mjs');
@@ -65,6 +90,6 @@ try{
 }catch(error){report.fatal=String(error.stack??error);console.error(report.fatal);process.exitCode=1;}
 finally{
   clearInterval(progress);await browser?.close();await server.close();report.finished=new Date().toISOString();
-  report.status=report.fatal||report.suites.some(s=>s.status!=='Pass')||report.photo_reset?.status==='Fail'?'Fail':'Pass';
+  report.status=report.fatal||report.suites.some(s=>s.status!=='Pass')||report.photo_reset?.status==='Fail'||report.recovery_resume?.status==='Fail'||report.cad_timeline_resize?.status==='Fail'||report.cad_constraint_labels?.status==='Fail'?'Fail':'Pass';
   await save();console.log('REPORT '+path.join(out,'report.json'));if(report.status==='Fail')process.exitCode=1;
 }

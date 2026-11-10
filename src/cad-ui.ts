@@ -8,7 +8,7 @@ import { pushHistory, redo, undo, canUndo, canRedo } from './history';
 import { play } from './audio';
 import { download } from './export';
 import { saveProjectFile } from './project';
-import { cadCompute } from './cad-engine';
+import { cadCompute, cancelCadCompute } from './cad-engine';
 import { addBody, cadLayers, combinedBody, currentBodies, duplicateSelected, ensureCadLayer, featureBody, finishedBody, shelledBody, removeSelected, replaceBodies, selectBodies, selectedBodies, updateSelected } from './cad-document';
 import { basePlane, body, PALETTE, primitive, readCadLayer, sketchPoints, type CadBody, type CadProfile, type Primitive, type V2, type V3, type Workplane } from './cad-model';
 import { CadViewport } from './cad-viewport';
@@ -27,12 +27,14 @@ import { dockWorkshopLayers } from './layer-ui';
 
 const el = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 let root: HTMLElement | undefined, viewport: CadViewport | undefined, tab = 'add', busy = false, objectPage = 0, returningLayer = 0;
+let busyDone:Promise<void>=Promise.resolve(),finishBusy=()=>{};
 let sketch: { points: V2[]; plane: Workplane; target?: string; shape?:CadProfile['shape']; constraints?:CadSketchConstraint[] } | undefined;
 let profileConstraints:CadSketchConstraint[]=[];
 let profilePlane:Workplane=basePlane('xy');
 let profile: V2[] = [[0,0],[15,0],[18,5],[13,15],[10,30],[14,40],[12,40],[8,30],[11,15],[16,5],[13,2],[0,2]];
 let sketchKind = 'extrude', alignReference: string | undefined, profileDrag: number | null = null;
 let fitScheduled=false;
+let numericFieldsState='';
 let featurePanel:CadFeaturePanel|undefined;
 let inspectPanel:CadInspectPanel|undefined;
 let edgeTarget:CadBody|undefined,shellTarget:CadBody|undefined;
@@ -125,7 +127,7 @@ function mount(): void {
   elIn(root,'cadBuildPage').append(new Option('Shell · hollow a solid','shell'));const shell=document.createElement('div');shell.dataset.cadBuildPage='shell';shell.hidden=true;shell.innerHTML=`<h2>Make room inside</h2><div class="cad-finish-art cad-shell-art" aria-hidden="true"><span>■</span><b>→</b><span>▣</span></div>${numberField('cadShellThickness','Wall thickness · mm',2,.01,1000,.1)}<div class="cad-actions">${button('cadPickShellFaces','▧ Pick open faces')}${button('cadClearShellFaces','Clear')}</div><p class="cad-edge-count" id="cadShellFaceCount">Select one solid, then pick faces to leave open.</p>${button('cadPreviewShell','▣ Preview shell →')}<p class="cad-hint">Pink faces become openings. Tap to toggle; drag to orbit. Walls grow inward, keeping the outside size. Clear all openings for an enclosed cavity.</p>`;elIn(root,'cadPagebuild').querySelector('.cad-page-content')!.append(shell);
   for(const kind of ['loft','sweep'] as const){const title=kind==='loft'?'Loft between sketches':'Sweep a sketch along a path',page=document.createElement('div'),id=kind==='loft'?'cadLoft':'cadSweep';page.dataset.cadBuildPage=kind;page.hidden=true;page.innerHTML=`<h2>${title}</h2><div id="${id}Editor" class="cad-form-editor"></div>${button(id+'Make',kind==='loft'?'⋈ Make loft':'∿ Make sweep')}<p class="cad-hint">A new editable solid. History keeps every sketch${kind==='sweep'?', the path':''} and setting. Undo removes it in one step.</p>`;elIn(root,'cadBuildPage').append(new Option(title,kind));elIn(root,'cadPagebuild').querySelector('.cad-page-content')!.append(page);forms.set(kind,new CadFormEditor(elIn(root,id+'Editor'),defaultForm(kind),id,{changed:fitPage,notice,sources:profileSources,drawing:drawingProfile,guide:form=>{if(state.cad.open&&tab==='build'&&el<HTMLSelectElement>('cadBuildPage').value===kind&&!state.cad.editing&&!state.cad.preview)viewport?.showFormInputs(form);}}));}
   elIn(root,'cadRevolvePage').insertAdjacentHTML('afterend',`${button('cadSketchConstraints','↔ Dimensions & constraints')}<div id="cadSketchConstraintPage" hidden>${button('cadBackConstraints','← Outline & workplane')}<div id="cadSketchConstraintEditor" class="cad-constraint-editor"></div></div>`);
-  document.body.append(root);featurePanel=new CadFeaturePanel(root,{viewport:()=>viewport,notice,run:action=>solidAction(action,true),changed:fitPage,open:()=>{setTab('history');showTools(true);},pick:()=>{if(mobileTools())showTools(false);},sources:profileSources,drawing:drawingProfile});inspectPanel=new CadInspectPanel(root,{viewport:()=>viewport,changed:fitPage,notice,run:solidAction,attempt,paint:paintBesideCad,pick:()=>{if(mobileTools())showTools(false);}});el('cadPageadd').querySelector('.cad-page-content')!.insertAdjacentHTML('beforeend',button('cadImportShortcut','＋ Import STL'));el('cadPagelayers').querySelector('.cad-page-content')!.insertAdjacentHTML('beforeend',button('cadPictureShortcut','▣ Picture layers & placement'));bind();new ResizeObserver(fitPage).observe(root.querySelector('.cad-panel')!);
+  document.body.append(root);featurePanel=new CadFeaturePanel(root,{viewport:()=>viewport,notice,run:action=>solidAction(action,true),cancel:cancelFeatureAction,changed:fitPage,open:()=>{setTab('history');showTools(true);},pick:()=>{if(mobileTools())showTools(false);},sources:profileSources,drawing:drawingProfile});inspectPanel=new CadInspectPanel(root,{viewport:()=>viewport,changed:fitPage,notice,run:solidAction,attempt,paint:paintBesideCad,pick:()=>{if(mobileTools())showTools(false);}});el('cadPageadd').querySelector('.cad-page-content')!.insertAdjacentHTML('beforeend',button('cadImportShortcut','＋ Import STL'));el('cadPagelayers').querySelector('.cad-page-content')!.insertAdjacentHTML('beforeend',button('cadPictureShortcut','▣ Picture layers & placement'));bind();new ResizeObserver(fitPage).observe(root.querySelector('.cad-panel')!);
 }
 function elIn(parent:HTMLElement,id:string):HTMLElement{return parent.querySelector<HTMLElement>('#'+id)!;}
 function mobileTools():boolean{return matchMedia('(max-width:800px) and (min-height:501px)').matches;}
@@ -153,10 +155,10 @@ export async function openCad(): Promise<void> {
   if(!advancedEnabled()){message('Switch to Advanced mode in More to edit 3D. Your model stays intact.');return;}
   if(state.cad.open)return;if(!root)mount();returningLayer=activeLayer().cad?(layers.find(l=>!l.cad)?.id??0):activeLayer().id;
   ensureCadLayer();featurePanel?.reset();state.cad.open=true;state.cad.gesture=false;state.cad.selected=[];state.cad.tool='translate';sketch=undefined;mateFirst=undefined;root!.hidden=false;document.body.classList.add('cad-open');
-  setAdvancedMode(true);dockWorkshopLayers(root);isolateWorkshop(true);
+  clearPrintCheck();setAdvancedMode(true);dockWorkshopLayers(root);isolateWorkshop(true);
   el<HTMLSelectElement>('cadPlane').value='xy';el('cadPlane').querySelector<HTMLOptionElement>('[value="face"]')!.disabled=true;setSketchKind(sketchKind);showTools(true);
   try {
-    viewport=new CadViewport(el('cadView'),{notice,sketch:(points,plane,target)=>{sketch={points,plane,target,shape:state.cad.tool==='circle'?'circle':state.cad.tool==='polygon'?'polygon':'rectangle'};el<HTMLSelectElement>('cadFeatureOperation').value=target?'auto':'new';lockSketchOutline();el('cadFeatureSummary').textContent=`${points.length===96?'Circle':points.length===4?'Rectangle':points.length+' point sketch'} · ${target?'on face':'on workplane'}`;notice('Sketch ready. Choose Pull, Cut or Through hole beside the drawing.');sketchActions();showTools(!mobileTools());},face:(plane,target)=>{if(mateFirst){finishMate(plane,target);return;}sketch=undefined;el<HTMLSelectElement>('cadFeatureOperation').value='auto';el<HTMLSelectElement>('cadPlane').value='face';el('cadPlane').querySelector<HTMLOptionElement>('[value="face"]')!.disabled=false;setTab('sketch');setSketchKind('extrude');state.cad.tool='rectangle';viewport!.setTool();viewport!.view('sketch');notice('Face ready. Click two corners to draw a rectangle, or choose Circle / Polygon. Then Pull or Cut.');refresh();},changed:refresh});
+    viewport=new CadViewport(el('cadView'),{notice,sketch:(points,plane,target)=>{sketch={points,plane,target,shape:state.cad.tool==='circle'?'circle':state.cad.tool==='polygon'?'polygon':'rectangle'};el<HTMLSelectElement>('cadFeatureOperation').value=target?'auto':'new';lockSketchOutline();el('cadFeatureSummary').textContent=`${sketch.shape==='circle'?'Circle':sketch.shape==='rectangle'?'Rectangle':points.length+' point polygon'} · ${target?'on face':'on workplane'}`;notice('Sketch ready. Choose Pull, Cut or Through hole beside the drawing.');sketchActions();showTools(!mobileTools());},face:(plane,target)=>{if(mateFirst){finishMate(plane,target);return;}sketch=undefined;el<HTMLSelectElement>('cadFeatureOperation').value='auto';el<HTMLSelectElement>('cadPlane').value='face';el('cadPlane').querySelector<HTMLOptionElement>('[value="face"]')!.disabled=false;setTab('sketch');setSketchKind('extrude');state.cad.tool='rectangle';viewport!.setTool();viewport!.view('sketch');notice('Face ready. Click two corners to draw a rectangle, or choose Circle / Polygon. Then Pull or Cut.');refresh();},changed:refresh});
     await viewport.sync();if(!activeLayer().cad?.view)viewport.fit();setTab(tab);refresh();el('cadCanvas').focus({preventScroll:true});emit('cad-open',true);
   }catch(error){state.cad.open=false;root!.hidden=true;document.body.classList.remove('cad-open');isolateWorkshop(false);dockWorkshopLayers();viewport?.dispose();viewport=undefined;throw error;}
 }
@@ -168,10 +170,12 @@ function closeCad(persistPicture=true,update=true): void {
 function paintBesideCad(above:boolean):void{if(!canAddLayer())throw new Error('The layer stack is full. Remove a sheet before adding a picture layer.');const source=activeLayer();pushHistory();viewport?.setPictureMode(true);viewport?.pinPictureView(false,false);closeCad(false);switchLayer(source.id);addLayer();activeLayer().name=above?'Paint above 3D':'Backdrop';if(!above)moveLayer(activeLayer().id,source.id,false);layerChanged();setAdvancedMode(true);emit('restore-layers',true);message(above?'Painting on a new picture layer above the editable 3D layer.':'Painting on a new picture layer below the editable 3D layer.');}
 async function solidAction(action: () => Promise<void>,featureEdit=false): Promise<void> {
   if(busy)return;if(!featureEdit&&(state.cad.editing||state.cad.preview)){notice(state.cad.editing?'Apply or cancel your feature edit first.':'Return to Latest in the timeline before changing or exporting the solid.');return;}busy=true;root!.setAttribute('aria-busy','true');root!.classList.add('cad-working');notice('Building your solid…');
+  busyDone=new Promise(resolve=>{finishBusy=resolve;});
   refresh();
   try{await action();play('clunk');}catch(error){notice(error instanceof Error?error.message:String(error));}
-  finally{busy=false;root!.removeAttribute('aria-busy');root!.classList.remove('cad-working');refresh();}
+  finally{busy=false;root!.removeAttribute('aria-busy');root!.classList.remove('cad-working');refresh();finishBusy();}
 }
+async function cancelFeatureAction(action:()=>Promise<void>):Promise<void>{if(busy){cancelCadCompute();await busyDone;}await solidAction(action,true);}
 async function saveCadProject():Promise<void>{viewport?.updatePreviews();await saveProjectFile(el<HTMLInputElement>('fileName').value);notice('Project ready, including editable solids, 3D layers and your painting.');}
 async function validateAndAdd(item: CadBody): Promise<void> { await cadCompute([item]);addBody(item);await viewport?.sync();viewport?.fit();notice(`${item.name} ready. Grab a handle to move, turn or resize it.`); }
 function targetOptions(select: HTMLSelectElement, candidates: CadBody[], previous?: string): void {
@@ -189,11 +193,27 @@ function refresh(): void {
   if(!state.cad.open||!root)return;
   el('layersPanel').inert=busy||state.cad.gesture||!!state.cad.editing||!!state.cad.preview;
   const selected=selectedBodies(),first=selected[0],working=activeLayer();el('cadActiveLayer').textContent=working.name;el('cadPieceCount').textContent=`${currentBodies().length} ${currentBodies().length===1?'piece':'pieces'}`;
-  el('cadEmpty').hidden=tab==='sketch'||cadLayers().some(l=>l.cad!.bodies.length>0)||(tab==='build'&&forms.has(el<HTMLSelectElement>('cadBuildPage').value));el<HTMLButtonElement>('cadUndo').disabled=!canUndo()||busy||state.cad.gesture;el<HTMLButtonElement>('cadRedo').disabled=!canRedo()||busy||state.cad.gesture;
+  const draftLocked=!!(state.cad.editing||state.cad.preview);
+  for(const id of ['cadSaveProject','cadClose']){const control=el<HTMLButtonElement>(id);control.disabled=busy||draftLocked;control.title=state.cad.editing?'Apply or cancel your feature edit first':state.cad.preview?'Return to Latest first':'';}
+  el('cadEmpty').hidden=tab==='sketch'||cadLayers().some(l=>l.cad!.bodies.length>0)||(tab==='build'&&forms.has(el<HTMLSelectElement>('cadBuildPage').value));el<HTMLButtonElement>('cadUndo').disabled=!canUndo()||busy||state.cad.gesture||draftLocked;el<HTMLButtonElement>('cadRedo').disabled=!canRedo()||busy||state.cad.gesture||draftLocked;
   for(const button of root.querySelectorAll<HTMLElement>('[data-cad-tool]')){const active=button.dataset.cadTool===state.cad.tool;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));}
   el('cadEditTitle').textContent=selected.length>1?`${selected.length} pieces selected`:first?.name??'Select a piece';
   for(const id of ['cadBodyName','cadApplyTransform','cadApplySize','cadDelete','cadDuplicate','cadColour'])el<HTMLInputElement>(id).disabled=!first||busy||(id!=='cadDuplicate'&&selected.some(b=>b.locked));
-  if(first){setValue('cadBodyName',first.name);first.position.forEach((v,i)=>setValue('cadPos'+i,v));first.rotation.forEach((v,i)=>setValue('cadRot'+i,v));const data=viewport?.nodes.get(first.id)?.data;const size=data?data.bounds.max.map((v,i)=>(v-data.bounds.min[i])*Math.abs(first.scale[i])):first.solid.kind==='primitive'?first.solid.size:[20,20,20];size.forEach((v,i)=>setValue('cadSize'+i,v));setValue('cadColour',first.color);el<HTMLInputElement>('cadWall').disabled=first.solid.kind!=='primitive'||first.solid.shape!=='tube';if(first.solid.kind==='primitive')setValue('cadWall',first.solid.wall*Math.min(Math.abs(first.scale[0]),Math.abs(first.scale[1])));el('cadSelectedInfo').textContent=first.locked?'Locked piece. Unlock it in Layers to edit.':`${selected.length>1?'Fields use the first piece; changes apply to the selection. ':''}${data?(data.volume*Math.abs(first.scale[0]*first.scale[1]*first.scale[2])/1000).toFixed(2)+' cm³ · '+data.triangles.toLocaleString()+' triangles':''}`;}
+  if(first){
+    setValue('cadBodyName',first.name);
+    const data=viewport?.nodes.get(first.id)?.data,size=data?data.bounds.max.map((v,i)=>(v-data.bounds.min[i])*Math.abs(first.scale[i])):first.solid.kind==='primitive'?first.solid.size:[20,20,20];
+    const wall=first.solid.kind==='primitive'?first.solid.wall*Math.min(Math.abs(first.scale[0]),Math.abs(first.scale[1])):null;
+    const numericState=JSON.stringify([selected.map(b=>b.id),first.position,first.rotation,size,wall]);
+    // Scene/preview refreshes must not discard blurred, unapplied entries.
+    // Replace the form when its actual model values or selected pieces change.
+    if(!busy&&numericFieldsState!==numericState){
+      numericFieldsState=numericState;
+      const number=(id:string,value:number)=>{el<HTMLInputElement>(id).value=String(Math.round(value*1000)/1000);};
+      first.position.forEach((v,i)=>number('cadPos'+i,v));first.rotation.forEach((v,i)=>number('cadRot'+i,v));size.forEach((v,i)=>number('cadSize'+i,v));if(wall!==null)number('cadWall',wall);
+    }
+    setValue('cadColour',first.color);el<HTMLInputElement>('cadWall').disabled=first.solid.kind!=='primitive'||first.solid.shape!=='tube';
+    el('cadSelectedInfo').textContent=first.locked?'Locked piece. Unlock it in Layers to edit.':`${selected.length>1?'Fields use the first piece; changes apply to the selection. ':''}${data?(data.volume*Math.abs(first.scale[0]*first.scale[1]*first.scale[2])/1000).toFixed(2)+' cm³ · '+data.triangles.toLocaleString()+' triangles':''}`;
+  }else numericFieldsState='';
   const choices=selected.length>0?selected:currentBodies();targetOptions(el('cadBooleanTarget'),choices,el<HTMLSelectElement>('cadBooleanTarget').value);targetOptions(el('cadAlignTarget'),selected.length?selected:currentBodies(),alignReference??el<HTMLSelectElement>('cadAlignTarget').value);
   if(tab==='layers')refreshLayerList();
   featurePanel?.refresh();
@@ -331,7 +351,7 @@ function dropSelection(centre=false):void{
   updateSelected(b=>({...b,position:[b.position[0]-(centre?(minX+maxX)/2:0),b.position[1]-(centre?(minY+maxY)/2:0),b.position[2]-low]}));
 }
 function align():void{
-  const target=el<HTMLSelectElement>('cadAlignTarget').value,reference=viewport!.bounds(target);if(!reference)throw new Error('Select a reference piece.');const items=selectedBodies().filter(b=>b.id!==target&&!b.locked);if(!items.length)throw new Error('Select two or more unlocked pieces to align.');
+  const target=el<HTMLSelectElement>('cadAlignTarget').value,reference=viewport!.bounds(target);if(!reference)throw new Error('Select a reference piece.');const items=selectedBodies().filter(b=>b.id!==target);if(!items.length)throw new Error('Select two or more unlocked pieces to align.');if(items.some(b=>b.locked))throw new Error('Unlock the moving pieces before aligning the selection.');
   const axis=num('cadAlignAxis',0,2),mode=el<HTMLSelectElement>('cadAlignMode').value,gap=num('cadAlignGap',-1000,1000),key=(['x','y','z'] as const)[axis];
   const ids=new Set(items.map(b=>b.id));replaceBodies(currentBodies().map(b=>{if(!ids.has(b.id))return b;const bounds=viewport!.bounds(b.id)!;const delta=mode==='min'?reference.min[key]-bounds.min[key]:mode==='max'?reference.max[key]-bounds.max[key]:mode==='after'?reference.max[key]+gap-bounds.min[key]:mode==='before'?reference.min[key]-gap-bounds.max[key]:(reference.min[key]+reference.max[key]-bounds.min[key]-bounds.max[key])/2;const position=[...b.position] as V3;position[axis]+=delta;return{...b,position};}));notice('Pieces aligned in millimetres.');
 }
@@ -343,11 +363,13 @@ function finishMate(plane:Workplane,target:string):void{
   // Quaternion rotation and pivot translation are performed by a small viewport-independent helper.
   const first=mateFirst;mateFirst=undefined;void import('./cad-mate').then(({mateBody})=>attempt(()=>{const moving=currentBodies().find(b=>b.id===first.id);if(!moving)throw new Error('The moving piece is no longer on this layer.');const result=mateBody(moving,first.plane,plane);replaceBodies(currentBodies().map(b=>b.id===result.id?result:b));selectBodies([result.id]);state.cad.tool='translate';viewport?.setTool();notice('Faces snapped together. Join them in Build to make one printable solid.');}));
 }
-function printBodies():CadBody[]{const scope=el<HTMLSelectElement>('cadPrintScope').value;return scope==='selection'?selectedBodies().filter(b=>b.visible):scope==='layer'?(activeLayer().visible?currentBodies().filter(b=>b.visible):[]):cadLayers().filter(l=>l.visible).flatMap(l=>l.cad!.bodies.filter(b=>b.visible));}
+function clearPrintCheck():void{if(root)el('cadPrintReport').textContent='Model or print settings changed. Check solid & size again.';}
+function printBodies():CadBody[]{const scope=el<HTMLSelectElement>('cadPrintScope').value;return scope==='selection'?(activeLayer().visible?selectedBodies().filter(b=>b.visible):[]):scope==='layer'?(activeLayer().visible?currentBodies().filter(b=>b.visible):[]):cadLayers().filter(l=>l.visible).flatMap(l=>l.cad!.bodies.filter(b=>b.visible));}
 async function checkPrint(save=false):Promise<void>{
+  clearPrintCheck();
   const items=printBodies(),result=await cadCompute(items,'print',el<HTMLInputElement>('cadPrintBed').checked),mesh=result.mesh,size=mesh.bounds.max.map((v,i)=>v-mesh.bounds.min[i]);
-  const bed=vector('cadBed',10,2000),fits=size.every((v,i)=>v<=bed[i]+0.001),below=mesh.bounds.min[2]<-0.01;
-  el('cadPrintReport').textContent=`${size.map(v=>v.toFixed(2)).join(' × ')} mm\n${(mesh.volume/1000).toFixed(2)} cm³ · ${mesh.triangles.toLocaleString()} triangles\nClosed solid geometry · ${fits?'Fits the entered build volume':'Larger than the entered build volume'}${below?' · Below Z = 0':''}`;
+  const bed=vector('cadBed',10,2000),oversize=size.flatMap((v,i)=>v>bed[i]+0.001?['XYZ'[i]]:[]),fits=!oversize.length,below=mesh.bounds.min[2]<-0.01;
+  el('cadPrintReport').textContent=`${size.map(v=>v.toFixed(2)).join(' × ')} mm\n${(mesh.volume/1000).toFixed(2)} cm³ · ${mesh.triangles.toLocaleString()} triangles\nClosed solid geometry · ${fits?'Fits the entered build volume':`Larger than the entered build volume · Oversize axes: ${oversize.join(', ')}`}${below?' · Below Z = 0':''}`;
   if(save){download(new Blob([result.stl!],{type:'model/stl'}),`${(el<HTMLInputElement>('fileName').value||'retropaint').replace(/[<>:"/\\|?*]/g,'-')}-3d-mm.stl`);play('save');notice('STL ready in millimetres. Open it in your slicer to choose orientation, supports and print settings.');}else notice('Solid checked. See the size and volume in the Print panel.');
 }
 function bind():void{
@@ -416,14 +438,15 @@ function bind():void{
   bus.addEventListener('cad-faces',()=>{if(state.cad.open)refresh();});
   bus.addEventListener('cad-edges',()=>{if(state.cad.open)refresh();});
   el('cadLayerSelect').addEventListener('change',()=>{switchLayer(Number(el<HTMLSelectElement>('cadLayerSelect').value));selectBodies([]);objectPage=0;refresh();});on('cadNewLayer',()=>{ensureCadLayer(true);selectBodies([]);objectPage=0;refresh();});
-  el('cadLayerName').addEventListener('change',()=>attempt(()=>{pushHistory();activeLayer().name=el<HTMLInputElement>('cadLayerName').value.trim()||'3D layer';layerChanged();}));el('cadLayerVisible').addEventListener('change',()=>attempt(()=>{pushHistory();activeLayer().visible=el<HTMLInputElement>('cadLayerVisible').checked;layerChanged();}));
+  el('cadLayerName').addEventListener('change',()=>attempt(()=>{const name=el<HTMLInputElement>('cadLayerName').value.trim()||'3D layer';pushHistory();activeLayer().name=name;layerChanged();}));el('cadLayerVisible').addEventListener('change',()=>attempt(()=>{const visible=el<HTMLInputElement>('cadLayerVisible').checked;pushHistory();activeLayer().visible=visible;layerChanged();}));
   on('cadObjectsPrev',()=>{objectPage--;refreshLayerList();});on('cadObjectsNext',()=>{objectPage++;refreshLayerList();});on('cadSelectAll',()=>selectBodies(currentBodies().map(b=>b.id)));
   on('cadMoveLayer',()=>{const target=layers.find(l=>l.id===Number(el<HTMLSelectElement>('cadDestinationLayer').value)),source=activeLayer(),items=selectedBodies().filter(b=>!b.locked);if(!target?.cad||target===source||!items.length)throw new Error('Select pieces and choose a different destination 3D layer.');if(target.cad.bodies.length+items.length>128)throw new Error('The destination layer is full.');pushHistory();const ids=new Set(items.map(b=>b.id));source.cad={...source.cad,units:'mm',bodies:currentBodies().filter(b=>!ids.has(b.id))};target.cad={...target.cad,units:'mm',bodies:[...target.cad.bodies,...items]};switchLayer(target.id);selectBodies(items.map(b=>b.id));layerChanged();});
   on('cadRemoveLayer',()=>{if(cadLayers().length<2)throw new Error('Keep one 3D layer. You can delete individual pieces.');const id=activeLayer().id,next=cadLayers().find(l=>l.id!==id)!;pushHistory();switchLayer(next.id);deleteLayer(id);selectBodies([]);layerChanged();});
   run('cadCheckPrint',()=>checkPrint());run('cadExportStl',()=>checkPrint(true));
+  for(const id of ['cadPrintScope','cadPrintBed','cadBed0','cadBed1','cadBed2'])for(const event of ['input','change'])el(id).addEventListener(event,clearPrintCheck);
   for(const id of ['cadSnap','cadGrid','cadAngle'])el(id).addEventListener('change',()=>{state.cad.snap=el<HTMLInputElement>('cadSnap').checked;state.cad.grid=Number(el<HTMLSelectElement>('cadGrid').value);state.cad.angle=Number(el<HTMLSelectElement>('cadAngle').value);viewport?.selection();});
-  bus.addEventListener('layers',()=>{if(state.cad.open){if(!activeLayer().cad){closeCad();return;}void viewport?.sync();refresh();}});
-  bus.addEventListener('cad-selection',()=>{viewport?.selection();refresh();});bus.addEventListener('history',()=>{if(state.cad.open){refresh();queueMicrotask(()=>{if(state.cad.open)void viewport?.sync();});}});
+  bus.addEventListener('layers',()=>{clearPrintCheck();if(state.cad.open){if(!activeLayer().cad){closeCad();return;}void viewport?.sync();refresh();}});
+  bus.addEventListener('cad-selection',()=>{if(root&&el<HTMLSelectElement>('cadPrintScope').value==='selection')clearPrintCheck();viewport?.selection();refresh();});bus.addEventListener('history',()=>{clearPrintCheck();if(state.cad.open){refresh();queueMicrotask(()=>{if(state.cad.open)void viewport?.sync();});}});
   for(const event of ['document-created','document-opened'])bus.addEventListener(event,()=>{if(state.cad.open)closeCad(false,false);});
   document.addEventListener('keydown',event=>{if(!state.cad.open||busy||state.cad.gesture||state.cad.editing||state.cad.preview||document.querySelector('dialog[open]')||event.defaultPrevented||event.target instanceof HTMLInputElement||event.target instanceof HTMLTextAreaElement||event.target instanceof HTMLSelectElement)return;const key=event.key.toLowerCase();if(key==='?'){event.preventDefault();el<HTMLDialogElement>('cadHelpDialog').showModal();return;}if(event.ctrlKey||event.metaKey){if(key==='z'){event.preventDefault();attempt(event.shiftKey?redo:undo);}if(key==='y'){event.preventDefault();attempt(redo);}if(key==='d'){event.preventDefault();attempt(()=>duplicateSelected());}if(key==='s'){event.preventDefault();void solidAction(saveCadProject);}if(key==='a'){event.preventDefault();selectBodies(currentBodies().map(b=>b.id));}return;}if(key==='delete'||key==='backspace'){event.preventDefault();attempt(removeSelected);}if(key==='escape'){mateFirst=undefined;sketch=undefined;el('cadFeatureSummary').textContent='Sketch cancelled';state.cad.tool='translate';viewport?.cancelSketch();viewport?.setTool();selectBodies([]);}if(key==='enter'&&state.cad.tool==='polygon'){event.preventDefault();viewport?.finishPolygon();}const tools:Record<string,typeof state.cad.tool>={w:'translate',e:'rotate',r:'scale'};if(tools[key]){event.preventDefault();state.cad.tool=tools[key];viewport?.setTool();refresh();}if(key==='f'){event.preventDefault();viewport?.fit();}});
 }

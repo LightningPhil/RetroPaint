@@ -8,8 +8,8 @@ import { drawObject, multiply, objectBounds, objectCapture, setObjectCapture, ty
 import { invalidatePhotoCanvas } from './photo-render';
 import { shapePoints } from './shapes';
 import { state, vectorDrawingEnabled } from './state';
-import { mirrorPoints, symmetryTransforms } from './symmetry';
-import { lanePolygon } from './symmetry-mask';
+import { mirrorPoints, symmetryTransforms, sameLane } from './symmetry';
+import { activeSector, lanePolygon } from './symmetry-mask';
 import type { ShapeKind } from './types';
 import { drips } from './effects';
 import { trimRasterToPaper } from './selection-commit';
@@ -20,6 +20,8 @@ export const objectId=():string=>`object-${Date.now().toString(36)}-${++sequence
 let selected=new Set<string>(),selectionLayer=0;
 const editedSelection=new Set<string>();
 let clipboard:PaintObject[]=[];
+let clipboardMarker='';
+let clipboardWrite:Promise<void>|null=null;
 let capture:{layer:number;live:LiveSnapshot;name:string;blend?:'destination-out';index?:number}|null=null;
 const surface=(width=W,height=H)=>{const c=document.createElement('canvas');c.width=width;c.height=height;return c;};
 export function editableObjects():boolean { return vectorDrawingEnabled()||Boolean(activeLayer().objects?.length); }
@@ -106,14 +108,14 @@ export function makePathObject(points:{x:number;y:number}[],closed:boolean,name=
   const x=left-padding,y=top-padding,width=Math.max(1,right-x+padding),height=Math.max(1,bottom-y+padding);
   const local=(p:{x:number;y:number})=>({x:p.x-x,y:p.y-y});
   return {id:objectId(),kind:'path',name,width,height,matrix:[1,0,0,1,x,y],opacity:state.opacity,lineWidth:state.brushWidth,
-    paths:Array.from({length:lanes[0]?.length??0},(_,lane)=>({points:lanes.map(p=>local(p[lane])),closed,clip:lanePolygon(lane)?.map(local)})),
+    paths:Array.from({length:lanes[0]?.length??0},(_,lane)=>({points:lanes.map(p=>local(p[lane])),closed,clip:lanePolygon(lane)?.map(local)})).filter((path,i,all)=>!!activeSector()||!all.slice(0,i).some(other=>sameLane(other.points,path.points))),
     fill:closed&&state.shapeFill!=='none'?ink(state.shapeFill==='secondary'?state.secondaryInk:activeInkId()):null,
     stroke:state.shapeOutline==='none'?null:ink(activeInkId(),true)};
 }
 export function makeVectorShape(kind:ShapeKind,x0:number,y0:number,x1:number,y1:number):PathObject {
   const object=makePathObject(shapePoints(kind,x0,y0,x1,y1),kind!=='line',kind==='line'?'Line':'Shape');
   if(kind==='ellipse'||kind==='circle'){
-    const rx=kind==='circle'?Math.hypot(x1-x0,y1-y0):Math.abs(x1-x0)/2,ry=kind==='circle'?rx:Math.abs(y1-y0)/2,cx=kind==='circle'?x0:(x0+x1)/2,cy=kind==='circle'?y0:(y0+y1)/2;
+    const rx=kind==='circle'?Math.min(Math.abs(x1-x0),Math.abs(y1-y0))/2:Math.abs(x1-x0)/2,ry=kind==='circle'?rx:Math.abs(y1-y0)/2,cx=(x0+x1)/2,cy=(y0+y1)/2;
     if(rx&&ry)object.paths.forEach((lane,i)=>{const t=symmetryTransforms()[i];lane.svg=`M ${cx-rx} ${cy} A ${rx} ${ry} 0 1 0 ${cx+rx} ${cy} A ${rx} ${ry} 0 1 0 ${cx-rx} ${cy} Z`;lane.transform=[t.a,t.c,t.b,t.d,W/2-t.a*W/2-t.b*H/2-object.matrix[4],H/2-t.c*W/2-t.d*H/2-object.matrix[5]];});
   }
   return object;
@@ -125,8 +127,8 @@ export function previewVectorShape(ctx:CanvasRenderingContext2D,kind:ShapeKind,x
   if(vectorPreview?.signature!==signature)vectorPreview={signature,object:makeVectorShape(kind,x0,y0,x1,y1)};drawObject(ctx,vectorPreview.object,performance.now());
 }
 export function addVectorPath(points:{x:number;y:number}[],closed=false,name='Path',history=false):void { if(points.length>1)addPaintObject(makePathObject(points,closed,name),history); }
-export function addRasterImage(image:HTMLCanvasElement,at={x:(W-image.width)/2,y:(H-image.height)/2},name='Image'):void {
-  addPaintObject({id:objectId(),name,kind:'raster',image:cloneCanvas(image),width:image.width,height:image.height,matrix:[1,0,0,1,at.x,at.y],opacity:1});
+export function addRasterImage(image:HTMLCanvasElement,at={x:(W-image.width)/2,y:(H-image.height)/2},name='Image',history=true):void {
+  addPaintObject({id:objectId(),name,kind:'raster',image:cloneCanvas(image),width:image.width,height:image.height,matrix:[1,0,0,1,at.x,at.y],opacity:1},history);
 }
 
 const hitCanvas=surface(1,1),hitCtx=hitCanvas.getContext('2d',{willReadFrequently:true})!;
@@ -167,11 +169,38 @@ export function editObjectPixels(edit:(image:ImageData)=>void,history=true):void
 }
 export function flipObjects(horizontal:boolean):void {const b=objectSelectionBounds();if(!b)return;pushHistory();transformSelected(horizontal?[-1,0,0,1,b.x*2+b.width,0]:[1,0,0,-1,0,b.y*2+b.height]);}
 export function deleteObjects():void { if(!hasObjectSelection())return;pushHistory();activeLayer().objects=activeLayer().objects?.filter(o=>!selected.has(o.id));clearObjectSelection();changed(); }
-export function copyObjects():void { clipboard=selectedObjects().map(object=>object.kind==='raster'&&object.wet?{...object,image:cloneCanvas(object.image),wet:false}:object);emit('objects'); }
+export function copyObjects():void {
+  clipboard=selectedObjects().map(object=>object.kind==='raster'&&object.wet?{...object,image:cloneCanvas(object.image),wet:false}:object);emit('objects');
+  clipboardMarker='';
+  if(!clipboard.length||!navigator.clipboard?.write||typeof ClipboardItem==='undefined')return;
+  const bounds=objectSelectionBounds()!,scale=Math.min(1,4096/Math.max(bounds.width,bounds.height,1));
+  const image=surface(Math.max(1,Math.ceil(bounds.width*scale)),Math.max(1,Math.ceil(bounds.height*scale))),ctx=image.getContext('2d')!;
+  ctx.scale(scale,scale);ctx.translate(-bounds.x,-bounds.y);const now=performance.now();for(const object of clipboard)drawObject(ctx,object,now);
+  clipboardMarker='RetroPaint editable pieces '+objectId();
+  const png=new Promise<Blob>((resolve,reject)=>image.toBlob(blob=>blob?resolve(blob):reject(new Error('Clipboard image could not be encoded.'))));
+  const pending=navigator.clipboard.write([new ClipboardItem({'image/png':png,'text/plain':new Blob([clipboardMarker],{type:'text/plain'})})]).catch(()=>{/* The in-app clipboard remains available. */});
+  clipboardWrite=pending;void pending.finally(()=>{if(clipboardWrite===pending)clipboardWrite=null;});
+}
+export function ownsObjectClipboard(text:string):boolean {return Boolean(clipboard.length&&clipboardMarker&&text===clipboardMarker);}
+export function objectClipboardWriting():boolean {return Boolean(clipboard.length&&clipboardWrite);}
+export function clearObjectClipboard():void {clipboard=[];clipboardMarker='';clipboardWrite=null;}
 export function hasObjectClipboard():boolean { return clipboard.length>0; }
-export function pasteObjects():void { if(!clipboard.length)return;pushHistory();ensureObjectLayer();const copies=clipboard.map(o=>({...o,id:objectId(),matrix:multiply([1,0,0,1,20,20],o.matrix)}));activeLayer().objects=[...(activeLayer().objects??[]),...copies];selectObjects(copies.map(o=>o.id));changed(); }
-export function duplicateObjects():void {copyObjects();pasteObjects();}
+function insertObjectCopies(source:PaintObject[]):void {if(!source.length)return;pushHistory();ensureObjectLayer();const copies=source.map(o=>({...o,id:objectId(),matrix:multiply([1,0,0,1,20,20],o.matrix)}));activeLayer().objects=[...(activeLayer().objects??[]),...copies];selectObjects(copies.map(o=>o.id));changed();}
+export function pasteObjects():void {insertObjectCopies(clipboard);}
+export function duplicateObjects():void {insertObjectCopies(selectedObjects().map(object=>object.kind==='raster'&&object.wet?{...object,image:cloneCanvas(object.image),wet:false}:object));}
 export function reorderObjects(direction:number):void {if(!hasObjectSelection())return;pushHistory();const all=activeLayer().objects??[],picked=all.filter(o=>selected.has(o.id)),rest=all.filter(o=>!selected.has(o.id));activeLayer().objects=direction>0?[...rest,...picked]:[...picked,...rest];changed();}
+/** Move each selected block past one neighbour, keeping its internal order. */
+export function stepObjectOrder(direction:number):void {
+  if(!hasObjectSelection())return;
+  const original=activeLayer().objects??[],ordered=[...original];
+  if(direction>0){
+    for(let i=ordered.length-2;i>=0;i--)if(selected.has(ordered[i].id)&&!selected.has(ordered[i+1].id)) [ordered[i],ordered[i+1]]=[ordered[i+1],ordered[i]];
+  }else{
+    for(let i=1;i<ordered.length;i++)if(selected.has(ordered[i].id)&&!selected.has(ordered[i-1].id)) [ordered[i],ordered[i-1]]=[ordered[i-1],ordered[i]];
+  }
+  if(ordered.every((object,i)=>object===original[i]))return;
+  pushHistory();activeLayer().objects=ordered;changed();
+}
 
 let drag:{objects:PaintObject[];bounds:Bounds;x:number;y:number;handle:number;history:boolean}|null=null;
 export function objectHandle(x:number,y:number):number {

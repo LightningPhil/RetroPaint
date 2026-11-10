@@ -22,6 +22,10 @@ body:not(.advanced-mode) #objectPanel .extra-choices { display:none; }
   #toolBin #layersToggle,#toolBin #photoToggle { font-size:8px; gap:2px; padding:3px 1px; }
   #toolBin .advanced-tool .icon { width:23px; height:23px; }
 }
+@media(max-width:353px) and (orientation:portrait) {
+  body { grid-template-rows:94px auto minmax(0,1fr) 48px; }
+  #toolBin,body.advanced-mode #toolBin { grid-template-columns:repeat(auto-fit,minmax(44px,1fr)); grid-template-rows:none;grid-auto-rows:52px; }
+}
 @media(max-height:500px) and (max-width:1000px) and (orientation:landscape) {
   #toolBin,body.advanced-mode #toolBin { grid-template-columns:repeat(3,minmax(0,1fr)); grid-template-rows:none;grid-auto-rows:44px; }
 }

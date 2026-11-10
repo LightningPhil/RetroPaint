@@ -1,0 +1,5 @@
+"""Supply EDIT-016's missing 100px square without changing PATCH's four patches."""
+from pathlib import Path
+from PIL import Image,ImageDraw
+import hashlib,json
+root=Path(__file__).resolve().parents[3];out=root/'test-results/audit-2026-11-05/fixtures';source=out/'patch-labelled.png';im=Image.open(source).convert('RGBA');d=ImageDraw.Draw(im);d.rectangle((650,300,749,399),fill='#7c3aed');d.text((650,415),'100 x 100 px square',fill='black');path=out/'patch-paper-square.png';im.save(path);report={'gap':'EDIT-016 asks for a known100pixel square but shared PATCH has only100x80rectangles. This separate copy adds the square; original four patches and labels unchanged.','source_sha256':hashlib.sha256(source.read_bytes()).hexdigest(),'square':{'x':650,'y':300,'width':100,'height':100,'RGBA':[124,58,237,255]},'label':[650,415],'sha256':hashlib.sha256(path.read_bytes()).hexdigest()};(out/'patch-paper-square-provenance.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8');print(report['sha256'])

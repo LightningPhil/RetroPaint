@@ -13,14 +13,15 @@ export function shapePoints(kind: ShapeKind, x0: number, y0: number, x1: number,
   const scaled = (points: number[][]) => interpolate(points.map(([a, b]) => ({ x: x + a * w, y: y + b * h })));
   const cx = x + w / 2, cy = y + h / 2;
   const round = (rx: number, ry: number, centerX = cx, centerY = cy, cloud = false) => {
-    const steps = Math.max(32, Math.ceil(Math.max(rx, ry) * Math.PI * 2 / 3));
+    // Include every cardinal point so sampled bounds match analytic curves.
+    const steps = Math.max(32, Math.ceil(Math.max(rx, ry) * Math.PI * 2 / 12) * 4);
     return Array.from({ length: steps + 1 }, (_, i) => {
       const a = i / steps * Math.PI * 2, r = cloud ? 1 + 0.1 * Math.cos(a * 10) : 1;
       return { x: centerX + Math.cos(a) * rx * r, y: centerY + Math.sin(a) * ry * r };
     });
   };
   if (kind === 'line') return interpolate([{ x: x0, y: y0 }, { x: x1, y: y1 }], false);
-  if (kind === 'circle') { const r = Math.hypot(x1 - x0, y1 - y0); return round(r, r, x0, y0); }
+  if (kind === 'circle') { const r = Math.min(w, h) / 2; return round(r, r); }
   if (kind === 'ellipse') return round(w / 2, h / 2);
   if (kind === 'cloud') return round(w / 2.2, h / 2.2, cx, cy, true);
   if (kind === 'rect') return scaled([[0, 0], [1, 0], [1, 1], [0, 1]]);

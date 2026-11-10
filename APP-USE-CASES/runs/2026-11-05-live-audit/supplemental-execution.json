@@ -1,0 +1,417 @@
+{
+  "updated": "2026-11-05T20:01:47.031922+00:00",
+  "total": 22,
+  "cases": [
+    {
+      "id": "LABEL-001",
+      "workflow": "Text → Label + arrow creates editable, auto-sized text and a connected arrow.",
+      "required_variants": "Raster and vector preference; blank and long wrapping text; Cancel.",
+      "status": "Pass",
+      "observations": [
+        "Created label above CAD while Paper selected; independently dragged target and box, edited Castle in Georgia25 with border off and square corners, duplicated, Undo/Redo and real project download. Independent decoder confirms two unique editable labels and unchanged model recipes. Remaining styling, keyboard, copy/paste and real file reopen variants pending.",
+        "verify-labels.py passes59actualproject/PNGartifacts: blank/cancel andlongwrapping inraster/vectorpreferences; independentCourierNewglyphadvance andautosize; foreground#112233/background#dcf0fa viaactualnativecolourpicker; font/size/wrap/alignment/bold/italic/underline/strike/border/corners editing andcancel. PaperbelowCAD createsAnnotations andoneUndo removesnewsheet; existingAnnotations reused. CADselectionopensworkshop withTextinert/absentAX, PaintreturnselectsPaper andexplicitAnnotationsselection works. Twelvegenuine nativebluehandledrags independentlymatched tostandardpointercoordinates: boxonly, everyedge/roundedcorner, offpaper,zoom,rotated/scaledbox withworldtipretained. ActualeightPNGexports matchfiveindependentlycomputedarrowsegmentpixelprobes each. Exactresize/rotation/history, independentduplicateandedit, explicitPaste andbrowserkeyboardCtrlV withmarker+PNG, one-stepUndoRedo, exactnativeprojectreopen. Windows-levelCtrlV initiallydeliveredstale3charOStext whilebrowserAPIhadcurrentmarker; correctlyrejected andretainedasdiagnostic; browserkeyboardrouteactualdeliveredbothcurrentmarker/PNG andcreatedfifthpiece. Allotherlabels,paintandtenCADrecipes unchanged."
+      ],
+      "evidence": [
+        "Live Chrome tool history in this chat",
+        "test-results/audit-2026-11-05/mouse/",
+        "test-results/audit-2026-11-05/mouse/labels-verification.json",
+        "test-results/audit-2026-11-05/mouse/label-native-pointer-evidence.json",
+        "test-results/audit-2026-11-05/mouse/label-style-evidence.json",
+        "test-results/audit-2026-11-05/mouse/label-browser-key-paste-evidence.json",
+        "test-results/audit-2026-11-05/mouse/labels-final-restored.png"
+      ]
+    },
+    {
+      "id": "LABEL-002",
+      "workflow": "Drag the arrow target independently of its box.",
+      "required_variants": "Every side and rounded corner; zoom; outside-paper placement.",
+      "status": "Pass",
+      "observations": [
+        "Created label above CAD while Paper selected; independently dragged target and box, edited Castle in Georgia25 with border off and square corners, duplicated, Undo/Redo and real project download. Independent decoder confirms two unique editable labels and unchanged model recipes. Remaining styling, keyboard, copy/paste and real file reopen variants pending.",
+        "verify-labels.py passes59actualproject/PNGartifacts: blank/cancel andlongwrapping inraster/vectorpreferences; independentCourierNewglyphadvance andautosize; foreground#112233/background#dcf0fa viaactualnativecolourpicker; font/size/wrap/alignment/bold/italic/underline/strike/border/corners editing andcancel. PaperbelowCAD createsAnnotations andoneUndo removesnewsheet; existingAnnotations reused. CADselectionopensworkshop withTextinert/absentAX, PaintreturnselectsPaper andexplicitAnnotationsselection works. Twelvegenuine nativebluehandledrags independentlymatched tostandardpointercoordinates: boxonly, everyedge/roundedcorner, offpaper,zoom,rotated/scaledbox withworldtipretained. ActualeightPNGexports matchfiveindependentlycomputedarrowsegmentpixelprobes each. Exactresize/rotation/history, independentduplicateandedit, explicitPaste andbrowserkeyboardCtrlV withmarker+PNG, one-stepUndoRedo, exactnativeprojectreopen. Windows-levelCtrlV initiallydeliveredstale3charOStext whilebrowserAPIhadcurrentmarker; correctlyrejected andretainedasdiagnostic; browserkeyboardrouteactualdeliveredbothcurrentmarker/PNG andcreatedfifthpiece. Allotherlabels,paintandtenCADrecipes unchanged."
+      ],
+      "evidence": [
+        "Live Chrome tool history in this chat",
+        "test-results/audit-2026-11-05/mouse/",
+        "test-results/audit-2026-11-05/mouse/labels-verification.json",
+        "test-results/audit-2026-11-05/mouse/label-native-pointer-evidence.json",
+        "test-results/audit-2026-11-05/mouse/label-style-evidence.json",
+        "test-results/audit-2026-11-05/mouse/label-browser-key-paste-evidence.json",
+        "test-results/audit-2026-11-05/mouse/labels-final-restored.png"
+      ]
+    },
+    {
+      "id": "LABEL-003",
+      "workflow": "Drag the box centre while retaining the target.",
+      "required_variants": "Arrow reconnects to nearest box edge; rotation and resize.",
+      "status": "Pass",
+      "observations": [
+        "Created label above CAD while Paper selected; independently dragged target and box, edited Castle in Georgia25 with border off and square corners, duplicated, Undo/Redo and real project download. Independent decoder confirms two unique editable labels and unchanged model recipes. Remaining styling, keyboard, copy/paste and real file reopen variants pending.",
+        "verify-labels.py passes59actualproject/PNGartifacts: blank/cancel andlongwrapping inraster/vectorpreferences; independentCourierNewglyphadvance andautosize; foreground#112233/background#dcf0fa viaactualnativecolourpicker; font/size/wrap/alignment/bold/italic/underline/strike/border/corners editing andcancel. PaperbelowCAD createsAnnotations andoneUndo removesnewsheet; existingAnnotations reused. CADselectionopensworkshop withTextinert/absentAX, PaintreturnselectsPaper andexplicitAnnotationsselection works. Twelvegenuine nativebluehandledrags independentlymatched tostandardpointercoordinates: boxonly, everyedge/roundedcorner, offpaper,zoom,rotated/scaledbox withworldtipretained. ActualeightPNGexports matchfiveindependentlycomputedarrowsegmentpixelprobes each. Exactresize/rotation/history, independentduplicateandedit, explicitPaste andbrowserkeyboardCtrlV withmarker+PNG, one-stepUndoRedo, exactnativeprojectreopen. Windows-levelCtrlV initiallydeliveredstale3charOStext whilebrowserAPIhadcurrentmarker; correctlyrejected andretainedasdiagnostic; browserkeyboardrouteactualdeliveredbothcurrentmarker/PNG andcreatedfifthpiece. Allotherlabels,paintandtenCADrecipes unchanged."
+      ],
+      "evidence": [
+        "Live Chrome tool history in this chat",
+        "test-results/audit-2026-11-05/mouse/",
+        "test-results/audit-2026-11-05/mouse/labels-verification.json",
+        "test-results/audit-2026-11-05/mouse/label-native-pointer-evidence.json",
+        "test-results/audit-2026-11-05/mouse/label-style-evidence.json",
+        "test-results/audit-2026-11-05/mouse/label-browser-key-paste-evidence.json",
+        "test-results/audit-2026-11-05/mouse/labels-final-restored.png"
+      ]
+    },
+    {
+      "id": "LABEL-004",
+      "workflow": "Edit label words and styling through Selection options.",
+      "required_variants": "Foreground/background, size, width, border on/off, square/rounded corners; dismiss draft.",
+      "status": "Pass",
+      "observations": [
+        "Created label above CAD while Paper selected; independently dragged target and box, edited Castle in Georgia25 with border off and square corners, duplicated, Undo/Redo and real project download. Independent decoder confirms two unique editable labels and unchanged model recipes. Remaining styling, keyboard, copy/paste and real file reopen variants pending.",
+        "verify-labels.py passes59actualproject/PNGartifacts: blank/cancel andlongwrapping inraster/vectorpreferences; independentCourierNewglyphadvance andautosize; foreground#112233/background#dcf0fa viaactualnativecolourpicker; font/size/wrap/alignment/bold/italic/underline/strike/border/corners editing andcancel. PaperbelowCAD createsAnnotations andoneUndo removesnewsheet; existingAnnotations reused. CADselectionopensworkshop withTextinert/absentAX, PaintreturnselectsPaper andexplicitAnnotationsselection works. Twelvegenuine nativebluehandledrags independentlymatched tostandardpointercoordinates: boxonly, everyedge/roundedcorner, offpaper,zoom,rotated/scaledbox withworldtipretained. ActualeightPNGexports matchfiveindependentlycomputedarrowsegmentpixelprobes each. Exactresize/rotation/history, independentduplicateandedit, explicitPaste andbrowserkeyboardCtrlV withmarker+PNG, one-stepUndoRedo, exactnativeprojectreopen. Windows-levelCtrlV initiallydeliveredstale3charOStext whilebrowserAPIhadcurrentmarker; correctlyrejected andretainedasdiagnostic; browserkeyboardrouteactualdeliveredbothcurrentmarker/PNG andcreatedfifthpiece. Allotherlabels,paintandtenCADrecipes unchanged."
+      ],
+      "evidence": [
+        "Live Chrome tool history in this chat",
+        "test-results/audit-2026-11-05/mouse/",
+        "test-results/audit-2026-11-05/mouse/labels-verification.json",
+        "test-results/audit-2026-11-05/mouse/label-native-pointer-evidence.json",
+        "test-results/audit-2026-11-05/mouse/label-style-evidence.json",
+        "test-results/audit-2026-11-05/mouse/label-browser-key-paste-evidence.json",
+        "test-results/audit-2026-11-05/mouse/labels-final-restored.png"
+      ]
+    },
+    {
+      "id": "LABEL-005",
+      "workflow": "Label a CAD sheet and retain the model.",
+      "required_variants": "Paper selected below CAD; CAD selected; existing annotation sheet; one-step Undo removes any newly created sheet.",
+      "status": "Pass",
+      "observations": [
+        "Created label above CAD while Paper selected; independently dragged target and box, edited Castle in Georgia25 with border off and square corners, duplicated, Undo/Redo and real project download. Independent decoder confirms two unique editable labels and unchanged model recipes. Remaining styling, keyboard, copy/paste and real file reopen variants pending.",
+        "verify-labels.py passes59actualproject/PNGartifacts: blank/cancel andlongwrapping inraster/vectorpreferences; independentCourierNewglyphadvance andautosize; foreground#112233/background#dcf0fa viaactualnativecolourpicker; font/size/wrap/alignment/bold/italic/underline/strike/border/corners editing andcancel. PaperbelowCAD createsAnnotations andoneUndo removesnewsheet; existingAnnotations reused. CADselectionopensworkshop withTextinert/absentAX, PaintreturnselectsPaper andexplicitAnnotationsselection works. Twelvegenuine nativebluehandledrags independentlymatched tostandardpointercoordinates: boxonly, everyedge/roundedcorner, offpaper,zoom,rotated/scaledbox withworldtipretained. ActualeightPNGexports matchfiveindependentlycomputedarrowsegmentpixelprobes each. Exactresize/rotation/history, independentduplicateandedit, explicitPaste andbrowserkeyboardCtrlV withmarker+PNG, one-stepUndoRedo, exactnativeprojectreopen. Windows-levelCtrlV initiallydeliveredstale3charOStext whilebrowserAPIhadcurrentmarker; correctlyrejected andretainedasdiagnostic; browserkeyboardrouteactualdeliveredbothcurrentmarker/PNG andcreatedfifthpiece. Allotherlabels,paintandtenCADrecipes unchanged."
+      ],
+      "evidence": [
+        "Live Chrome tool history in this chat",
+        "test-results/audit-2026-11-05/mouse/",
+        "test-results/audit-2026-11-05/mouse/labels-verification.json",
+        "test-results/audit-2026-11-05/mouse/label-native-pointer-evidence.json",
+        "test-results/audit-2026-11-05/mouse/label-style-evidence.json",
+        "test-results/audit-2026-11-05/mouse/label-browser-key-paste-evidence.json",
+        "test-results/audit-2026-11-05/mouse/labels-final-restored.png"
+      ]
+    },
+    {
+      "id": "LABEL-006",
+      "workflow": "Duplicate, copy/paste, Undo/Redo, save and reopen labels.",
+      "required_variants": "Copies independent; exact words, transforms, tip and styles retained.",
+      "status": "Pass",
+      "observations": [
+        "Created label above CAD while Paper selected; independently dragged target and box, edited Castle in Georgia25 with border off and square corners, duplicated, Undo/Redo and real project download. Independent decoder confirms two unique editable labels and unchanged model recipes. Remaining styling, keyboard, copy/paste and real file reopen variants pending.",
+        "verify-labels.py passes59actualproject/PNGartifacts: blank/cancel andlongwrapping inraster/vectorpreferences; independentCourierNewglyphadvance andautosize; foreground#112233/background#dcf0fa viaactualnativecolourpicker; font/size/wrap/alignment/bold/italic/underline/strike/border/corners editing andcancel. PaperbelowCAD createsAnnotations andoneUndo removesnewsheet; existingAnnotations reused. CADselectionopensworkshop withTextinert/absentAX, PaintreturnselectsPaper andexplicitAnnotationsselection works. Twelvegenuine nativebluehandledrags independentlymatched tostandardpointercoordinates: boxonly, everyedge/roundedcorner, offpaper,zoom,rotated/scaledbox withworldtipretained. ActualeightPNGexports matchfiveindependentlycomputedarrowsegmentpixelprobes each. Exactresize/rotation/history, independentduplicateandedit, explicitPaste andbrowserkeyboardCtrlV withmarker+PNG, one-stepUndoRedo, exactnativeprojectreopen. Windows-levelCtrlV initiallydeliveredstale3charOStext whilebrowserAPIhadcurrentmarker; correctlyrejected andretainedasdiagnostic; browserkeyboardrouteactualdeliveredbothcurrentmarker/PNG andcreatedfifthpiece. Allotherlabels,paintandtenCADrecipes unchanged."
+      ],
+      "evidence": [
+        "Live Chrome tool history in this chat",
+        "test-results/audit-2026-11-05/mouse/",
+        "test-results/audit-2026-11-05/mouse/labels-verification.json",
+        "test-results/audit-2026-11-05/mouse/label-native-pointer-evidence.json",
+        "test-results/audit-2026-11-05/mouse/label-style-evidence.json",
+        "test-results/audit-2026-11-05/mouse/label-browser-key-paste-evidence.json",
+        "test-results/audit-2026-11-05/mouse/labels-final-restored.png"
+      ]
+    },
+    {
+      "id": "CODE-001",
+      "workflow": "Open Code studio and render a starter without changing scene.",
+      "required_variants": "Preview, F5, Ctrl+Enter; orbit, fit, close; reopen draft.",
+      "status": "Pass",
+      "observations": [
+        "All ten named starters rendered through actual Code studio controls. Castle tower_height32->33->34 variation, scene Add/Update, native numeric edits, auto preview and source retention exercised. Remaining parameter variations, shortcuts and independent per-starter STL checks pending.",
+        "Native Preview, F5 syntax-error render and Ctrl+Enter valid recovery exercised; exact broken second line selected. Mouse orbit and Fit captured; Close/reopen retains draft and rerenders. Independent whole-project before/after shortcuts comparison confirms preview does not apply changes."
+      ],
+      "evidence": [
+        "Live Chrome tool history in this chat",
+        "test-results/audit-2026-11-05/mouse/",
+        "test-results/audit-2026-11-05/mouse/code-import-limit-dom-evidence.json",
+        "test-results/audit-2026-11-05/mouse/code-limits-verification.json"
+      ]
+    },
+    {
+      "id": "CODE-002",
+      "workflow": "Load and render each of all ten named starter models.",
+      "required_variants": "Five original and five advanced; one numeric parameter variation each; inspect connected, closed STL output.",
+      "status": "Pass",
+      "observations": [
+        "All ten named starters rendered through actual Code studio controls. Castle tower_height32->33->34 variation, scene Add/Update, native numeric edits, auto preview and source retention exercised. Remaining parameter variations, shortcuts and independent per-starter STL checks pending.",
+        "All ten starters added through actual Code studio controls, with one numeric variation each (exposed Parameters when available, one literal edit for module/extrusion/revolution constants). Each baseline and variation exported with Selected visible pieces. verify-starter-variations.py independently verifies20 connected, closed, outward-normal meshes, analytic bounds/volumes and feature ray probes. Each Update preserves identity/transforms and neighbouring models; one-step Undo/Redo restores exact editable data. Actual downloaded ten-model project native-reopened with all source and recipes exact. Regenerated CAD thumbnail differs at most2 pixels by1RGB level, recorded separately; painting exact."
+      ],
+      "evidence": [
+        "Live Chrome tool history in this chat",
+        "test-results/audit-2026-11-05/mouse/",
+        "test-results/audit-2026-11-05/mouse/starter-variation-evidence.json",
+        "test-results/audit-2026-11-05/mouse/starter-variations-verification.json",
+        "test-results/audit-2026-11-05/mouse/starter-ten-varied-reopened.png"
+      ]
+    },
+    {
+      "id": "CODE-003",
+      "workflow": "Edit numeric Parameters and preserve unrelated source.",
+      "required_variants": "Exponent notation, repeated names, comments, strings and module-local constants; invalid numbers.",
+      "status": "Pass",
+      "observations": [
+        "Castle numeric parameter edited, added, moved/rotated, edited again and updated with placement retained. Undo/Redo restored source33/34. Auto preview, long render cancel and retry succeeded. Source-race and numeric-syntax variants remain incomplete.",
+        "LIVE-020 fixed blank +1e1 numeric control. Native signed exponent fixture exposes only width/depth/height; repeated names, comments, strings, expressions and module locals excluded. Native13.5 then2.5e1 edits replace only width literal. Empty and1e999 input leaves source intact. Actual Save.scad bytes exact;25x5x3mm STL volume375mm^3. Four-layout red/green regression plus full631check suite pass."
+      ],
+      "evidence": [
+        "Live Chrome tool history in this chat",
+        "test-results/audit-2026-11-05/mouse/",
+        "test-results/audit-2026-11-05/mouse/code-workshop-verification.json",
+        "test-results/audit-2026-11-05/mouse/code-boolean-history-reopened.png"
+      ]
+    },
+    {
+      "id": "CODE-004",
+      "workflow": "Add rendered code to scene; edit source; Update selected.",
+      "required_variants": "Placement, scale, colour, rotation retained; one-step Undo/Redo; stale preview disables Add/Update.",
+      "status": "Pass",
+      "observations": [
+        "Castle numeric parameter edited, added, moved/rotated, edited again and updated with placement retained. Undo/Redo restored source33/34. Auto preview, long render cancel and retry succeeded. Source-race and numeric-syntax variants remain incomplete.",
+        "Native code model Update retains bodyID, name, position[37,-11,8], rotationZ90, scale[2,2,2] and purple#9f89dc. Stale Add/Update disabled until Preview. Source width25->30 updates actual scaled STL10x60x6/3600mm^3; one-step Undo/Redo exact sources/meshes and neighbour models unchanged. Actual project reopen retains all."
+      ],
+      "evidence": [
+        "Live Chrome tool history in this chat",
+        "test-results/audit-2026-11-05/mouse/",
+        "test-results/audit-2026-11-05/mouse/code-workshop-verification.json",
+        "test-results/audit-2026-11-05/mouse/code-boolean-history-reopened.png"
+      ]
+    },
+    {
+      "id": "CODE-005",
+      "workflow": "Render actual OpenSCAD language operations.",
+      "required_variants": "Functions, modules/children, loops/comprehensions, transforms, Minkowski, text and solid booleans.",
+      "status": "Pass",
+      "observations": [
+        "All70 runnable examples reached Ready through the live help UI, before and after graphics-context fix. Independently downloaded before/after projects retain identical12 solid recipes and paint/annotations; CAD preview alpha restored after fix. Guided variations and independent geometry checks for every example pending.",
+        "Native593byte fixture combines actualfunction/modulechildren, loops/comprehensions, 3Dmirror/scale/rotate/translate, Minkowski, NotoAa text andunion/difference/intersection. Independent per-X-region analyticvolumes24/6/12/18/105/840/500/48mm^3 exact; text100.49641mm^3 vs independentTrueTypeoutline100.56073 within.15polygonaltolerance. Actual696triangleSTL270x14x10mm has closed pairededges andunitoutwardnormals. ActualSave.scad sourcebytes matchproject; Add/Undo/Redo andnativeprojectreopen wholeJSON exact, allfourMIXneighbourlayers unchanged. Reopenedsource rebuilds. Initialexportwasoccludedbyexpandedtestharness; collapsedharness andverifiedactualSTLdownload beforeclaimingpass."
+      ],
+      "evidence": [
+        "Live Chrome tool history in this chat",
+        "test-results/audit-2026-11-05/mouse/",
+        "test-results/audit-2026-11-05/mouse/language-operations-verification.json"
+      ]
+    },
+    {
+      "id": "CODE-006",
+      "workflow": "Open standalone .scad, then Save .scad.",
+      "required_variants": "Unicode source, cancelled chooser, invalid source, 2 MB boundary; actual downloaded source bytes.",
+      "status": "Pass",
+      "observations": [
+        "Actual Save .scad download main.scad independently read: Castle comments and tower_height33 retained. Standalone file input is blocked by the extension file-URL setting; Unicode and size-boundary branches untested.",
+        "Native Save .scad while editing config.scad exports that helper, not entry main.scad. Actual helper files for widths24/28mm are independently byte-exact, including LF. Standalone source Open/cancel/Unicode/2MB boundaries remain pending; fixtures prepared when Windows locked.",
+        "LIVE-019: Native picker cancellation bubbled to HTMLdialog cancel and closed Code studio; reopening Edit selected lost unapplied29mm helper and returned28mm. Guard now requires event.target===dialog. Allthree native pickers retain29mm draft/11files; explicit studio Escape still closes. Four-layout red/green regression and full627check suite pass. Native rejected oversized source/dependencies/combined/count preserve draft and successful retry; applied document whole-JSON exact. Accepted maxima still in progress.",
+        "Native standalone Open and actual Save downloads preserve Unicode filename/source UTF-8 and exact 2,000,000-byte ASCII source. 2,000,001-byte source rejected while preserving draft; actual invalid file reports line2 and valid retry succeeds. Allthree chooser cancellation paths verified after LIVE-019. Native full project reopen retains source exact and max source re-renders. Independent verify-code-limits.py passes."
+      ],
+      "evidence": [
+        "Live Chrome tool history in this chat",
+        "test-results/audit-2026-11-05/mouse/",
+        "test-results/audit-2026-11-05/mouse/code-folder-verification.json",
+        "test-results/audit-2026-11-05/mouse/chooser-unapplied29-before-live.png",
+        "test-results/audit-2026-11-05/mouse/chooser-draft-lost28-before-fix.png",
+        "test-results/audit-2026-11-05/mouse/chooser-unapplied29-preserved-after-fix.png",
+        "test-results/audit-2026-11-05/mouse/code-import-limit-dom-evidence.json",
+        "test-results/audit-2026-11-05/mouse/code-limits-verification.json"
+      ]
+    },
+    {
+      "id": "CODE-007",
+      "workflow": "Open a folder and choose its entry independently of Edit file.",
+      "required_variants": "Relative include/use/import, nested paths, helper edits and real project round trip; missing/conflicting files.",
+      "status": "Pass",
+      "observations": [
+        "Required local file/folder/asset delivery unavailable while the connected Chrome extension lacks Allow access to file URLs. No security bypass. Existing headless import checks are supplementary only.",
+        "Native Windows Open folder and browser11-file confirmation import real nested include/use/import dependencies without file-URL permission changes. Main20mm, helper24mm and alternate entry34mm work independently of Edit file config.scad. Same-path Add files replacement28mm changes only target model; Undo/Redo source/geometry exact and other copied models retain24mm helper. Missing STL blocks Add/Update with file/line; restoration retries. Actual whole saved8-solid project reopened exact and original pad rebuilt from preserved files. All source/dependency bytes checked independently; nine scoped closed STLs have analytic/font oracles.",
+        "LIVE-019: Native picker cancellation bubbled to HTMLdialog cancel and closed Code studio; reopening Edit selected lost unapplied29mm helper and returned28mm. Guard now requires event.target===dialog. Allthree native pickers retain29mm draft/11files; explicit studio Escape still closes. Four-layout red/green regression and full627check suite pass. Native rejected oversized source/dependencies/combined/count preserve draft and successful retry; applied document whole-JSON exact. Accepted maxima still in progress."
+      ],
+      "evidence": [
+        "Live Chrome tool history in this chat",
+        "test-results/audit-2026-11-05/mouse/",
+        "test-results/audit-2026-11-05/mouse/code-folder-verification.json",
+        "test-results/audit-2026-11-05/mouse/chooser-unapplied29-before-live.png",
+        "test-results/audit-2026-11-05/mouse/chooser-draft-lost28-before-fix.png",
+        "test-results/audit-2026-11-05/mouse/chooser-unapplied29-preserved-after-fix.png",
+        "test-results/audit-2026-11-05/mouse/code-import-limit-dom-evidence.json"
+      ]
+    },
+    {
+      "id": "CODE-008",
+      "workflow": "Add assets, fonts and external libraries.",
+      "required_variants": "Bundled MCAD, project library paths, SVG/STL/heightmap/fonts; missing dependencies and size/count limits.",
+      "status": "Pass",
+      "observations": [
+        "Required local file/folder/asset delivery unavailable while the connected Chrome extension lacks Allow access to file URLs. No security bypass. Existing headless import checks are supplementary only.",
+        "Native folder and Add files deliver STL, SVG, nested sources, numeric heightmap, bundled MCAD and an independently supplied Courier font. Fourteen files saved/reopened byte-exact; SVG/STLvolume920mm³, heightmap8mm³, roundedMCAD1434.819291mm³, two fonts checked against independent TrueType outlines. Missing STL recovered. Valid/invalid file-count and byte boundaries are prepared but NOT executed: Windows locked before those chooser tests.",
+        "LIVE-019: Native picker cancellation bubbled to HTMLdialog cancel and closed Code studio; reopening Edit selected lost unapplied29mm helper and returned28mm. Guard now requires event.target===dialog. Allthree native pickers retain29mm draft/11files; explicit studio Escape still closes. Four-layout red/green regression and full627check suite pass. Native rejected oversized source/dependencies/combined/count preserve draft and successful retry; applied document whole-JSON exact. Accepted maxima still in progress.",
+        "Native accepted 2,000-file folder and exact20,000,000-byte dependency folder render2x3x4mm; 2,001files,20,000,001bytes and combined-over-limit imports reject without draft loss. Native full saved project reopened, all dependency bytes verified, accepted boundary models rebuilt. Each scoped STL has12triangles, closed outward edges and exact24mm^3. Existing native MCAD/SVG/STL/font/heightmap/project-relative library checks verified by verify-code-folder.py."
+      ],
+      "evidence": [
+        "Live Chrome tool history in this chat",
+        "test-results/audit-2026-11-05/mouse/",
+        "test-results/audit-2026-11-05/mouse/code-folder-verification.json",
+        "test-results/audit-2026-11-05/mouse/chooser-unapplied29-before-live.png",
+        "test-results/audit-2026-11-05/mouse/chooser-draft-lost28-before-fix.png",
+        "test-results/audit-2026-11-05/mouse/chooser-unapplied29-preserved-after-fix.png",
+        "test-results/audit-2026-11-05/mouse/code-import-limit-dom-evidence.json",
+        "test-results/audit-2026-11-05/mouse/code-limits-verification.json"
+      ]
+    },
+    {
+      "id": "CODE-009",
+      "workflow": "Recover from syntax and dependency errors.",
+      "required_variants": "Correct file/line selected; echoed ERROR text remains echo; bounded output; 2D/empty geometry receives actionable explanation.",
+      "status": "Pass",
+      "observations": [
+        "Syntax error, missing include and2D output rejected with actionable diagnostics. Echo text beginning ERROR did not falsely fail. Retained Castle source re-rendered after cancelled long job. Independent scene recipes remained valid.",
+        "Native missing assets/missing.stl produces file/line warning, No valid preview and disabled Add/Update; restore correct path and Preview succeeds. Echo containing ERROR stays an ECHO and MCAD model remains Ready. Scene neighbours/source recipes retained by independent outputs. Remaining bounded-output/2D/empty variants are not closed by these checks.",
+        "Native invalid.scad parser error selects broken line2; correct entry/file shown. Actual missing-STL diagnostic previously recovered. Echo with quoted ERROR remains Ready. 10,001echoes bounded to52,980displayed characters with explicit truncation marker; 2Dcircle and emptydifference disable Add/Update and explain extrusion/emptyintersection. Valid retry succeeds. Preview/error/cancel sequence leaves whole applied project exact."
+      ],
+      "evidence": [
+        "Live Chrome tool history in this chat",
+        "test-results/audit-2026-11-05/mouse/",
+        "test-results/audit-2026-11-05/mouse/code-folder-verification.json",
+        "test-results/audit-2026-11-05/mouse/code-import-limit-dom-evidence.json",
+        "test-results/audit-2026-11-05/mouse/code-limits-verification.json"
+      ]
+    },
+    {
+      "id": "CODE-010",
+      "workflow": "Enable Auto preview, edit, cancel and retry.",
+      "required_variants": "Close while rendering, replacement file load, failed import and late responses cannot overwrite newer draft or scene.",
+      "status": "Pass",
+      "observations": [
+        "Castle numeric parameter edited, added, moved/rotated, edited again and updated with placement retained. Undo/Redo restored source33/34. Auto preview, long render cancel and retry succeeded. Source-race and numeric-syntax variants remain incomplete.",
+        "LIVE-019: Native picker cancellation bubbled to HTMLdialog cancel and closed Code studio; reopening Edit selected lost unapplied29mm helper and returned28mm. Guard now requires event.target===dialog. Allthree native pickers retain29mm draft/11files; explicit studio Escape still closes. Four-layout red/green regression and full627check suite pass. Native rejected oversized source/dependencies/combined/count preserve draft and successful retry; applied document whole-JSON exact. Accepted maxima still in progress.",
+        "Native Auto preview starts low-memory CPU-bound fib(45) render; Cancel immediately acknowledges and valid automatic retry succeeds. Close during rendering terminates job; reopen rerenders retained draft. Native replacement source wins; an oversized source imported while rendering stops old job and preserves current draft, followed by automatic9x5x3mm retry. Whole applied scene remains exact. Adversarial late-message injection remains pending.",
+        "Native visible local harness stalls two actual precision jobs; production45s timers measured45.012751/45.014281seconds. Old terminated CAD message/error handlers explicitly invoked with current new requestID26; busy job remains intact and next successful CheckPrint returns10x60x6mm/2.59cm^3/20triangles. Old OpenSCAD message/error handlers invoked during different active fib(44)job leave new source/Rendering/Adddisabled intact; cancel and valid11x7x3retry succeeds. Downloaded whole project exact before/after. Independent verify-stale-workers.py passes. Earlier no-effect attempts while harness was outside workshop isolation were corrected by relocating only labelled harness controls into visible workshop/dialog; successful deliveries are logged."
+      ],
+      "evidence": [
+        "Live Chrome tool history in this chat",
+        "test-results/audit-2026-11-05/mouse/",
+        "test-results/audit-2026-11-05/mouse/chooser-unapplied29-before-live.png",
+        "test-results/audit-2026-11-05/mouse/chooser-draft-lost28-before-fix.png",
+        "test-results/audit-2026-11-05/mouse/chooser-unapplied29-preserved-after-fix.png",
+        "test-results/audit-2026-11-05/mouse/code-import-limit-dom-evidence.json",
+        "test-results/audit-2026-11-05/mouse/code-limits-verification.json",
+        "test-results/audit-2026-11-05/mouse/stale-workers-verification.json",
+        "test-results/audit-2026-11-05/mouse/cad-stale-old-worker-current-request.png",
+        "test-results/audit-2026-11-05/mouse/openscad-old-error-new-render-untouched.png"
+      ]
+    },
+    {
+      "id": "CODE-011",
+      "workflow": "Save/reopen a project with source and dependencies.",
+      "required_variants": "Exact dependency bytes, entry and edited helper files retained; draft versus applied source; older formats.",
+      "status": "Pass",
+      "observations": [
+        "Actual mixed project download retains Castle source34 and placement. Dependency bytes, alternate entry/helper drafts and real file-input reopening not yet exercised.",
+        "Actual8-solid project containing11/14-file nested source/font/SVG/STL/heightmap dependencies saved, native reopened and saved again whole-document exact. Reopened pad rebuilt24mm from retained helper; replacement28mm native Update, Undo/Redo and source bytes exact, unrelated models unchanged. Older script-format and unapplied-draft variants remain pending.",
+        "Native37MB twelve-model saved project reopens whole-JSON exact, including2000files,20MBdependency and2MBsource models and Unicode source. Each boundary model rebuilds from reopened source/assets. Unapplied29mm helper cancellation and later CPU/error drafts do not replace applied source. Older script-format mapping remains pending.",
+        "Explicit synthetic v12 compatibility fixture uses genuine native2x3x4mesh and retrocad-1 source; not claimed as historical download. Actual native Open preserves metadata and independently decoded image pixels (browser losslessly re-encodes Pillow PNG). Preview leaves applied legacy source/version12; intentional Update changes only script metadata toOpenSCAD/version13, exact mesh/ID/transforms preserved. One-step Undo restoresv12; Redo and actual whole native project reopen exactv13. Existing native dependency/entry/helper/applied-vs-draft round trips also verified. verify-code-legacy.py passes."
+      ],
+      "evidence": [
+        "Live Chrome tool history in this chat",
+        "test-results/audit-2026-11-05/mouse/",
+        "test-results/audit-2026-11-05/mouse/code-folder-verification.json",
+        "test-results/audit-2026-11-05/mouse/code-import-limit-dom-evidence.json",
+        "test-results/audit-2026-11-05/mouse/code-limits-verification.json",
+        "test-results/audit-2026-11-05/mouse/code-legacy-verification.json"
+      ]
+    },
+    {
+      "id": "CODE-012",
+      "workflow": "Combine a code solid with workshop operations and export STL.",
+      "required_variants": "Join/Cut, transforms, painting annotations; independent units, volume, edge incidence and normals.",
+      "status": "Pass",
+      "observations": [
+        "Code solid moved/rotated and labelled in mixedCAD/paint document. Native boolean combination with code solid and independent resulting STL remain untested.",
+        "Native workshop Join and Subtract cutters combine transformed code models; actual STLs have independently analytic8592/2592mm^3 volumes, exact bounds and closed outward edge incidence. Independent ray probes prove removed notch and retained arms. Boolean child source bytes/transforms exact. One-step Undo/Redo and actual native whole-project reopen exact; all previous12models, photo recipe and blue paint annotation sheet unchanged."
+      ],
+      "evidence": [
+        "Live Chrome tool history in this chat",
+        "test-results/audit-2026-11-05/mouse/",
+        "test-results/audit-2026-11-05/mouse/code-workshop-verification.json",
+        "test-results/audit-2026-11-05/mouse/code-boolean-history-reopened.png"
+      ]
+    },
+    {
+      "id": "WIKI-001",
+      "workflow": "Open help, search, filter and navigate related topics and Back/Forward.",
+      "required_variants": "All 68 core articles and 42 MCAD pages; empty search; focus restored on close.",
+      "status": "Pass",
+      "observations": [
+        "All110 topics (68 core +42MCAD) visited at both teaching levels. Section jumps, no-match search, clearing, category filter, Back/Forward and close-return-to-source exercised. Compact live layout and async focus/scroll variants pending.",
+        "verify-wiki-reading.py passes: all110articles atbothlevels on exact320x568/390x844/844x390CSS (660native section-jump readings), correct focus andnoarticlehorizontaloverflow. Actual delayedMCADfetch increases68to110topics without changingarticle/scroll390/focusdeeper. Helpclose restoresopener. Deliberate normalCopy and injectedstandardclipboard-API denial bothyield exact278byte commentedcode viaactualnativeCtrlV; denialselectsfullcode andmanualCtrlC/V works. EarlypasteinterceptedbyChromeDownloadspopup wasnotcredited; overlaydismissed andbothpaths repeatedsuccessfully. Whole actual savedproject before/afterbyteidentical. LIVE-024 fixes longrelatedtopic overflow at320px; all110articles fourlayout regression redbefore/greenafter; full24fixsuite644pass."
+      ],
+      "evidence": [
+        "Live Chrome tool history in this chat",
+        "test-results/audit-2026-11-05/mouse/",
+        "test-results/audit-2026-11-05/mouse/wiki-reading-verification.json",
+        "test-results/audit-2026-11-05/mouse/wiki-compact-level-evidence.json",
+        "test-results/audit-2026-11-05/mouse/wiki-async-load-evidence.json",
+        "test-results/audit-2026-11-05/mouse/wiki-copy-evidence.json"
+      ]
+    },
+    {
+      "id": "WIKI-002",
+      "workflow": "Read both teaching levels and jump to examples.",
+      "required_variants": "All articles, compact layouts, async MCAD load must retain scroll/focus.",
+      "status": "Pass",
+      "observations": [
+        "All110 topics (68 core +42MCAD) visited at both teaching levels. Section jumps, no-match search, clearing, category filter, Back/Forward and close-return-to-source exercised. Compact live layout and async focus/scroll variants pending.",
+        "verify-wiki-reading.py passes: all110articles atbothlevels on exact320x568/390x844/844x390CSS (660native section-jump readings), correct focus andnoarticlehorizontaloverflow. Actual delayedMCADfetch increases68to110topics without changingarticle/scroll390/focusdeeper. Helpclose restoresopener. Deliberate normalCopy and injectedstandardclipboard-API denial bothyield exact278byte commentedcode viaactualnativeCtrlV; denialselectsfullcode andmanualCtrlC/V works. EarlypasteinterceptedbyChromeDownloadspopup wasnotcredited; overlaydismissed andbothpaths repeatedsuccessfully. Whole actual savedproject before/afterbyteidentical. LIVE-024 fixes longrelatedtopic overflow at320px; all110articles fourlayout regression redbefore/greenafter; full24fixsuite644pass."
+      ],
+      "evidence": [
+        "Live Chrome tool history in this chat",
+        "test-results/audit-2026-11-05/mouse/",
+        "test-results/audit-2026-11-05/mouse/wiki-reading-verification.json",
+        "test-results/audit-2026-11-05/mouse/wiki-compact-level-evidence.json",
+        "test-results/audit-2026-11-05/mouse/wiki-async-load-evidence.json",
+        "test-results/audit-2026-11-05/mouse/wiki-copy-evidence.json"
+      ]
+    },
+    {
+      "id": "WIKI-003",
+      "workflow": "Render each of all 70 runnable examples in isolation.",
+      "required_variants": "Expected visible result and guided variation; dependencies supplied; draft and scene unchanged; cancel/close.",
+      "status": "Pass",
+      "observations": [
+        "All70 runnable examples reached Ready through the live help UI, before and after graphics-context fix. Independently downloaded before/after projects retain identical12 solid recipes and paint/annotations; CAD preview alpha restored after fix. Guided variations and independent geometry checks for every example pending.",
+        "All70actual wiki examples re-rendered inisolatedUI; each deliberatelyCopied and followedits printedguidedchange inCodeStudio withnative-imported suppliedhelper/SVG/DAT assets. Sourceandassets exact across observedstandardWorker input/output. verify-wiki-guides.py independentlychecks139successful rawSTLs plusoneexpectedwallassertion: analytic dimensions/volumes, hole/cavityprobes, declared disconnectedcomponents, outwardnormals andclosedpairededges. NativeOpenSCAD zero-area repeatedrotation-axis triangles explicitlyomitted fromsurfaceoracle, matchingSTLimporter cleanup. Faceted MCADroundedboxbounds derivedfrom default10segments. Extra minimumclamp,negativewidthreject/retry,wallrestore andsame-seedbyte-identicalSTL pass. ActualclosewhileRendering thenvalidretry retainsdraft. Everyisolatedpreview preserves precedingdraft; wholeactualsavedproject before/afterbyteidentical."
+      ],
+      "evidence": [
+        "Live Chrome tool history in this chat",
+        "test-results/audit-2026-11-05/mouse/",
+        "test-results/audit-2026-11-05/mouse/wiki-guided-live-evidence.json",
+        "test-results/audit-2026-11-05/mouse/wiki-guides-verification.json",
+        "test-results/audit-2026-11-05/mouse/wiki-preview-cancel-evidence.json",
+        "test-results/audit-2026-11-05/mouse/wiki-guides-final-preview.png"
+      ]
+    },
+    {
+      "id": "WIKI-004",
+      "workflow": "Copy example code deliberately.",
+      "required_variants": "Exact commented source, clipboard denial, subsequent paste into editor; no automatic draft replacement.",
+      "status": "Pass",
+      "observations": [
+        "Copied a commented example deliberately and read actual clipboard bytes; code draft was retained on return. Clipboard denial and paste into source editor remain untested.",
+        "verify-wiki-reading.py passes: all110articles atbothlevels on exact320x568/390x844/844x390CSS (660native section-jump readings), correct focus andnoarticlehorizontaloverflow. Actual delayedMCADfetch increases68to110topics without changingarticle/scroll390/focusdeeper. Helpclose restoresopener. Deliberate normalCopy and injectedstandardclipboard-API denial bothyield exact278byte commentedcode viaactualnativeCtrlV; denialselectsfullcode andmanualCtrlC/V works. EarlypasteinterceptedbyChromeDownloadspopup wasnotcredited; overlaydismissed andbothpaths repeatedsuccessfully. Whole actual savedproject before/afterbyteidentical. LIVE-024 fixes longrelatedtopic overflow at320px; all110articles fourlayout regression redbefore/greenafter; full24fixsuite644pass."
+      ],
+      "evidence": [
+        "Live Chrome tool history in this chat",
+        "test-results/audit-2026-11-05/mouse/",
+        "test-results/audit-2026-11-05/mouse/wiki-reading-verification.json",
+        "test-results/audit-2026-11-05/mouse/wiki-compact-level-evidence.json",
+        "test-results/audit-2026-11-05/mouse/wiki-async-load-evidence.json",
+        "test-results/audit-2026-11-05/mouse/wiki-copy-evidence.json"
+      ]
+    }
+  ],
+  "counts": {
+    "Pass": 22
+  }
+}

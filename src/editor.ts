@@ -18,7 +18,7 @@ import { initLayersUi, refreshLayersUi } from './layer-ui';
 import { photoEditing } from './photo-preview';
 import { bindNewPicture } from './new-picture';
 import { initPhotoUi } from './photo-ui';
-import { beginObjectPixelEdit, editObjectPixels, editableObjects, ensureObjectLayer, finishObjectStroke, hasObjectSelection, selectAllObjects } from './objects';
+import { beginObjectPixelEdit, editObjectPixels, editableObjects, ensureObjectLayer, finishObjectStroke, hasObjectClipboard, hasObjectSelection, objectClipboardWriting, ownsObjectClipboard, pasteObjects, selectAllObjects } from './objects';
 import { beginOpen, requireCurrentOpen } from './open-guard';
 
 let statusTimer = 0, inserting = false;
@@ -112,16 +112,23 @@ export async function importImage(file: Blob, insert = false): Promise<void> {
 }
 export async function pasteExternal(): Promise<void> {
   if (!editable()) return;
+  if(objectClipboardWriting()){pasteObjects();state.tool='scissors';emit('tool-request');return;}
+  let clipboardUnavailable = !navigator.clipboard?.read;
   try {
     if (navigator.clipboard?.read) {
       const items = await navigator.clipboard.read();
+      for(const item of items)if(item.types.includes('text/plain')&&ownsObjectClipboard(await (await item.getType('text/plain')).text())){pasteObjects();state.tool='scissors';emit('tool-request');return;}
       for (const item of items) {
         const type = item.types.find(type => type.startsWith('image/'));
         if (type) { await importImage(await item.getType(type), true); return; }
       }
+      if(items.length){message('Clipboard has no image. Copy an image or use Insert image.');return;}
     }
-  } catch { /* Clipboard permission varies across browsers; the session clipboard is retained. */ }
-  if (hasClipboard()) { pasteSelection(); state.tool = 'scissors'; emit('tool-request'); }
+  } catch { clipboardUnavailable = true; }
+  if (hasClipboard()) {
+    pasteSelection(); state.tool = 'scissors'; emit('tool-request');
+    if (clipboardUnavailable) message('System clipboard is unavailable. Pasted your copy from this session.');
+  }
   else message('Press Ctrl/Cmd+V to paste an image, or use Insert image.');
 }
 export function requestOpen(insert = false): void { inserting = insert; (document.getElementById('imageInput') as HTMLInputElement).click(); }
@@ -196,7 +203,10 @@ export function bindEditor(): void {
     const value = Number(field<HTMLInputElement>(`image${dimension}`).value), percent = field<HTMLSelectElement>('resizeUnit').value === 'percent';
     field<HTMLInputElement>(`image${dimension === 'Width' ? 'Height' : 'Width'}`).value = String(percent ? value : Math.round(dimension === 'Width' ? value / ratio : value * ratio));
   });
-  field('fillTolerance').addEventListener('input', () => { state.fillTolerance = Number(field<HTMLInputElement>('fillTolerance').value); });
+  field('fillTolerance').addEventListener('input', () => {
+    state.fillTolerance = Number(field<HTMLInputElement>('fillTolerance').value);
+    field('fillToleranceValue').textContent = String(state.fillTolerance);
+  });
   field('smoothResize').addEventListener('change', () => { state.smoothResize = field<HTMLInputElement>('smoothResize').checked; });
   for (const [id, key] of [['pixelGrid', 'pixelGrid'], ['rulers', 'rulers']] as const) field(id).addEventListener('change', () => { state[key] = field<HTMLInputElement>(id).checked; });
   bindAction('fullScreen', async () => { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); });
@@ -212,8 +222,20 @@ export function bindEditor(): void {
   document.addEventListener('paste', event => {
     if (photoEditing) return;
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || document.querySelector('dialog[open]')) return;
+    if(objectClipboardWriting()||ownsObjectClipboard(event.clipboardData?.getData('text/plain')??'')){event.preventDefault();pasteObjects();state.tool='scissors';emit('tool-request');return;}
     const file = [...(event.clipboardData?.files ?? [])].find(file => file.type.startsWith('image/'));
-    if (file) { event.preventDefault(); void importImage(file, true).catch(error => message(error.message)); }
+    if (file) {
+      event.preventDefault();
+      void (async()=>{
+        // Chromium can expose only the image flavour on the paste event even
+        // though its clipboard also retains our text marker.
+        if(hasObjectClipboard()&&navigator.clipboard?.readText){
+          try{if(ownsObjectClipboard(await navigator.clipboard.readText())){pasteObjects();state.tool='scissors';emit('tool-request');return;}}catch{/* Use the image supplied by the paste gesture when clipboard reading is unavailable. */}
+        }
+        await importImage(file,true);
+      })().catch(error=>message(error.message));
+    }
+    else if(event.clipboardData?.types.length){event.preventDefault();message('Clipboard has no image. Copy an image or use Insert image.');}
     else if (hasClipboard()) { event.preventDefault(); pasteSelection(); state.tool = 'scissors'; emit('tool-request'); }
   });
   updateLayersUi();

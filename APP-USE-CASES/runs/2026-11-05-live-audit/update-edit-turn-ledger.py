@@ -1,0 +1,19 @@
+"""Record LIVE-042 and selected-piece transform acceptance."""
+from pathlib import Path
+from datetime import datetime,timezone
+from collections import Counter
+import hashlib,json,re
+folder=Path(__file__).resolve().parent;root=folder.parents[2];evidence=root/'test-results/audit-2026-11-05';report=json.loads((evidence/'all-forty-two-fixes/report.json').read_bytes());assert report['status']=='Pass' and all(hashlib.sha256((root/f['path']).read_bytes()).hexdigest()==f['sha256'] for f in report['source_files']);assert json.loads((evidence/'mouse/edit-turn42-verification.json').read_bytes())['status']=='Pass'
+note='LIVE-042: native120x100Rasterselection90degree turn kept top-left90,90 and shifted centre150,140 to140,150. Rotation now offsets expanded localbitmap bounds to retainpapercentre, matchingeditablepiecebehaviour. Nativefixedquarterturn exactat100,80; H/V/90sourceRGBAexact. ChainedH,V,90,45 ends156squareat72,62 withsamecentre, exactalphageometry/opaquepixels/unchangedneighbours. Four45degree rotations of100x80alpha128pureRed haveexactRedRGBat everyvisibleedge aftereachturn (5/38/57/41alpha levels); final365square atnearestwholepixel268,158 exactRGBA. BothsequencescompleteUndoRedo andnativeproject/PNG reopens exact. Retainedfailedmixedcolourclipboardcomparison: five translucentRed/Blackpixels differup to2straightRedlevels fromOSclipboardPNG; exactarbitrarymixedRGBnotclaimed andconversioncauseunproved. Nochannel tolerance added. SeparatepurepigmentcaseprovesnoBlack/Whitefringes. Isolatedcentre/cancel/placement/historyregression failsbefore andpassesafter; full697checks,TypeScript/build,diffcheck pass.'
+lp=folder/'execution.json';ledger=json.loads(lp.read_text(encoding='utf-8-sig'));case=next(c for c in ledger['cases'] if c['id']=='EDIT-014');case['status']='Pass'
+if note not in case['observations']:case['observations'].append(note)
+for name in ('edit-turn42-verification.json','edit-turn42-evidence.json','edit-turn42-straight-rgba-hypothesis.json','edit-turn41-before-preview.jpg','edit-turn41-after90-preview.jpg','edit-turn42-quarter-only-preview.jpg','edit-turn42-alpha-reopened.jpg'):
+ path='test-results/audit-2026-11-05/mouse/'+name
+ if path not in case['evidence']:case['evidence'].append(path)
+ledger['updated']=datetime.now(timezone.utc).isoformat();lp.write_text(json.dumps(ledger,indent=2,ensure_ascii=False)+'\n',encoding='utf-8');counts=Counter(c['status'] for c in ledger['cases']);assert counts=={'Pass':84,'Partial':262,'Blocked':3}
+rp=folder/'README.md';text=rp.read_text(encoding='utf-8').replace('**83 Pass, 263 Partial','**84 Pass, 262 Partial').replace('after all forty-one fixes passes **696 checks','after all forty-two fixes passes **697 checks').replace('(`all-forty-one-fixes/report.json`)','(`all-forty-two-fixes/report.json`)')
+if '## LIVE-042:' not in text:text+='\n## LIVE-042: keep the raster rotation centre fixed\n\n'+note+'\n'
+rp.write_text(text,encoding='utf-8');ep=evidence/'environment.json';env=json.loads(ep.read_text(encoding='utf-8-sig'))
+for f in env['dirty_source']:f['sha256']=hashlib.sha256((root/f['path']).read_bytes()).hexdigest()
+env['recorded']=ledger['updated'];env['fix_count']=42;env['latest_regression']={'report':'test-results/audit-2026-11-05/all-forty-two-fixes/report.json','passed':sum(s['passed'] for s in report['suites'])+1,'failed':0,'page_errors':0};assert env['latest_regression']['passed']==697
+production=evidence/'production-seven-fixes';index=(production/'index.html').read_bytes();entry=re.search(rb'<script[^>]+src="([^"]+)"',index).group(1).decode();env['production_build']={'fixes':42,'index_sha256':hashlib.sha256(index).hexdigest(),'entry':entry,'entry_sha256':hashlib.sha256((production/entry.removeprefix('./').lstrip('/')).read_bytes()).hexdigest()};ep.write_text(json.dumps(env,indent=2)+'\n',encoding='utf-8');print(counts);print(env['latest_regression'])

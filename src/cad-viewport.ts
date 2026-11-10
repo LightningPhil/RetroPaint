@@ -7,6 +7,7 @@ import { cadCompute } from './cad-engine';
 import { cadLayers, currentBodies, replaceBodies, selectBodies, selectedBodies } from './cad-document';
 import { activeLayer, layers, renderLayers, layerChanged } from './layers';
 import { W, H } from './canvas';
+import { outputFrame } from './document-frame';
 import { pushHistory } from './history';
 import { state } from './state';
 import { emit } from './bus';
@@ -27,7 +28,7 @@ export class CadViewport {
   readonly renderer: THREE.WebGLRenderer;
   camera:CadCamera = new THREE.PerspectiveCamera(38, 1, 0.1, 30000);
   readonly scene = new THREE.Scene();
-  readonly controls: OrbitControls;
+  controls: OrbitControls;
   readonly transform: TransformControls;
   readonly nodes = new Map<string, DisplayBody>();
   readonly decoration = new THREE.Group();
@@ -93,9 +94,11 @@ export class CadViewport {
     canvas.addEventListener('pointermove', this.pointerMove);
     canvas.addEventListener('pointerup', this.pointerUp);
     canvas.addEventListener('pointercancel', this.pointerCancel);
+    canvas.addEventListener('lostpointercapture', this.pointerCancel);
+    window.addEventListener('blur', this.pointerCancel);
     canvas.addEventListener('dblclick', event => { if (state.cad.tool === 'polygon') { event.preventDefault(); this.finishPolygon(); } });
     canvas.addEventListener('contextmenu', event => event.preventDefault());
-    canvas.addEventListener('webglcontextlost', event => { event.preventDefault(); callbacks.notice('The 3D view paused. Your solids are safe. Return to Paint and reopen the workshop.'); });
+    canvas.addEventListener('webglcontextlost', event => { if(this.disposed)return;event.preventDefault(); callbacks.notice('The 3D view paused. Your solids are safe. Return to Paint and reopen the workshop.'); });
     this.resizeObserver = new ResizeObserver(() => this.resize()); this.resizeObserver.observe(host); this.resizeObserver.observe(canvas);
     const saved=activeLayer().cad?.view;this.savedViewSignature=JSON.stringify(saved??null);if(saved){this.replaceCamera(cameraForView(saved,W/H));this.controls.target.set(...saved.target);this.controls.update();this.pictureMode=true;}this.resize();this.refreshPicture();
   }
@@ -105,10 +108,30 @@ export class CadViewport {
     if(this.pictureMode){const availableW=this.host.clientWidth,availableH=this.host.clientHeight-(this.host.closest('.cad-has-timeline')?120:0),scale=Math.min(availableW/W,availableH/H),width=Math.max(1,W*scale),height=Math.max(1,H*scale);for(const element of [canvas,this.background,this.foreground])Object.assign(element.style,{width:width+'px',height:height+'px',left:(availableW-width)/2+'px',top:(availableH-height)/2+'px'});}else canvas.removeAttribute('style');
     const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;this.renderer.setSize(w,h,false);cameraAspect(this.camera,w/h);this.render();
   }
-  private replaceCamera(next:CadCamera):void{this.camera=next;this.controls.object=next;this.transform.camera=next;this.edges.setCamera(next);this.faces.setCamera(next);}
+  private replaceCamera(next:CadCamera):void{
+    // OrbitControls fixes its orbit basis from camera.up at construction. A new
+    // projection or sketch plane must use that camera's basis, not the old one.
+    const target=this.controls.target.clone(),position=next.position.clone(),enabled=this.controls.enabled;
+    this.controls.dispose();this.camera=next;
+    this.controls=new OrbitControls(next,this.renderer.domElement);
+    this.controls.enableDamping=false;this.controls.minDistance=3;this.controls.maxDistance=6000;this.controls.enabled=enabled;
+    next.position.copy(position);this.controls.target.copy(target);
+    this.controls.addEventListener('change',()=>this.render());
+    this.transform.camera=next;this.edges.setCamera(next);this.faces.setCamera(next);
+  }
   setProjection(projection:CadView['projection']):void{const view=captureCadView(this.camera,this.controls.target);if(view.projection===projection)return;view.projection=projection;this.replaceCamera(cameraForView(view,this.renderer.domElement.clientWidth/this.renderer.domElement.clientHeight));this.controls.update();this.render();}
   setPictureMode(value:boolean):void{this.pictureMode=value;this.decoration.visible=!value;this.resize();this.refreshPicture();void this.sync();}
-  refreshPicture():void{this.background.hidden=this.foreground.hidden=!this.pictureMode;if(!this.pictureMode)return;const index=layers.indexOf(activeLayer()),now=performance.now();for(const [canvas,sheets]of [[this.background,layers.slice(0,index)],[this.foreground,layers.slice(index+1)]] as const){canvas.width=W;canvas.height=H;renderLayers(canvas.getContext('2d')!,now,undefined,sheets);}this.decoration.visible=false;}
+  refreshPicture():void{
+    this.background.hidden=this.foreground.hidden=!this.pictureMode;if(!this.pictureMode)return;
+    const index=layers.indexOf(activeLayer()),now=performance.now(),frame=outputFrame(W,H);
+    for(const [canvas,sheets]of [[this.background,layers.slice(0,index)],[this.foreground,layers.slice(index+1)]] as const){
+      canvas.width=W;canvas.height=H;const ctx=canvas.getContext('2d')!;renderLayers(ctx,now,undefined,sheets);
+      // Keep document coordinates for pinned cameras, but show only the shared crop.
+      ctx.clearRect(0,0,W,frame.y);ctx.clearRect(0,frame.y+frame.height,W,H-frame.y-frame.height);
+      ctx.clearRect(0,frame.y,frame.x,frame.height);ctx.clearRect(frame.x+frame.width,frame.y,W-frame.x-frame.width,frame.height);
+    }
+    this.decoration.visible=false;
+  }
   pinPictureView(history=true,notify=true):void{const view=captureCadView(this.camera,this.controls.target);readCadLayer({units:'mm',bodies:[],view});if(cadLayers().every(l=>sameCadView(l.cad!.view,view)))return;if(history)pushHistory();for(const layer of cadLayers())layer.cad={...layer.cad!,view:structuredClone(view)};this.savedViewSignature=JSON.stringify(view);this.updatePreviews();if(notify)layerChanged();}
   resetInspection():void{this.section=undefined;this.appearance='solid';this.clearMeasure();this.applyAppearance();}
   setInspection(appearance:'solid'|'xray'|'wireframe',axis:number|null=null,offset=0,flip=false):void{this.appearance=appearance;this.section=axis===null?undefined:new THREE.Plane(new THREE.Vector3().setComponent(axis,flip?1:-1),flip?-offset:offset);this.applyAppearance();}
@@ -167,7 +190,7 @@ export class CadViewport {
     this.transform.setTranslationSnap(state.cad.snap ? state.cad.grid : null); this.transform.setRotationSnap(state.cad.snap ? state.cad.angle*rad : null); this.transform.setScaleSnap(state.cad.snap ? 0.1 : null);
     this.controls.enabled = !this.isSketchTool(); this.render();
   }
-  bounds(id: string): THREE.Box3 | null { const node = this.nodes.get(id); return node ? new THREE.Box3().setFromObject(node.mesh) : null; }
+  bounds(id: string): THREE.Box3 | null { const node = this.nodes.get(id); return node ? new THREE.Box3().setFromObject(node.mesh,true) : null; }
   private startDrag(): void {
     const items = selectedBodies(); if (!items.length || items.some(b => b.locked)) return;
     this.pivot.updateMatrixWorld(true); this.drag = { items: structuredClone(items), matrix:this.pivot.matrixWorld.clone(), starts:new Map(items.map(item => [item.id,this.nodes.get(item.id)!.mesh.matrix.clone()])) };state.cad.gesture=true; pushHistory(); emit('cad-gesture',true);
@@ -235,7 +258,11 @@ export class CadViewport {
     if (!id || !currentBodies().some(b => b.id === id)) { if (id) this.callbacks.notice('Choose that piece’s 3D layer to edit it.'); else selectBodies([]); return; }
     selectBodies(event.shiftKey ? state.cad.selected.includes(id) ? state.cad.selected.filter(s => s!==id) : [...state.cad.selected,id] : [id]);
   };
-  private pointerCancel = (): void => { this.down = null;this.sketchAnchor=undefined; if (this.drag) this.finishDrag(); };
+  private pointerCancel = (): void => {
+    this.down = null;this.sketchAnchor=undefined;
+    this.transform.pointerUp(null);
+    if (this.drag) this.finishDrag();
+  };
   private pickFace(hit: THREE.Intersection, id: string): void {
     if (!hit.face || !currentBodies().some(b => b.id === id && !b.locked)) { this.callbacks.notice('Choose an unlocked piece on this 3D layer.'); return; }
     const mesh = hit.object as THREE.Mesh<THREE.BufferGeometry>, normal=hit.face.normal.clone().applyNormalMatrix(new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld)).normalize();
@@ -253,7 +280,7 @@ export class CadViewport {
   setPlane(plane: Workplane, target?: string): void { this.plane=structuredClone(plane);this.faceTarget=target;this.polygon=[];this.clearSketch();this.showPlane(); }
   getPlane(): Workplane { return structuredClone(this.plane); }
   getTarget(): string | undefined { return this.faceTarget; }
-  setTool(): void { this.sketchAnchor=undefined;this.down=null;this.polygon=[];if(!this.isSketchTool()){this.camera.up.set(0,0,1);this.controls.update();}if(state.cad.tool!=='measure')this.clearMeasure();if(state.cad.tool!=='edge'){this.edges.clear();this.renderer.domElement.style.cursor='';}if(state.cad.tool!=='shellFace')this.faces.clear();this.selection();if(this.isSketchTool()||state.cad.tool==='face')this.showPlane();else this.clearSketch(); }
+  setTool(): void { this.sketchAnchor=undefined;this.down=null;this.polygon=[];if(state.cad.tool!=='measure')this.clearMeasure();if(state.cad.tool!=='edge'){this.edges.clear();this.renderer.domElement.style.cursor='';}if(state.cad.tool!=='shellFace')this.faces.clear();this.selection();if(this.isSketchTool()||state.cad.tool==='face')this.showPlane();else this.clearSketch(); }
   clearMeasure():void{for(const child of [...this.measureGroup.children]){this.measureGroup.remove(child);const item=child as THREE.Mesh;item.geometry?.dispose();(item.material as THREE.Material)?.dispose();}this.measurements=[];this.measureLabel.hidden=true;emit('cad-measure',null);this.render();}
   private measure(event:PointerEvent):void{
     const hit=this.hit(event);if(!hit?.face)return;let point=hit.point.clone(),snapped=false;const mesh=hit.object as THREE.Mesh<THREE.BufferGeometry>,positions=mesh.geometry.getAttribute('position'),rect=this.renderer.domElement.getBoundingClientRect();let closest=11;
@@ -297,12 +324,22 @@ export class CadViewport {
     const target=this.controls.target.clone(),distance=this.camera.position.distanceTo(target);
     this.camera.up.copy(name==='sketch'?vec(this.plane.v):new THREE.Vector3(0,0,1));
     const direction=name==='top'?new THREE.Vector3(0,0,1):name==='bottom'?new THREE.Vector3(0,0,-1):name==='front'?new THREE.Vector3(0,-1,0):name==='back'?new THREE.Vector3(0,1,0):name==='right'?new THREE.Vector3(1,0,0):name==='left'?new THREE.Vector3(-1,0,0):name==='sketch'?vec(this.plane.normal):new THREE.Vector3(1,-1.3,1);
-    if(name==='sketch')target.copy(vec(this.plane.origin));this.controls.target.copy(target);this.camera.position.copy(target).add(direction.normalize().multiplyScalar(distance));this.controls.update();this.render();
+    if(name==='sketch')target.copy(vec(this.plane.origin));this.controls.target.copy(target);this.camera.position.copy(target).add(direction.normalize().multiplyScalar(distance));this.replaceCamera(this.camera);this.controls.update();this.render();
   }
   fit(selectionOnly=false): void {
     const box=new THREE.Box3();for(const[id,node]of this.nodes)if(node.mesh.visible&&(!selectionOnly||state.cad.selected.includes(id)))box.expandByObject(node.mesh);
     if(this.sketchGroup.userData.form)box.expandByObject(this.sketchGroup);
-    if(box.isEmpty()){this.camera.position.set(130,-170,130);this.controls.target.set(0,0,10);}else{const centre=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3()),aspect=this.renderer.domElement.clientWidth/this.renderer.domElement.clientHeight,distance=Math.max(35,size.length()*1.6,Math.max(size.x,size.y)/aspect*1.7);this.controls.target.copy(centre);this.camera.position.copy(centre).add(new THREE.Vector3(1,-1.3,1).normalize().multiplyScalar(distance));if(this.camera instanceof THREE.OrthographicCamera){const span=Math.max(25,size.length()*1.25,size.length()/aspect*1.25);this.camera.top=span/2;this.camera.bottom=-span/2;this.camera.zoom=1;cameraAspect(this.camera,aspect);}}this.controls.update();this.render();
+    if(selectionOnly&&box.isEmpty()){this.fit();return;}
+    if(box.isEmpty()){this.camera.position.set(130,-170,130);this.controls.target.set(0,0,10);}else{
+      const centre=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3()),aspect=this.renderer.domElement.clientWidth/this.renderer.domElement.clientHeight;
+      let distance=Math.max(35,size.length()*1.6,Math.max(size.x,size.y)/aspect*1.7);
+      if(this.camera instanceof THREE.PerspectiveCamera){
+        const halfAngle=Math.atan(Math.tan(this.camera.getEffectiveFOV()*Math.PI/360)*Math.min(1,aspect));
+        distance=Math.max(distance,size.length()/2/Math.sin(halfAngle)*1.1);
+      }
+      this.controls.target.copy(centre);this.camera.position.copy(centre).add(new THREE.Vector3(1,-1.3,1).normalize().multiplyScalar(distance));
+      if(this.camera instanceof THREE.OrthographicCamera){const span=Math.max(25,size.length()*1.25,size.length()/aspect*1.25);this.camera.top=span/2;this.camera.bottom=-span/2;this.camera.zoom=1;cameraAspect(this.camera,aspect);}
+    }this.controls.update();this.render();
   }
   updatePreviews(): void {
     if(this.disposed||state.cad.preview||state.cad.editing)return;
@@ -322,7 +359,8 @@ export class CadViewport {
     this.renderer.setSize(originalSize.x,originalSize.y,false);this.edges.group.visible=edgeVisible;this.faces.group.visible=faceVisible;this.measureGroup.visible=true;helper.visible=wasHelper;this.decoration.visible=!this.pictureMode;this.sketchGroup.visible=true;this.pullPreview.group.visible=true;this.boxes.forEach(b=>b.visible=true);this.previewSignature=signature;this.previewCanvases=new Map(sheets.map(l=>[l.id,l.canvas]));this.refreshPicture();invalidatePicture();emit('cad-preview');this.render();
   }
   dispose(update=true): void {
+    window.removeEventListener('blur',this.pointerCancel);
     if(this.drag)this.finishDrag();if(update)this.updatePreviews();this.edges.clear();this.faces.clear();this.disposed=true;++this.revision;clearTimeout(this.previewTimer);this.resizeObserver.disconnect();this.controls.dispose();this.transform.dispose();
-    for(const id of [...this.nodes.keys()])this.removeNode(id);this.clearSketch();this.clearMeasure();this.scene.traverse(object=>{if(object instanceof THREE.Line||object instanceof THREE.Mesh){object.geometry.dispose();for(const material of Array.isArray(object.material)?object.material:[object.material])material.dispose();}if(object instanceof THREE.DirectionalLight)object.shadow.dispose();});this.pending.clear();this.pullPreview.dispose();this.renderer.dispose();this.renderer.domElement.remove();this.background.remove();this.foreground.remove();this.measureLabel.remove();
+    for(const id of [...this.nodes.keys()])this.removeNode(id);this.clearSketch();this.clearMeasure();this.scene.traverse(object=>{if(object instanceof THREE.Line||object instanceof THREE.Mesh){object.geometry.dispose();for(const material of Array.isArray(object.material)?object.material:[object.material])material.dispose();}if(object instanceof THREE.DirectionalLight)object.shadow.dispose();});this.pending.clear();this.pullPreview.dispose();this.renderer.dispose();this.renderer.forceContextLoss();this.renderer.domElement.remove();this.background.remove();this.foreground.remove();this.measureLabel.remove();
   }
 }

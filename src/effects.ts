@@ -1,12 +1,12 @@
 import { artwork } from './artwork';
-import { activeSector, clipSegment, paintSectorPatch } from './symmetry-mask';
+import { activeSector, clipLane, clipSegment, paintSectorPatch } from './symmetry-mask';
 import { play,playDrawing } from './audio';
 import { base, baseCtx, cloneCanvas, H, W } from './canvas';
 import { pushHistory } from './history';
 import { bakeLive, clearLive } from './live';
 import { currentWidth, state } from './state';
 import { advectMany } from './smudge';
-import { mirrorMotion } from './symmetry';
+import { mirrorMotion, mirrorPoints } from './symmetry';
 import { activeLayer, renderLayers, resetLayers } from './layers';
 import { finishObjectStroke, hasObjectCapture } from './objects';
 
@@ -278,6 +278,17 @@ function filterDisc(
   paint: (data: Uint8ClampedArray, w: number, h: number, cx: number, cy: number) => void,
   stroke?: PixelFilterStroke,
 ): void {
+  if (activeSector()) {
+    const gesture = stroke ?? beginPixelFilterStroke();
+    mirrorPoints(x, y).forEach((point, lane) => filterDiscLane(point.x, point.y, radius, paint, gesture, lane));
+  } else filterDiscLane(x, y, radius, paint, stroke);
+}
+
+function filterDiscLane(
+  x: number, y: number, radius: number,
+  paint: (data: Uint8ClampedArray, w: number, h: number, cx: number, cy: number) => void,
+  stroke?: PixelFilterStroke, lane?: number,
+): void {
   if (stroke && (stroke.target !== baseCtx || stroke.source.width !== W || stroke.source.height !== H)) return;
   const strength = Math.max(0, Math.min(1, stroke?.strength ?? state.opacity));
   if (strength === 0) return;
@@ -296,16 +307,25 @@ function filterDisc(
   }
   const filtered = new Uint8ClampedArray(source);
   paint(filtered, w, h, x - x0, y - y0);
+  let mask: Uint8ClampedArray | undefined;
+  if (lane !== undefined) {
+    const tile = document.createElement('canvas'); tile.width = w; tile.height = h;
+    const ctx = tile.getContext('2d')!;
+    ctx.translate(-x0, -y0); clipLane(ctx, lane);
+    ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill();
+    mask = ctx.getImageData(0, 0, w, h).data;
+  }
   for (let row = 0; row < h; row++) for (let col = 0; col < w; col++) {
     if ((col + x0 - x) ** 2 + (row + y0 - y) ** 2 > radius * radius) continue;
     const index = (y0 + row) * W + x0 + col;
-    if (stroke?.covered[index]) continue;
-    if (stroke) stroke.covered[index] = 1;
     const i = (row * w + col) * 4;
-    for (let c = 0; c < 3; c++) img.data[i + c] = source[i + c] + (filtered[i + c] - source[i + c]) * strength;
+    const coverage = mask ? mask[i + 3] : 255;
+    if (!coverage || (stroke && stroke.covered[index] >= coverage)) continue;
+    if (stroke) stroke.covered[index] = coverage;
+    for (let c = 0; c < 3; c++) img.data[i + c] = source[i + c] + (filtered[i + c] - source[i + c]) * strength * coverage / 255;
     img.data[i + 3] = source[i + 3];
   }
-  paintSectorPatch(baseCtx,img,x0,y0,x,y,radius);
+  baseCtx.putImageData(img,x0,y0);
 }
 
 export function drawSqueegee(ctx: CanvasRenderingContext2D): void {

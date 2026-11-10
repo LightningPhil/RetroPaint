@@ -13,12 +13,13 @@ export class EnhancementArea {
     this.canvas=this.element.querySelector('canvas')!;this.size=this.element.querySelector('select')!;
     this.size.addEventListener('change',()=>{this.paint();this.changed();});
     const point=(event:PointerEvent)=>{
-      const rect=this.canvas.getBoundingClientRect(),map=this.map(),fit=Math.min(rect.width/this.canvas.width,rect.height/this.canvas.height),x=(event.clientX-rect.left-(rect.width-this.canvas.width*fit)/2)/fit,y=(event.clientY-rect.top-(rect.height-this.canvas.height*fit)/2)/fit;
+      const rect=this.canvas.getBoundingClientRect(),style=getComputedStyle(this.canvas),left=parseFloat(style.borderLeftWidth)+parseFloat(style.paddingLeft),top=parseFloat(style.borderTopWidth)+parseFloat(style.paddingTop),width=rect.width-left-parseFloat(style.borderRightWidth)-parseFloat(style.paddingRight),height=rect.height-top-parseFloat(style.borderBottomWidth)-parseFloat(style.paddingBottom),map=this.map(),fit=Math.min(width/this.canvas.width,height/this.canvas.height),x=(event.clientX-rect.left-left-(width-this.canvas.width*fit)/2)/fit,y=(event.clientY-rect.top-top-(height-this.canvas.height*fit)/2)/fit;
       return {x:(x-map.x)/map.scale,y:(y-map.y)/map.scale};
     };
     const move=(event:PointerEvent)=>{if(!this.source)return;const p=point(event);this.cx=(p.x-this.offset.x)/this.source.width;this.cy=(p.y-this.offset.y)/this.source.height;this.paint();this.changed();};
     this.canvas.addEventListener('pointerdown',event=>{
       if(event.button!==0||!this.source||this.element.inert)return;event.preventDefault();const p=point(event),r=this.region;
+      if(p.x<0||p.y<0||p.x>this.source.width||p.y>this.source.height)return;
       this.offset=p.x>=r.x&&p.x<=r.x+r.width&&p.y>=r.y&&p.y<=r.y+r.height?{x:p.x-r.x-r.width/2,y:p.y-r.y-r.height/2}:{x:0,y:0};
       this.pointer=event.pointerId;this.canvas.setPointerCapture(event.pointerId);this.canvas.focus();move(event);
     });

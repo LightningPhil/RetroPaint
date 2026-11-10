@@ -5,12 +5,12 @@ const moduloPi=(a:number)=>Math.atan2(Math.sin(2*a),Math.cos(2*a))/2;
 interface Row { error:number; gradient:Float64Array }
 /** A small, workplane-local least-displacement solver. No saved recipe is mutated. */
 export function solveSketch(seed:V2[],constraints:CadSketchConstraint[]|undefined,shape='polygon'):V2[]{
-  if(!constraints?.length)return structuredClone(seed);
+  if(!constraints?.length)return validateOutline(structuredClone(seed));
   readSketchConstraints(constraints,seed.length,shape);
   if(shape==='circle'){
     const diameter=constraints[0];if(diameter.kind!=='diameter')throw new Error('Use a diameter for a circle.');
     if(constraints.some(c=>c.kind!=='diameter'||Math.abs(c.value-diameter.value)>1e-7))throw new Error('These diameter dimensions conflict. Remove or edit one of them.');
-    const xs=seed.map(p=>p[0]),ys=seed.map(p=>p[1]);return sketchPoints('circle',(Math.min(...xs)+Math.max(...xs))/2,(Math.min(...ys)+Math.max(...ys))/2,diameter.value,diameter.value);
+    const xs=seed.map(p=>p[0]),ys=seed.map(p=>p[1]);return validateOutline(sketchPoints('circle',(Math.min(...xs)+Math.max(...xs))/2,(Math.min(...ys)+Math.max(...ys))/2,diameter.value,diameter.value),true);
   }
   const rules=[...constraints];
   // Rectangle outlines retain their square corners even when a dimension rotates them.
@@ -40,11 +40,15 @@ export function solveSketch(seed:V2[],constraints:CadSketchConstraint[]|undefine
     if(!accepted){damping*=10;if(damping>1e6)break;}
   }
   if(rows(x).some(r=>!Number.isFinite(r.error)||Math.abs(r.error)>1e-5))throw new Error('These dimensions or constraints conflict. Edit or remove a conflicting constraint; your last valid sketch is kept.');
-  const result=seed.map((_,i)=>[x[i*2],x[i*2+1]] as V2);
-  if(result.some((p,i)=>p.some(v=>!Number.isFinite(v)||Math.abs(v)>10000)||Math.hypot(p[0]-result[(i+1)%result.length][0],p[1]-result[(i+1)%result.length][1])<.0001))throw new Error('These constraints collapse a line or move it beyond the workspace. Try different dimensions.');
+  return validateOutline(seed.map((_,i)=>[x[i*2],x[i*2+1]] as V2),true);
+}
+/** Printable profiles must be simple even when they have no driving constraints. */
+function validateOutline(result:V2[],constrained=false):V2[]{
+  if(result.some((p,i)=>p.some(v=>!Number.isFinite(v)||Math.abs(v)>10000)||Math.hypot(p[0]-result[(i+1)%result.length][0],p[1]-result[(i+1)%result.length][1])<.0001))throw new Error(constrained?'These constraints collapse a line or move it beyond the workspace. Try different dimensions.':'The sketch has a collapsed line or exceeds the workspace. Keep distinct corners within ±10,000 mm.');
   let area=0;const cross=(a:V2,b:V2,c:V2)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
-  for(let i=0;i<result.length;i++){const a=result[i],b=result[(i+1)%result.length];area+=a[0]*b[1]-b[0]*a[1];for(let j=i+2;j<result.length;j++){if(i===0&&j===result.length-1)continue;const c=result[j],d=result[(j+1)%result.length];if(cross(a,b,c)*cross(a,b,d)<-1e-10&&cross(c,d,a)*cross(c,d,b)<-1e-10)throw new Error('Those dimensions make the outline cross itself. Try a smaller change.');}}
-  if(Math.abs(area)<.0001)throw new Error('Those constraints flatten the sketch. Keep a closed outline with some area.');
+  const onSegment=(a:V2,b:V2,p:V2)=>Math.abs(cross(a,b,p))<1e-10&&p[0]>=Math.min(a[0],b[0])-1e-10&&p[0]<=Math.max(a[0],b[0])+1e-10&&p[1]>=Math.min(a[1],b[1])-1e-10&&p[1]<=Math.max(a[1],b[1])+1e-10;
+  for(let i=0;i<result.length;i++){const a=result[i],b=result[(i+1)%result.length];area+=a[0]*b[1]-b[0]*a[1];for(let j=i+2;j<result.length;j++){if(i===0&&j===result.length-1)continue;const c=result[j],d=result[(j+1)%result.length];if((cross(a,b,c)*cross(a,b,d)<-1e-10&&cross(c,d,a)*cross(c,d,b)<-1e-10)||onSegment(a,b,c)||onSegment(a,b,d)||onSegment(c,d,a)||onSegment(c,d,b))throw new Error('The outline crosses or touches itself. Draw a simple closed sketch.');}}
+  if(Math.abs(area)<.0001)throw new Error(constrained?'Those constraints flatten the sketch. Keep a closed outline with some area.':'The sketch has no area. Use at least three noncollinear points.');
   return result;
 }
 export function constraintLabel(c:CadSketchConstraint):string{

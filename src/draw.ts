@@ -1,5 +1,5 @@
 import { activeSector, clipLane } from './symmetry-mask';
-import { mirrorPoints } from './symmetry';
+import { mirrorPoints, sameLane } from './symmetry';
 export { mirrorPoints } from './symmetry';
 import { playThrottled } from './audio';
 import { paintSprayDot, paintStroke, resetBrushSpacing } from './brush';
@@ -45,6 +45,7 @@ export function segment(x0: number, y0: number, x1: number, y1: number, width: n
   const count = Math.min(a.length, b.length);
   const spec = captureStrokeSpec();
   for (let i = 0; i < count; i++) {
+    if(!activeSector()&&a.slice(0,i).some((p,j)=>sameLane([p,b[j]],[a[i],b[i]])))continue;
     strokeRaw(a[i].x, a[i].y, b[i].x, b[i].y, width, speed, i, gen, spec);
   }
 }
@@ -52,7 +53,7 @@ export function segment(x0: number, y0: number, x1: number, y1: number, width: n
 export function dot(x: number, y: number, width: number): void {
   const pts = mirrorPoints(x, y);
   const spec = captureStrokeSpec();
-  pts.forEach((p, i) => strokeRaw(p.x, p.y, p.x, p.y, width, 0, i, generation, spec));
+  pts.forEach((p, i) => {if(!activeSector()&&pts.slice(0,i).some(q=>sameLane([p],[q])))return;strokeRaw(p.x, p.y, p.x, p.y, width, 0, i, generation, spec);});
 }
 
 function sprayRainbow(): string | undefined {
@@ -237,8 +238,9 @@ function dabTexture(x0: number, y0: number, x1: number, y1: number, width: numbe
 }
 
 function resolveStatic(distance: number): string | CanvasPattern {
-  if (state.ink === 'sparkle') return glitterPattern();
-  if (state.ink === 'rainbow') return rainbowCss(distance * 0.55);
-  if (state.ink.startsWith('tex-')) return patternFor(state.ink) ?? previewColor(state.ink);
-  return previewColor(state.ink);
+  const ink=activeInkId();
+  if (ink === 'sparkle') return glitterPattern();
+  if (ink === 'rainbow') return rainbowCss(distance * 0.55);
+  if (ink.startsWith('tex-')) return patternFor(ink) ?? previewColor(ink);
+  return previewColor(ink);
 }

@@ -65,18 +65,21 @@ export function sketchPoints(shape: string, x: number, y: number, width: number,
 function rec(value: unknown): Record<string, unknown> { if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid CAD data.'); return value as Record<string, unknown>; }
 function n(value: unknown, min = -10000, max = 10000): number { if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max) throw new Error('CAD dimensions must be finite millimetres within the workspace limits.'); return value; }
 function vec(value: unknown, min?: number, max?: number): V3 { if (!Array.isArray(value) || value.length !== 3) throw new Error('Invalid CAD vector.'); return value.map(v => n(v, min, max)) as V3; }
+function constraintValue(value:unknown,min:number,max:number,label:string,unit:string):number{
+  try{return n(value,min,max);}catch{throw new Error(`${label} must be a finite number between ${min} and ${max} ${unit}.`);}
+}
 export function readSketchConstraints(value: unknown, count: number, shape: string): CadSketchConstraint[] | undefined {
   if(value===undefined)return undefined;
   if(!Array.isArray(value)||value.length>64)throw new Error('A sketch supports up to 64 dimensions and constraints.');
   const ids=new Set<string>();
   return value.map(value=>{const c=rec(value);if(typeof c.id!=='string'||!c.id.length||c.id.length>80||ids.has(c.id))throw new Error('Sketch constraint IDs must be unique.');ids.add(c.id);
     const id=c.id,kind=c.kind;
-    if(kind==='diameter'){if(shape!=='circle')throw new Error('Diameter dimensions need a circle sketch.');return{id,kind,value:n(c.value,.01,2000)};}
+    if(kind==='diameter'){if(shape!=='circle')throw new Error('Diameter dimensions need a circle sketch.');return{id,kind,value:constraintValue(c.value,.01,2000,'Diameter','mm')};}
     if(shape==='circle')throw new Error('Choose a diameter dimension for a circle sketch.');
     const edge=n(c.edge,0,count-1);if(!Number.isInteger(edge))throw new Error('A constraint needs a valid sketch line.');
-    if(kind==='length'||kind==='angle')return{id,kind,edge,value:kind==='length'?n(c.value,.01,20000):n(c.value,-360,360)};
+    if(kind==='length'||kind==='angle')return{id,kind,edge,value:kind==='length'?constraintValue(c.value,.01,20000,'Length','mm'):constraintValue(c.value,-360,360,'Angle to X','degrees')};
     if(kind==='horizontal'||kind==='vertical')return{id,kind,edge};
-    if(kind==='parallel'||kind==='perpendicular'||kind==='angle-between'){const other=n(c.other,0,count-1);if(!Number.isInteger(other)||other===edge)throw new Error('Choose two different sketch lines.');return kind==='angle-between'?{id,kind,edge,other,value:n(c.value,0,180)}:{id,kind,edge,other};}
+    if(kind==='parallel'||kind==='perpendicular'||kind==='angle-between'){const other=n(c.other,0,count-1);if(!Number.isInteger(other)||other===edge)throw new Error('Choose two different sketch lines.');return kind==='angle-between'?{id,kind,edge,other,value:constraintValue(c.value,0,180,'Angle between lines','degrees')}:{id,kind,edge,other};}
     throw new Error('Unknown sketch constraint.');
   });
 }

@@ -25,7 +25,7 @@ import { displayFrame } from './document-frame';
 import { bindEditor, editable, message, pasteExternal, refreshImageFields, requestOpen, settle, updateLayersUi } from './editor';
 import { bindText, cancelText, hasText, placeText } from './text-tool';
 import { printImage } from './export';
-import { motorOn } from './spiro';
+import { motorOn, stopMotor } from './spiro';
 import { initAdvancedMode } from './advanced-mode';
 import { initSuperResolution } from './super-resolution-ui';
 import { duplicateObjects, hasObjectSelection, moveObjects } from './objects';
@@ -54,10 +54,11 @@ function closePalette(): void {
 function updateInkPreview(): void {
   const selected = document.querySelector<HTMLElement>('.color-btn.selected');
   const preview = document.getElementById('currentInk')!;
-  document.documentElement.style.setProperty('--paint-ink',isHex(state.ink)?state.ink:state.ink==='neon'?state.neonTint:state.ink==='sparkle'?state.sparkleTint:'#bb79db');
-  preview.style.background = state.liveArmed
-    ? `linear-gradient(135deg,${(state.conveyor.length > 1 ? state.conveyor : ['#ef476f','#ffd166','#06d6a0']).join(',')})`
-    : selected?.style.background || chipBackground(activeInkId());
+  const ink=activeInkId();
+  document.documentElement.style.setProperty('--paint-ink',isHex(ink)?ink:ink==='neon'?state.neonTint:ink==='sparkle'?state.sparkleTint:'#bb79db');
+  preview.style.background = state.liveArmed&&state.conveyor.length>1
+    ? `linear-gradient(135deg,${state.conveyor.join(',')})`
+    : state.liveArmed?chipBackground(ink):selected?.style.background || chipBackground(ink);
   preview.innerHTML = state.liveArmed || selected?.id === 'colourWheelBtn' ? '' : selected?.querySelector('.ink-sample')?.outerHTML || '';
   updateBrushPreviews();
 }
@@ -185,16 +186,21 @@ export function updateBelt(now: number): void {
   const signature = colors.join(',') + ':' + (colors.length ? shift % colors.length : 0);
   if (signature === beltSignature) return;
   beltSignature = signature;
+  (document.getElementById('addBeltBtn') as HTMLButtonElement).disabled=colors.length>=8;
   slots.forEach((slot, index) => {
     if (!colors.length || index >= colors.length) {
       slot.style.background = '#d0d0d0';
       slot.textContent = '';
       delete slot.dataset.index;
+      slot.setAttribute('aria-label',`Empty live ink slot ${index+1}`);
+      slot.title='Drag a colour here, or choose a colour then right-click to add it';
       return;
     }
     const dataIndex = ((index - shift) % colors.length + colors.length) % colors.length;
     slot.style.background = colors[dataIndex];
     slot.dataset.index = String(dataIndex);
+    slot.setAttribute('aria-label',`Remove ${colourName(colors[dataIndex])} from live ink slot ${index+1}`);
+    slot.title='Click to remove. Choose a colour, then right-click or press Shift+F10 to replace. Dragging also works.';
   });
 }
 
@@ -275,6 +281,9 @@ function buildGradients(): void {
     btn.type = 'button';
     btn.className = 'color-btn square';
     btn.dataset.ink = id;
+    const name = id.slice('grad-'.length);
+    btn.title = name[0].toUpperCase() + name.slice(1) + ' gradient';
+    btn.setAttribute('aria-label', btn.title);
     const stops = GRADIENTS[id].join(', ');
     btn.style.background = `linear-gradient(90deg, ${stops})`;
     btn.addEventListener('click', () => {
@@ -325,10 +334,12 @@ function buildBeltPicks(): void {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'belt-pick';
+    btn.draggable = true;
     btn.style.background = color;
     btn.dataset.color = color;
-    btn.title = colourName(color);
+    btn.title = colourName(color)+' · Choose then Add color, or right-click a slot to replace it';
     btn.setAttribute('aria-label', colourName(color) + ' for live ink');
+    btn.addEventListener('dragstart',event=>event.dataTransfer?.setData('text/plain',`ink:${color}`));
     btn.addEventListener('click', () => {
       state.beltPick = color;
       play('pop');
@@ -363,7 +374,10 @@ function buildGears(): void {
     btn.textContent = String(gear.teeth);
     btn.setAttribute('aria-label', gear.id + ' gear, ' + gear.teeth + ' teeth');
     btn.addEventListener('pointerdown', (event) => startGearDrag(event, gear.id, gear.color));
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (event) => {
+      // Pointer taps and drops are handled on pointerup. Capture can still
+      // generate a click after a rejected drag; retain click for keyboard/AT.
+      if (event.detail !== 0) return;
       assignGear(gear.id);
       sync();
     });
@@ -408,8 +422,8 @@ function startGearDrag(event: PointerEvent, id: string, color: string): void {
     cleanup();
     const moved = Math.hypot(ev.clientX - startX, ev.clientY - startY);
     const pos = canvasToClientInverse(ev.clientX, ev.clientY);
-    if (pos && moved > 8) {
-      if (hitStator(pos.x, pos.y) || Math.hypot(pos.x - state.spiro.cx, pos.y - state.spiro.cy) < state.spiro.R + 40) {
+    if (moved > 8) {
+      if (pos && (hitStator(pos.x, pos.y) || Math.hypot(pos.x - state.spiro.cx, pos.y - state.spiro.cy) < state.spiro.R + 40)) {
         assignGear(id);
       }
     } else {
@@ -502,8 +516,10 @@ function bindTools(): void {
     openDrawer = null; sync();
   });
   bus.addEventListener('symmetry-mask', sync);
+  bus.addEventListener('spiro-motor', sync);
   document.querySelectorAll<HTMLButtonElement>('[data-drive]').forEach((btn) => {
     btn.addEventListener('click', () => {
+      if (btn.dataset.drive === 'manual') stopMotor();
       state.spiro.drive = btn.dataset.drive === 'auto' ? 'auto' : 'manual';
       play('clunk');
       sync();
@@ -517,6 +533,7 @@ function bindTools(): void {
     });
   });
   document.getElementById('windBtn')!.addEventListener('click', () => {
+    if (motorOn()) { stopMotor(); return; }
     if (state.tool !== 'spiro') selectTool('spiro');
     if (!state.spiro.gearId) setInnerTeeth(36, 'red');
     state.spiro.drive = 'auto';
@@ -582,12 +599,14 @@ function bindConveyor(): void {
       state.conveyor.push(state.beltPick);
       play('clunk');
       updateBelt(beltNow);
+      updateInkPreview();
     }
   });
   document.getElementById('clearBeltBtn')!.addEventListener('click', () => {
     state.conveyor = [];
     play('vwoop');
     updateBelt(beltNow);
+    updateInkPreview();
   });
   document.getElementById('beltMode')!.addEventListener('click', () => {
     state.beltMode = state.beltMode === 'ooze' ? 'snap' : 'ooze';
@@ -599,6 +618,15 @@ function bindConveyor(): void {
     state.beltSpeed = Number(speed.value);
   });
   document.querySelectorAll<HTMLButtonElement>('.belt-slot').forEach((slot) => {
+    const useColour=(color:string):void=>{
+      if(!isHex(color))return;
+      const index=slot.dataset.index===undefined?state.conveyor.length:Number(slot.dataset.index);
+      if(Number.isInteger(index)&&index>=0&&index<state.conveyor.length)state.conveyor[index]=color;
+      else if(state.conveyor.length<8)state.conveyor.push(color);
+      else return;
+      play('clunk');updateBelt(performance.now());updateInkPreview();
+    };
+    slot.addEventListener('contextmenu',event=>{event.preventDefault();useColour(state.beltPick);});
     slot.addEventListener('click', () => {
       if (!slot.dataset.index) return;
       const index = Number(slot.dataset.index);
@@ -606,6 +634,7 @@ function bindConveyor(): void {
         state.conveyor.splice(index, 1);
         play('pop');
         updateBelt(performance.now());
+        updateInkPreview();
       }
     });
     slot.addEventListener('dragover', (event) => event.preventDefault());
@@ -614,12 +643,7 @@ function bindConveyor(): void {
       const data = event.dataTransfer?.getData('text/plain') ?? '';
       if (!data.startsWith('ink:') || !isHex(data.slice(4))) return;
       const color = data.slice(4);
-      const index = Number(slot.dataset.index ?? state.conveyor.length);
-      if (state.conveyor.length >= 8) return;
-      const at = Number.isFinite(index) ? Math.min(state.conveyor.length, Math.max(0, index)) : state.conveyor.length;
-      state.conveyor.splice(at, 0, color);
-      play('clunk');
-      updateBelt(performance.now());
+      useColour(color);
     });
   });
 }
@@ -700,7 +724,10 @@ function layoutStage(): void {
   const pad = phoneLayout.matches ? 0 : 12 * uiScale;
   const photoPanel = document.getElementById('photoPanel');
   const layerPanel = photoPanel && !photoPanel.hidden ? photoPanel : document.getElementById('layersPanel');
-  const layerSpace = window.innerWidth > 1000 && window.innerHeight > 550 && layerPanel && !layerPanel.hidden && rect.width >= 700 ? layerPanel.offsetWidth + 16 : 0;
+  // Short landscape hides the miniature. Keep the paper beside the photo
+  // controls so horizon, crop and neutral-pick gestures can still reach it.
+  const shortPhotoDock=photoPanel&&!photoPanel.hidden&&innerHeight<=550&&innerWidth>innerHeight&&rect.width>=photoPanel.offsetWidth+176;
+  const layerSpace = layerPanel && !layerPanel.hidden && (shortPhotoDock||window.innerWidth > 1000 && window.innerHeight > 550 && rect.width >= 700) ? layerPanel.offsetWidth + 16 : 0;
   slot.classList.toggle('layer-space', layerSpace > 0);
   slot.style.setProperty('--dock-space', `${layerSpace + 4}px`);
   const drawingWidth = rect.width - layerSpace;
@@ -894,7 +921,9 @@ function sync(): void {
   (document.getElementById('opacity') as HTMLInputElement).disabled = state.tool === 'scissors';
   document.querySelectorAll<HTMLButtonElement>('#toolBin [data-tool], #symBtn').forEach((btn) => {
     const tool = btn.dataset.tool as ToolId | undefined;
-    btn.classList.toggle('active', tool === state.tool || (btn.id === 'symBtn' && state.symmetry !== 'off'));
+    const selected = tool === state.tool || (btn.id === 'symBtn' && state.symmetry !== 'off');
+    btn.classList.toggle('active', selected);
+    btn.setAttribute('aria-pressed', String(selected));
   });
   markChoices('[data-applicator]', state.applicator);
   markChoices('[data-shape]', state.shape);
@@ -906,6 +935,10 @@ function sync(): void {
   maskToggle.setAttribute('aria-pressed', String(masked));
   maskToggle.disabled = state.symmetry === 'off';
   markChoices('[data-drive]', state.spiro.drive);
+  const wind = document.getElementById('windBtn')!;
+  labelIcon(wind, motorOn() ? 'stop' : 'wind', motorOn() ? 'Stop drawing' : 'Wind the key');
+  wind.setAttribute('aria-pressed', String(motorOn()));
+  wind.classList.toggle('active', motorOn());
   markChoices('[data-stator]', state.spiro.shape);
   document.querySelectorAll<HTMLElement>('.drawer').forEach(drawer => {
     drawer.classList.toggle('open', drawer.id === openDrawer);
@@ -919,21 +952,27 @@ function sync(): void {
   layoutStage();
   labelIcon(document.getElementById('beltMode')!, state.beltMode === 'ooze' ? 'blend' : 'pixelate', state.beltMode === 'ooze' ? 'Blend' : 'Jump');
   document.getElementById('flipH')!.classList.toggle('active', state.stampFlipH);
+  document.getElementById('flipH')!.setAttribute('aria-pressed', String(state.stampFlipH));
   document.getElementById('flipV')!.classList.toggle('active', state.stampFlipV);
+  document.getElementById('flipV')!.setAttribute('aria-pressed', String(state.stampFlipV));
   const spin = document.getElementById('spinMode')!;
   labelIcon(spin, 'rotate', state.stampSpin === 'auto' ? 'Random turns' : 'Keep upright');
   spin.classList.toggle('active', state.stampSpin === 'auto');
   document.querySelectorAll<HTMLButtonElement>('.belt-pick').forEach((btn) => {
     btn.classList.toggle('picked', btn.dataset.color === state.beltPick);
+    btn.setAttribute('aria-pressed',String(btn.dataset.color===state.beltPick));
   });
   document.querySelectorAll<HTMLButtonElement>('[data-outer]').forEach((btn) => {
     btn.classList.toggle('active', Number(btn.dataset.outer) === state.spiro.outerTeeth);
   });
   document.querySelectorAll<HTMLButtonElement>('#gearBox .gear-btn').forEach((btn) => {
     const gear = GEARS.find((item) => item.id === btn.dataset.gear);
-    btn.classList.toggle('picked', !!gear && gear.id === state.spiro.gearId && gear.teeth === state.spiro.innerTeeth);
+    const picked = !!gear && gear.id === state.spiro.gearId && gear.teeth === state.spiro.innerTeeth;
+    btn.classList.toggle('picked', picked);
+    btn.setAttribute('aria-pressed', String(picked));
   });
   setNumber('outerTeeth', state.spiro.outerTeeth);
+  (document.getElementById('innerTeeth') as HTMLInputElement).max = String(Math.max(12, state.spiro.outerTeeth - 8));
   setNumber('innerTeeth', state.spiro.innerTeeth);
   setNumber('ringSize', state.spiro.R);
   const gradTab = document.querySelector<HTMLButtonElement>('[data-target="tray-gradients"]');
@@ -965,7 +1004,7 @@ function markChoices(selector: string, value: string): void {
 }
 
 function doUndo(): void {
-  if (state.busy || motorOn()) return;
+  if (state.busy || motorOn()) { message('Let the current effect finish first.'); return; }
   if (!bus.dispatchEvent(new Event('photo-undo', { cancelable:true }))) return;
   if (state.tool === 'text' && hasText()) { cancelText(); return; }
   if (hasSelection()&&!hasObjectSelection()) { cancelSelection(); return; }
@@ -1046,6 +1085,10 @@ function decorateControls(): void {
   document.querySelectorAll<HTMLElement>('.drawer').forEach(drawer => {
     drawer.setAttribute('role', 'region');
     drawer.setAttribute('aria-label', drawer.querySelector('strong')?.textContent ?? 'Tool options');
+    if (drawer.id === 'studioDrawer') {
+      drawer.removeAttribute('aria-label');
+      drawer.setAttribute('aria-labelledby', 'workspaceModeTitle');
+    }
     const close = document.createElement('button'); close.type = 'button'; close.className = 'drawer-close';
     close.innerHTML = icon('close'); close.setAttribute('aria-label', 'Close options');
     close.addEventListener('click', () => { openDrawer = null; sync(); }); drawer.prepend(close);
@@ -1068,5 +1111,4 @@ function decorateControls(): void {
     // More is navigation; tool gestures still position text, pick colour or draw.
     if (dismissOnly) { event.preventDefault(); event.stopImmediatePropagation(); }
   });
-  document.querySelectorAll<HTMLButtonElement>('.belt-slot').forEach((button, i) => button.setAttribute('aria-label', 'Remove live ink colour ' + (i + 1)));
 }

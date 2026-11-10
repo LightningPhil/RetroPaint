@@ -6,6 +6,8 @@ type Result=CadResult|CadEdgesResult|CadFacesResult;
 let worker: Worker | undefined, next = 0;
 const pending = new Map<number, { resolve: (value: Result) => void; reject: (error: Error) => void; timer?: ReturnType<typeof setTimeout> }>();
 function stopWorker(message:string):void {for(const job of pending.values()){clearTimeout(job.timer);job.reject(new Error(message));}pending.clear();worker?.terminate();worker=undefined;}
+/** Interrupt a pending feature rebuild; the next request starts a fresh worker. */
+export function cancelCadCompute():void {stopWorker('Feature rebuild cancelled. Your original solid is unchanged.');}
 export function cadCompute(bodies:CadBody[],action:'edges',bed?:boolean):Promise<CadEdgesResult>;
 export function cadCompute(bodies:CadBody[],action:'faces',bed?:boolean):Promise<CadFacesResult>;
 export function cadCompute(bodies:CadBody[],action?:'mesh'|'print',bed?:boolean):Promise<CadResult>;

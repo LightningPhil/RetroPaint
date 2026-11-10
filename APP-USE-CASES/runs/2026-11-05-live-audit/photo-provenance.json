@@ -1,0 +1,13 @@
+{
+  "fixture": "PHOTO natural landscape",
+  "title": "Beautiful mountain valley and lake landscape",
+  "author": "Hillebrand Steve, U.S. Fish and Wildlife Service",
+  "license": "Public domain, as stated on the Wikimedia Commons file page",
+  "source_page": "https://commons.wikimedia.org/wiki/File:Beautiful_mountain_valley_and_lake_landscape.jpg",
+  "source_bytes": "https://upload.wikimedia.org/wikipedia/commons/6/6a/Beautiful_mountain_valley_and_lake_landscape.jpg",
+  "local": "test-results/audit-2026-11-05/mouse/photo-natural-original.jpg",
+  "dimensions": [2100, 1398],
+  "sha256": "944265a35fc4ca2237cb8156d6a3a4243988d87e0ee85d6be30a307fe0d4fb87",
+  "independent_decoder": "Pillow 13",
+  "use": "Live photographic composition, crop, full-size export and original preservation; no people or skin-tone claims"
+}

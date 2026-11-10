@@ -6,6 +6,8 @@ Open [BROWSE.html](BROWSE.html) in a browser for searchable cards, or use the ch
 
 The [current acceptance audit](runs/2026-10-19-full-audit/README.md) contains the verified artwork backup, actual results, failed evidence and fixes. Testing is in progress; the 349 authored cases are not 349 passes.
 
+The [5 November live mouse audit](runs/2026-11-05-live-audit/README.md) records a fresh run, newly discovered coverage gaps, fixes, independent download checks and remaining blocked or untested variants. Historical results are preserved separately.
+
 ## Three experience levels
 
 | Level | User and intention | Primary stories |

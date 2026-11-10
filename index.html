@@ -225,10 +225,10 @@
 
   <div id="spiroDrawer" class="drawer">
     <strong>Spiro kit</strong>
-    <label class="teeth-field" id="ringField">↔ Ring radius <input id="ringSize" type="number" min="0.5" step="1" value="200" aria-label="Spiro ring radius in pixels"> px</label>
+    <label class="teeth-field" id="ringField">↔ Ring radius <input id="ringSize" type="number" min="0.5" step="any" value="200" aria-label="Spiro ring radius in pixels"> px</label>
     <label class="teeth-field" id="outerField">Outer teeth <input id="outerTeeth" type="number" min="40" max="180" value="96"></label>
     <div id="outerChoices" class="row"></div>
-    <label class="teeth-field" id="innerField">Inner teeth <input id="innerTeeth" type="number" min="10" max="170" value="36"></label>
+    <label class="teeth-field" id="innerField">Inner teeth <input id="innerTeeth" type="number" min="10" max="88" value="36"></label>
     <div id="gearBox" class="gear-box"></div>
     <div class="row" id="driveChoices">
       <button type="button" class="choice active" data-drive="manual">Manual</button>
@@ -254,14 +254,14 @@
     <textarea id="textContent" rows="3" placeholder="Your words here…" aria-label="Text to paint"></textarea>
     <div class="row compact-fields">
       <label>Font <select id="textFont"><option>Trebuchet MS</option><option>Arial</option><option>Georgia</option><option>Courier New</option><option>Comic Sans MS</option><option>Impact</option></select></label>
-      <label>Size <input id="textSize" type="number" min="6" max="300" value="36"></label>
+      <label>Size <input id="textSize" type="number" min="6" max="300" step="any" value="36"></label>
       <label>Box width <input id="textWidth" type="number" min="20" max="4096" value="360"></label>
     </div>
     <div class="row text-styles">
-      <button type="button" class="choice" data-text-style="bold" aria-pressed="false"><b>B</b></button>
-      <button type="button" class="choice" data-text-style="italic" aria-pressed="false"><i>I</i></button>
-      <button type="button" class="choice" data-text-style="underline" aria-pressed="false"><u>U</u></button>
-      <button type="button" class="choice" data-text-style="strike" aria-pressed="false"><s>S</s></button>
+      <button type="button" class="choice" data-text-style="bold" aria-label="Bold" title="Bold" aria-pressed="false"><b>B</b></button>
+      <button type="button" class="choice" data-text-style="italic" aria-label="Italic" title="Italic" aria-pressed="false"><i>I</i></button>
+      <button type="button" class="choice" data-text-style="underline" aria-label="Underline" title="Underline" aria-pressed="false"><u>U</u></button>
+      <button type="button" class="choice" data-text-style="strike" aria-label="Strikethrough" title="Strikethrough" aria-pressed="false"><s>S</s></button>
       <select id="textAlign" aria-label="Text alignment"><option value="left">Left</option><option value="center">Centre</option><option value="right">Right</option></select>
     </div>
     <label class="selection-toggle"><input type="checkbox" id="textOpaque"> Fill text box with second colour</label>
@@ -309,7 +309,7 @@
       <div class="row compact-fields"><label>Turn ° <input id="rotateAngle" type="number" min="-360" max="360" value="90"></label><button type="button" class="choice" id="rotatePicture">Rotate</button><button type="button" class="choice" id="flipPictureH">Flip ↔</button><button type="button" class="choice" id="flipPictureV">Flip ↕</button></div>
       <div class="row compact-fields"><label>Skew X ° <input id="skewX" type="number" min="-80" max="80" value="0"></label><label>Skew Y ° <input id="skewY" type="number" min="-80" max="80" value="0"></label><button type="button" class="choice" id="skewPicture">Skew</button></div>
       <div class="row"><button type="button" class="choice" id="invertColours">Invert colours</button><button type="button" class="choice" id="removeBackground">Remove edge background</button></div>
-      <label class="compact-fields">Bucket / wand tolerance <input id="fillTolerance" type="range" min="0" max="200" value="48"></label>
+      <label class="compact-fields">Bucket / wand tolerance <input id="fillTolerance" type="range" min="0" max="200" value="48"><output id="fillToleranceValue" for="fillTolerance">48</output></label>
       <p class="hint">Background removal clears colours connected to the top-left corner, using this tolerance. Best for flat backgrounds.</p>
     </div>
     <div class="studio-panel" data-studio-panel="layers" hidden>

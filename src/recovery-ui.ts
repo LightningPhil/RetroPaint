@@ -51,6 +51,7 @@ async function saveDraft():Promise<void> {
   finally{saving=false;if(dirty!==saved)postpone();}
 }
 function renderPage():void {
+  const error=document.getElementById('recoveryError')!;error.hidden=true;error.textContent='';
   const count=innerHeight<480?2:3;page=Math.min(page,Math.max(0,Math.ceil(entries.length/count)-1));
   const list=document.getElementById('recoveryList')!;list.replaceChildren();
   for(const draft of entries.slice(page*count,page*count+count)){
@@ -71,19 +72,27 @@ async function openRecovery():Promise<void> {
 }
 async function resume(id:string,button:HTMLButtonElement):Promise<void> {
   if(!editable())return;button.disabled=true;const isCurrent=beginOpen();
+  const error=document.getElementById('recoveryError')!;error.hidden=true;error.textContent='';
   try{
     const draft=await store.read(id);if(!draft)throw new Error('This draft is no longer available.');
-    if(!await loadProjectData(draft.data,isCurrent))return;rememberId();saved=dirty;offered=false;banner.hidden=true;
+    if(!await loadProjectData(draft.data,isCurrent))return;
+    // Loading forks a working ID so duplicated tabs keep independent drafts.
+    // Persist the resumed snapshot under that ID before reporting it restored;
+    // otherwise an untouched picture has no draft to offer on the next reload.
+    const stillCurrent=beginOpen(),workingId=documentId,generation=dirty;
+    await store.save({...draft,id:workingId,savedAt:Date.now()});
+    if(!stillCurrent()||documentId!==workingId)return;
+    rememberId();saved=generation;offered=false;banner.hidden=true;
     (document.getElementById('fileName') as HTMLInputElement).value=draft.name;statusText('Draft restored','Draft restored. Further edits will be saved in this browser.');
     if(dialog.open)dialog.close();message('Draft restored, including editable pieces and photo adjustments. Undo returns to your previous picture.');
-  }catch(error){message(error instanceof Error?error.message:String(error));}
-  finally{button.disabled=false;}
+  }catch(cause){const detail=cause instanceof Error?cause.message:String(cause);if(dialog.open){error.textContent=detail;error.hidden=false;}else message(detail);}
+  finally{button.disabled=false;if(dialog.open&&button.isConnected)button.focus({preventScroll:true});}
 }
 export function initRecoveryUi():void {
   status=document.createElement('button');status.type='button';status.id='draftStatus';statusText('Local drafts','Recent editable drafts are kept in this browser. Save project keeps a separate copy on your device.');status.addEventListener('click',()=>{if(status.dataset.project==='true'){if(!editable())return;settle();void saveProjectFile((document.getElementById('fileName') as HTMLInputElement).value).catch(error=>message(error instanceof Error?error.message:String(error)));}else void openRecovery();});document.getElementById('workspaceIdle')!.append(status);
   const recover=document.createElement('button');recover.type='button';recover.className='choice';recover.id='openRecovery';recover.innerHTML=`${icon('undo')}<span>Recent drafts</span>`;recover.addEventListener('click',()=>void openRecovery());document.querySelector('[data-studio-panel=file]>.row')!.append(recover);
   dialog=document.createElement('dialog');dialog.id='recoveryDialog';dialog.setAttribute('aria-labelledby','recoveryTitle');
-  dialog.innerHTML=`<div class="preferences-heading"><div>${icon('save')}<h2 id="recoveryTitle">Pick up your picture</h2></div><button class="drawer-close" type="button" aria-label="Close recent drafts">${icon('close')}</button></div><p class="hint">Recent drafts from this browser. Save project keeps your own editable copy.</p><div id="recoveryList"></div><p id="recoveryEmpty">Your next picture will appear here after you finish drawing.</p><div id="recoveryPagination"><button class="choice" type="button" id="recoveryPrevious" aria-label="Previous drafts">${icon('back')}</button><span id="recoveryPage"></span><button class="choice" type="button" id="recoveryNext" aria-label="Next drafts">${icon('redo')}</button></div><footer><small>Up to eight recent pictures · saved on this device</small><button class="choice" type="button" id="recoveryDone">Done</button></footer>`;
+  dialog.innerHTML=`<div class="preferences-heading"><div>${icon('save')}<h2 id="recoveryTitle">Pick up your picture</h2></div><button class="drawer-close" type="button" aria-label="Close recent drafts">${icon('close')}</button></div><p class="hint">Recent drafts from this browser. Save project keeps your own editable copy.</p><p id="recoveryError" class="hint" role="alert" hidden></p><div id="recoveryList"></div><p id="recoveryEmpty">Your next picture will appear here after you finish drawing.</p><div id="recoveryPagination"><button class="choice" type="button" id="recoveryPrevious" aria-label="Previous drafts">${icon('back')}</button><span id="recoveryPage"></span><button class="choice" type="button" id="recoveryNext" aria-label="Next drafts">${icon('redo')}</button></div><footer><small>Up to eight recent pictures · saved on this device</small><button class="choice" type="button" id="recoveryDone">Done</button></footer>`;
   document.body.append(dialog);dialog.querySelector('.drawer-close')!.addEventListener('click',()=>dialog.close());document.getElementById('recoveryDone')!.addEventListener('click',()=>dialog.close());dialog.addEventListener('click',event=>{if(event.target===dialog){const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close();}});
   document.getElementById('recoveryPrevious')!.addEventListener('click',()=>{page--;renderPage();});document.getElementById('recoveryNext')!.addEventListener('click',()=>{page++;renderPage();});
   window.addEventListener('resize',()=>{if(dialog.open)renderPage();});

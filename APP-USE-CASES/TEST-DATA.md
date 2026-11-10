@@ -16,6 +16,10 @@ Create a fresh 960 by 640 document with one opaque white Paper sheet. Use Raster
 
 Create a 960 by 640 RGBA PNG. Use a transparent background and labelled nonoverlapping rectangles at integer coordinates: red #FF0000 at x100 y100 width100 height80, blue #0000FF at x400 y100 width100 height80, green #00FF00 at x100 y300 width100 height80, and 50 percent alpha red at x400 y300 width100 height80. Add a one pixel black border on a separate copy where required. Keep opaque white and opaque black backing copies for edge inspection. Save the exact generator recipe, bytes and hash before testing.
 
+For EDIT-016, use a separate copy with an additional opaque #7C3AED square at x650 y300 width100 height100 and a label outside it at x650 y415. This supplies that case's known 100 pixel square without changing the four original rectangles or their labels. Retain the base and square-variant hashes separately.
+
+For EDIT-019, retain a separate copy with asymmetric TL/TR/BL/BR corner blocks and labels. The run's `prepare-transform-fixtures.py` records exact coordinates, colours, layer indices, and hashes. Keep the original patches intact; use the same labelled-corner recipe on every MIX layer to expose axis, direction, and layer-alignment errors.
+
 <a id="pixel"></a>
 
 ## PIXEL Crisp pixel art

@@ -173,7 +173,7 @@ export function initLayersUi(callbacks: LayerActions): void {
   transparent.addEventListener('change', () => { const value = transparent.checked; change(() => { activeLayer().paper = value ? null : state.secondaryInk; layerChanged(); }); });
   const panel = field('layersPanel');
   document.addEventListener('pointerdown', event => {
-    if (!state.cad.open && compact.matches && !panel.hidden && event.target instanceof Node && !panel.contains(event.target) && !field('layersToggle').contains(event.target)) showLayers(false);
+    if (!state.cad.open && compact.matches && !panel.hidden && event.target instanceof Node && !panel.contains(event.target) && !field('layersToggle').contains(event.target) && !field('photoToggle').contains(event.target)) showLayers(false);
   });
   const options = field<HTMLDetailsElement>('layerOptions');
   options.addEventListener('toggle', () => {

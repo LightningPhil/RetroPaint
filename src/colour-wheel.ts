@@ -31,8 +31,8 @@ export function bindColourWheel(trigger: HTMLButtonElement, currentColour: () =>
       </div>
       <div class="colour-wheel-options">
         <div class="wheel-preview"><span id="wheelPreview" aria-hidden="true"></span><strong>Your colour</strong></div>
-        <label class="wheel-light-label" for="wheelHex">Hex colour</label><input id="wheelHex" maxlength="7" pattern="#[0-9a-fA-F]{6}" aria-label="Hex colour" spellcheck="false">
-        <div class="wheel-rgb"><label>R <input id="wheelR" type="number" min="0" max="255"></label><label>G <input id="wheelG" type="number" min="0" max="255"></label><label>B <input id="wheelB" type="number" min="0" max="255"></label></div>
+        <label class="wheel-light-label" for="wheelHex">Hex colour</label><input id="wheelHex" maxlength="128" pattern="#[0-9a-fA-F]{6}" aria-label="Hex colour" spellcheck="false">
+        <div class="wheel-rgb"><label>R <input id="wheelR" type="number" min="0" max="255" required></label><label>G <input id="wheelG" type="number" min="0" max="255" required></label><label>B <input id="wheelB" type="number" min="0" max="255" required></label></div>
         <label class="wheel-light-label" for="wheelBrightness">Light &amp; dark</label>
         <div class="wheel-light-control"><span class="wheel-dark" aria-hidden="true"></span><input id="wheelBrightness" type="range" min="0" max="100" step="1"><span class="wheel-light" aria-hidden="true"></span></div>
         <div class="wheel-actions"><button type="button" class="action-btn wheel-cancel">Cancel</button><button type="button" class="action-btn wheel-use">${icon('done')}<span>Use colour</span></button></div>
@@ -101,9 +101,13 @@ export function bindColourWheel(trigger: HTMLButtonElement, currentColour: () =>
   });
   brightness.addEventListener('input', () => { colour.value = Number(brightness.value) / 100; refresh(); });
   hex.addEventListener('input', () => { if (/^#[\da-f]{6}$/i.test(hex.value)) { colour = fromHex(hex.value); hex.setCustomValidity(''); refresh(); } else hex.setCustomValidity('Enter a colour like #E53935.'); });
-  rgbFields.forEach(field => field.addEventListener('input', () => { const values = rgbFields.map(input => Math.max(0, Math.min(255, Number(input.value)))); colour = fromHex(rgbToHex(values[0], values[1], values[2])); refresh(); }));
+  rgbFields.forEach(field => field.addEventListener('input', () => {
+    if (rgbFields.some(input => !input.validity.valid)) return;
+    const values = rgbFields.map(input => Number(input.value));
+    colour = fromHex(rgbToHex(values[0], values[1], values[2])); refresh();
+  }));
   dialog.querySelector('.wheel-cancel')!.addEventListener('click', () => dialog.close());
-  dialog.querySelector('.wheel-use')!.addEventListener('click', () => { if (!hex.reportValidity()) return; choose(toHex(colour)); dialog.close(); });
+  dialog.querySelector('.wheel-use')!.addEventListener('click', () => { if (!hex.reportValidity() || rgbFields.some(field => !field.reportValidity())) return; choose(toHex(colour)); dialog.close(); });
   dialog.addEventListener('close', () => {
     if (pointer !== null && wheel.hasPointerCapture(pointer)) wheel.releasePointerCapture(pointer);
     pointer = null;

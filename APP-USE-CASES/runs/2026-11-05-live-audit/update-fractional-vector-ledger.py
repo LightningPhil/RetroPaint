@@ -1,0 +1,23 @@
+"""Record LIVE-039 and close vector overhang after all retained geometry checks."""
+from pathlib import Path
+from datetime import datetime,timezone
+from collections import Counter
+import hashlib,json,re
+folder=Path(__file__).resolve().parent;root=folder.parents[2];evidence=root/'test-results/audit-2026-11-05';report=json.loads((evidence/'all-thirty-nine-fixes/report.json').read_bytes());assert report['status']=='Pass' and all(hashlib.sha256((root/f['path']).read_bytes()).hexdigest()==f['sha256'] for f in report['source_files'])
+for name in ('edit-fractional39-verification.json','edit-vector-overhang38-verification.json'):assert json.loads((evidence/'mouse'/name).read_bytes())['status']=='Pass'
+note='Native mixed VECTOR scene: Rectangle, Line, Dog stamp, Spiro path, Concave heart and Text individually placed fully outside at left−2000/top200, reselected through the actual piece picker by stable ID, and returned through Position controls. Every source definition/material/text/path/stamp property and all eight neighbours remain exact; only the selected matrix translation changes. Returned PNGRGBA equals baseline for all six; whole Undo/Redo and actual native project/PNG reopen exact. Concave return has only1.14e−13floating translation roundoff, below the predeclared1e−9matrix arithmetic budget; all geometry and image pixels exact. Raster trim rule is not applied to these six vector pieces.'
+fix='LIVE-039: exact piece controls accepted fractional values in the transform model while declaring HTMLstep1, producing stepMismatch/invalid fields for accepted textTop278.5 and concave coordinates. Width/Height min0.01 combined with step1 also wrongly rejected ordinary dimensions. The five exact Size, Position and Angle inputs now use stepany, matching the existing finite fractional transform contract. Native typing180.5,120.25,330.5,278.5,22.5 yields valid fields with no stepMismatch. Independent elementary affine composition proves exact resize, translation and centre rotation; every other document field unchanged. Separate Undo/Redo and native project/PNG reopen exact. Four-layout regression fails before the declaration fix and passes after; stable full688checks, TypeScript/build and diff checks pass.'
+lp=folder/'execution.json';ledger=json.loads(lp.read_text(encoding='utf-8-sig'));case=next(c for c in ledger['cases'] if c['id']=='EDIT-013');case['status']='Pass'
+for n in (note,fix):
+ if n not in case['observations']:case['observations'].append(n)
+for name in ('edit-vector-overhang38-verification.json','edit-vector-overhang38-evidence.json','edit-fractional39-verification.json','edit-fractional39-evidence.json'):
+ path='test-results/audit-2026-11-05/mouse/'+name
+ if path not in case['evidence']:case['evidence'].append(path)
+ledger['updated']=datetime.now(timezone.utc).isoformat();lp.write_text(json.dumps(ledger,indent=2,ensure_ascii=False)+'\n',encoding='utf-8');counts=Counter(c['status'] for c in ledger['cases']);assert counts==Counter({'Pass':75,'Partial':271,'Blocked':3})
+rp=folder/'README.md';text=rp.read_text(encoding='utf-8').replace('**74 Pass, 272 Partial, 0 Not run, 3 Blocked**','**75 Pass, 271 Partial, 0 Not run, 3 Blocked**').replace('after all thirty-eight fixes passes **684 checks','after all thirty-nine fixes passes **688 checks').replace('(`all-thirty-eight-fixes/report.json`)','(`all-thirty-nine-fixes/report.json`)')
+if '## LIVE-039:' not in text:text+='\n## LIVE-039: accepted fractional piece transforms\n\n'+fix+'\n\n'+note+'\n'
+rp.write_text(text,encoding='utf-8');ep=evidence/'environment.json';env=json.loads(ep.read_text(encoding='utf-8-sig'))
+if not any(f['path']=='src/object-ui.ts' for f in env['dirty_source']):env['dirty_source'].append({'path':'src/object-ui.ts'})
+for f in env['dirty_source']:f['sha256']=hashlib.sha256((root/f['path']).read_bytes()).hexdigest()
+env['recorded']=ledger['updated'];env['fix_count']=39;env['latest_regression']={'report':'test-results/audit-2026-11-05/all-thirty-nine-fixes/report.json','passed':sum(s['passed'] for s in report['suites'])+1,'failed':0,'page_errors':0};assert env['latest_regression']['passed']==688
+production=evidence/'production-seven-fixes';index=(production/'index.html').read_bytes();entry=re.search(rb'<script[^>]+src="([^"]+)"',index).group(1).decode();env['production_build']={'fixes':39,'index_sha256':hashlib.sha256(index).hexdigest(),'entry':entry,'entry_sha256':hashlib.sha256((production/entry.removeprefix('./').lstrip('/')).read_bytes()).hexdigest()};ep.write_text(json.dumps(env,indent=2)+'\n',encoding='utf-8');print(dict(counts));print(env['latest_regression'])
